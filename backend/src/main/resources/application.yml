@@ -1,14 +1,6 @@
 spring:
   application:
     name: sysflow-backend
-  datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/sysflow}
-    username: ${POSTGRES_USER:sysflow}
-    password: ${POSTGRES_PASSWORD:sysflow}
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: false
 
 server:
   port: 8080
@@ -19,3 +11,6 @@ jwt:
 
 gemini:
   api-key: ${GEMINI_API_KEY:}
+
+# Datasource config intentionally omitted — re-add alongside spring-boot-starter-data-jpa
+# in Phase 6 (see docs/05-ROADMAP.md and pom.xml comment).

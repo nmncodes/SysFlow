@@ -1,36 +1,48 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import ReactFlow, {
   Background,
   Controls,
   MiniMap,
   addEdge,
-  useEdgesState,
-  useNodesState,
   type Connection,
   type Edge,
   type Node,
+  type OnEdgesChange,
+  type OnNodesChange,
   type ReactFlowInstance,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import ArchNode, { type ArchNodeData } from './ArchNode'
+import ArchEdge from './ArchEdge'
 import Palette from './Palette'
 import ConfigPanel from './ConfigPanel'
-import { COMPONENT_LIBRARY } from './nodes'
+import { COMPONENT_LIBRARY, deriveHealth } from './nodes'
+import type { Tick } from '../lib/api'
 
 const nodeTypes = { archNode: ArchNode }
+const edgeTypes = { archEdge: ArchEdge }
 
 let idCounter = 1
 const nextId = () => `node_${idCounter++}`
 
-export default function Canvas() {
-  const [nodes, setNodes, onNodesChange] = useNodesState<ArchNodeData>([])
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
+interface Props {
+  nodes: Node<ArchNodeData>[]
+  edges: Edge[]
+  onNodesChange: OnNodesChange
+  onEdgesChange: OnEdgesChange
+  setNodes: React.Dispatch<React.SetStateAction<Node<ArchNodeData>[]>>
+  setEdges: React.Dispatch<React.SetStateAction<Edge[]>>
+  currentTick: Tick | null
+  isPlaying: boolean
+}
+
+export default function Canvas({ nodes, edges, onNodesChange, onEdgesChange, setNodes, setEdges, currentTick, isPlaying }: Props) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
 
   const onConnect = useCallback(
-    (connection: Connection) => setEdges((eds) => addEdge({ ...connection, animated: false }, eds)),
+    (connection: Connection) => setEdges((eds) => addEdge({ ...connection, type: 'archEdge' }, eds)),
     [setEdges],
   )
 
@@ -50,7 +62,12 @@ export default function Canvas() {
         id,
         type: 'archNode',
         position,
-        data: { componentType, label: def?.label ?? componentType, health: 'idle' },
+        data: {
+          componentType,
+          label: def?.label ?? componentType,
+          config: { ...(def?.defaultConfig ?? {}) },
+          health: 'idle',
+        },
       }
       setNodes((nds) => nds.concat(newNode))
     },
@@ -65,6 +82,7 @@ export default function Canvas() {
   const selectedNode = nodes.find((n) => n.id === selectedNodeId) ?? null
 
   const handleConfigChange = (nodeId: string, config: Record<string, unknown>) => {
+    const { __label, ...rest } = config
     setNodes((nds) =>
       nds.map((n) =>
         n.id === nodeId
@@ -72,7 +90,8 @@ export default function Canvas() {
               ...n,
               data: {
                 ...n.data,
-                label: typeof config.__label === 'string' ? config.__label : n.data.label,
+                label: typeof __label === 'string' ? __label : n.data.label,
+                config: rest,
               },
             }
           : n,
@@ -86,6 +105,36 @@ export default function Canvas() {
     setSelectedNodeId(null)
   }
 
+  // Drive node health from the current simulation tick.
+  useEffect(() => {
+    setNodes((nds) =>
+      nds.map((n) => {
+        const stats = currentTick?.nodes[n.id]
+        const health = stats ? deriveHealth(stats.loadPct, stats.errorRatePct, stats.down) : 'idle'
+        return n.data.health === health ? n : { ...n, data: { ...n.data, health } }
+      }),
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTick])
+
+  useEffect(() => {
+    setEdges((eds) =>
+      eds.map((e) => {
+        const stats = currentTick?.edges[e.id]
+        return {
+          ...e,
+          type: 'archEdge',
+          data: {
+            inFlight: stats?.inFlight ?? 0,
+            avgLatencyMs: stats?.avgLatencyMs ?? 0,
+            active: isPlaying && !!stats && stats.inFlight > 0.01,
+          },
+        }
+      }),
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTick, isPlaying])
+
   return (
     <div className="flex h-full min-h-0 flex-1">
       <Palette />
@@ -98,10 +147,10 @@ export default function Canvas() {
           onConnect={onConnect}
           onInit={setRfInstance}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           onNodeClick={(_, node) => setSelectedNodeId(node.id)}
           onPaneClick={() => setSelectedNodeId(null)}
           fitView
-          colorMode="light"
         >
           <Background gap={22} color="#e4e4e7" />
           <Controls className="!shadow-md [&>button]:!border-zinc-200 [&>button]:!bg-white" />

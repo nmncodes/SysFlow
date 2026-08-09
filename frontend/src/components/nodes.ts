@@ -53,3 +53,10 @@ export const HEALTH_COLORS: Record<HealthState, string> = {
   critical: '#f97316',
   down: '#ef4444',
 }
+
+export function deriveHealth(loadPct: number, errorRatePct: number, down: boolean): HealthState {
+  if (down) return 'down'
+  if (loadPct > 85 || errorRatePct >= 5) return 'critical'
+  if (loadPct >= 60 || errorRatePct >= 1) return 'underLoad'
+  return 'healthy'
+}
