@@ -1,0 +1,13 @@
+package dev.sysflow.simulation.model;
+
+import java.util.List;
+
+public record SimulationSummary(
+        double avgRps,
+        double avgErrorRatePct,
+        double avgP95,
+        String bottleneckNodeId,
+        double bottleneckLoadPct,
+        List<String> singlePointsOfFailure
+) {
+}
