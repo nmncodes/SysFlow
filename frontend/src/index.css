@@ -9,6 +9,7 @@
   --text-muted: #71717a;
   --accent: #6d28d9;
   --accent-soft: #f3f0ff;
+  --ease-apple: cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 html, body, #root {
@@ -16,11 +17,34 @@ html, body, #root {
   margin: 0;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', 'Segoe UI',
+    system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgba(109, 40, 217, 0.15);
+}
+
+/* Apple-style tactile press: every interactive control eases with the
+   same spring-like curve and settles slightly on press. */
+button, a {
+  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+  transition-duration: 0.18s;
+  transition-timing-function: var(--ease-apple);
+}
+
+button:active, a:active {
+  transform: scale(0.97);
 }
 
 .react-flow__attribution {
