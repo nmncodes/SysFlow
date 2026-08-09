@@ -15,17 +15,19 @@ export default function ArchNode({ data, selected }: NodeProps<ArchNodeData>) {
   return (
     <div
       style={{
-        boxShadow: `0 0 0 2px ${ringColor}, 0 0 12px ${ringColor}55`,
+        boxShadow: selected
+          ? `0 0 0 2px ${ringColor}33, 0 4px 16px rgba(0,0,0,0.08)`
+          : `0 0 0 1.5px ${ringColor}55, 0 1px 3px rgba(0,0,0,0.04)`,
       }}
-      className={`flex min-w-[140px] flex-col items-center gap-1 rounded-xl border px-4 py-3 transition-shadow ${
-        selected ? 'border-purple-400 bg-[#1c1e27]' : 'border-[#2e303a] bg-[#191b22]'
-      }`}
+      className="flex min-w-[136px] flex-col items-center gap-1 rounded-2xl border border-white bg-white px-4 py-3.5 transition-shadow"
     >
-      <Handle type="target" position={Position.Left} className="!bg-purple-400" />
-      <span className="text-2xl leading-none">{def?.icon ?? '❓'}</span>
-      <span className="text-sm font-medium text-gray-200">{data.label}</span>
-      <span className="text-[10px] uppercase tracking-wide text-gray-500">{def?.label}</span>
-      <Handle type="source" position={Position.Right} className="!bg-purple-400" />
+      <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-2 !border-white !bg-violet-400" />
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-50 text-xl leading-none">
+        {def?.icon ?? '❓'}
+      </span>
+      <span className="text-sm font-medium text-zinc-800">{data.label}</span>
+      <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">{def?.label}</span>
+      <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border-2 !border-white !bg-violet-400" />
     </div>
   )
 }

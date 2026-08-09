@@ -101,11 +101,11 @@ export default function Canvas() {
           onNodeClick={(_, node) => setSelectedNodeId(node.id)}
           onPaneClick={() => setSelectedNodeId(null)}
           fitView
-          colorMode="dark"
+          colorMode="light"
         >
-          <Background gap={20} color="#2e303a" />
-          <Controls />
-          <MiniMap pannable zoomable className="!bg-[#191b22]" />
+          <Background gap={22} color="#e4e4e7" />
+          <Controls className="!shadow-md [&>button]:!border-zinc-200 [&>button]:!bg-white" />
+          <MiniMap pannable zoomable className="!bg-white !shadow-md" />
         </ReactFlow>
       </div>
       {selectedNode && (

@@ -15,19 +15,22 @@ export default function ConfigPanel({ node, onChange, onDelete, onClose }: Props
   const config = (node.data as unknown as { config?: Record<string, unknown> }).config ?? def?.defaultConfig ?? {}
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col gap-3 border-l border-[#2e303a] bg-[#14151b] p-4">
+    <aside className="flex w-72 shrink-0 flex-col gap-4 overflow-y-auto border-l border-zinc-200 bg-white p-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-gray-200">
-          {def?.icon} {def?.label}
-        </h2>
-        <button onClick={onClose} className="text-gray-500 hover:text-gray-300">
+        <div className="flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-50 text-base">
+            {def?.icon}
+          </span>
+          <h2 className="text-sm font-semibold text-zinc-800">{def?.label}</h2>
+        </div>
+        <button onClick={onClose} className="text-zinc-400 transition hover:text-zinc-600">
           ✕
         </button>
       </div>
-      <label className="flex flex-col gap-1 text-xs text-gray-400">
+      <label className="flex flex-col gap-1.5 text-xs font-medium text-zinc-500">
         Name
         <input
-          className="rounded border border-[#2e303a] bg-[#191b22] px-2 py-1 text-sm text-gray-200"
+          className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800 outline-none transition focus:border-violet-300 focus:bg-white focus:ring-2 focus:ring-violet-100"
           value={node.data.label}
           onChange={(e) => onChange(node.id, { ...config, __label: e.target.value })}
         />
@@ -35,10 +38,10 @@ export default function ConfigPanel({ node, onChange, onDelete, onClose }: Props
       {Object.entries(config)
         .filter(([k]) => k !== '__label')
         .map(([key, value]) => (
-          <label key={key} className="flex flex-col gap-1 text-xs text-gray-400">
+          <label key={key} className="flex flex-col gap-1.5 text-xs font-medium text-zinc-500">
             {key}
             <input
-              className="rounded border border-[#2e303a] bg-[#191b22] px-2 py-1 text-sm text-gray-200"
+              className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800 outline-none transition focus:border-violet-300 focus:bg-white focus:ring-2 focus:ring-violet-100"
               value={String(value)}
               onChange={(e) =>
                 onChange(node.id, { ...config, [key]: isNaN(Number(e.target.value)) ? e.target.value : Number(e.target.value) })
@@ -48,7 +51,7 @@ export default function ConfigPanel({ node, onChange, onDelete, onClose }: Props
         ))}
       <button
         onClick={() => onDelete(node.id)}
-        className="mt-auto rounded border border-red-900 bg-red-950/40 px-3 py-2 text-sm text-red-400 hover:bg-red-950/70"
+        className="mt-auto rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-100"
       >
         Delete Node
       </button>
