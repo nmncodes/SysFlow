@@ -1,5 +1,6 @@
 import { Handle, Position, type NodeProps } from 'reactflow'
 import { COMPONENT_LIBRARY, HEALTH_COLORS, type HealthState } from './nodes'
+import { COMPONENT_ICONS } from './icons'
 
 export interface ArchNodeData {
   componentType: string
@@ -10,6 +11,7 @@ export interface ArchNodeData {
 
 export default function ArchNode({ data, selected }: NodeProps<ArchNodeData>) {
   const def = COMPONENT_LIBRARY.find((c) => c.type === data.componentType)
+  const Icon = COMPONENT_ICONS[data.componentType as keyof typeof COMPONENT_ICONS]
   const health: HealthState = data.health ?? 'idle'
   const ringColor = HEALTH_COLORS[health]
   const pulsing = health === 'underLoad' || health === 'critical'
@@ -26,8 +28,8 @@ export default function ArchNode({ data, selected }: NodeProps<ArchNodeData>) {
       }`}
     >
       <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-2 !border-white !bg-violet-400" />
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-50 text-xl leading-none">
-        {def?.icon ?? '❓'}
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-50 text-zinc-700">
+        {Icon && <Icon />}
       </span>
       <span className="text-sm font-medium text-zinc-800">{data.label}</span>
       <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">{def?.label}</span>

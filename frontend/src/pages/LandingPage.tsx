@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { ClientIcon, DatabaseIcon, LoadBalancerIcon, ServiceIcon } from '../components/icons'
 
 const FEATURES = [
   {
@@ -93,18 +94,22 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center justify-center gap-6 px-8 py-16 sm:gap-10">
             {[
-              { icon: '🧑', label: 'Client', ring: '#22c55e' },
-              { icon: '🔀', label: 'Load Balancer', ring: '#22c55e' },
-              { icon: '⬡', label: 'Service', ring: '#f59e0b' },
-              { icon: '🛢️', label: 'Database', ring: '#ef4444' },
+              { Icon: ClientIcon, label: 'Client', status: 'healthy' },
+              { Icon: LoadBalancerIcon, label: 'Load Balancer', status: 'healthy' },
+              { Icon: ServiceIcon, label: 'Service', status: 'warning' },
+              { Icon: DatabaseIcon, label: 'Database', status: 'critical' },
             ].map((n, i) => (
               <div key={n.label} className="flex items-center gap-6 sm:gap-10">
-                <div
-                  className="flex flex-col items-center gap-1.5 rounded-2xl bg-white px-4 py-3.5"
-                  style={{ boxShadow: `0 0 0 1.5px ${n.ring}55, 0 1px 3px rgba(0,0,0,0.04)` }}
-                >
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-50 text-xl">
-                    {n.icon}
+                <div className="flex flex-col items-center gap-2 rounded-2xl border border-zinc-100 bg-white px-5 py-4">
+                  <span className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-50 text-zinc-700">
+                    <n.Icon />
+                    <span
+                      className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-white"
+                      style={{
+                        background:
+                          n.status === 'healthy' ? '#22c55e' : n.status === 'warning' ? '#f59e0b' : '#ef4444',
+                      }}
+                    />
                   </span>
                   <span className="text-xs font-medium text-zinc-600">{n.label}</span>
                 </div>
