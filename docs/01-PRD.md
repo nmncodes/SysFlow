@@ -2,7 +2,7 @@
 ## ArchFlow — Interactive System Design & Architecture Simulation Platform
 
 **Status:** Draft v1.0
-**Owner:** Aditya, Aryan, Debojyoti, Isha, Naman
+**Owner:** Aryan, Naman, Aditya, Isha, Debojyoti
 **Last updated:** 2026-08-09
 
 ---
