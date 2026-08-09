@@ -25,7 +25,7 @@ Aryan · Naman · Aditya · Isha · Debojyoti
 
 ## Tech Stack
 
-- **Frontend:** React + TypeScript + Vite, React Flow, Tailwind CSS, Rechart
+- **Frontend:** React + TypeScript + Vite, React Flow, Tailwind CSS, Recharts
 - **Backend:** Spring Boot 3 (Java 21), Spring Security + JWT
 - **Database:** PostgreSQL
 - **AI:** Gemini API (proxied through backend)
