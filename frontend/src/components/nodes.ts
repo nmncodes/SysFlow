@@ -7,37 +7,46 @@ export type ComponentType =
   | 'database'
   | 'queue'
 
+export type ComponentCategory = 'Client' | 'Traffic & Edge' | 'Compute' | 'Data'
+
 export interface ComponentDef {
   type: ComponentType
   label: string
+  category: ComponentCategory
   defaultConfig: Record<string, unknown>
 }
 
 export const COMPONENT_LIBRARY: ComponentDef[] = [
-  { type: 'client', label: 'Client', defaultConfig: { targetRps: 100 } },
+  { type: 'client', label: 'Client', category: 'Client', defaultConfig: { targetRps: 100 } },
   {
     type: 'loadBalancer',
     label: 'Load Balancer',
+    category: 'Traffic & Edge',
     defaultConfig: { algorithm: 'round-robin', maxThroughput: 1000 },
   },
-  { type: 'apiGateway', label: 'API Gateway', defaultConfig: { rateLimit: 500 } },
+  { type: 'apiGateway', label: 'API Gateway', category: 'Traffic & Edge', defaultConfig: { rateLimit: 500 } },
   {
     type: 'service',
     label: 'Service',
+    category: 'Compute',
     defaultConfig: { minLatencyMs: 20, maxLatencyMs: 80, maxConcurrency: 500, failureRateAtSaturation: 5 },
   },
+  { type: 'queue', label: 'Message Queue', category: 'Compute', defaultConfig: { maxThroughput: 1000, consumers: 1 } },
   {
     type: 'cache',
     label: 'Cache',
+    category: 'Data',
     defaultConfig: { hitRatePct: 80, hitLatencyMs: 2, missLatencyMs: 40 },
   },
   {
     type: 'database',
     label: 'Database',
+    category: 'Data',
     defaultConfig: { readLatencyMs: 15, writeLatencyMs: 30, maxConnections: 200, replicaCount: 0 },
   },
-  { type: 'queue', label: 'Message Queue', defaultConfig: { maxThroughput: 1000, consumers: 1 } },
 ]
+
+export const COMPONENT_CATEGORIES: ComponentCategory[] = ['Client', 'Traffic & Edge', 'Compute', 'Data']
 
 export type HealthState = 'idle' | 'healthy' | 'underLoad' | 'critical' | 'down'
 

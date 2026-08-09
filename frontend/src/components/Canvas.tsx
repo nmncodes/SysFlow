@@ -137,7 +137,14 @@ export default function Canvas({ nodes, edges, onNodesChange, onEdgesChange, set
 
   return (
     <div className="flex h-full min-h-0 flex-1">
-      <Palette />
+      {selectedNode && (
+        <ConfigPanel
+          node={selectedNode}
+          onChange={handleConfigChange}
+          onDelete={handleDelete}
+          onClose={() => setSelectedNodeId(null)}
+        />
+      )}
       <div ref={wrapperRef} className="min-w-0 flex-1" onDrop={onDrop} onDragOver={onDragOver}>
         <ReactFlow
           nodes={nodes}
@@ -157,14 +164,7 @@ export default function Canvas({ nodes, edges, onNodesChange, onEdgesChange, set
           <MiniMap pannable zoomable className="!bg-white !shadow-md" />
         </ReactFlow>
       </div>
-      {selectedNode && (
-        <ConfigPanel
-          node={selectedNode}
-          onChange={handleConfigChange}
-          onDelete={handleDelete}
-          onClose={() => setSelectedNodeId(null)}
-        />
-      )}
+      <Palette />
     </div>
   )
 }

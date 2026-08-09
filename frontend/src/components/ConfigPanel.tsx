@@ -17,7 +17,7 @@ export default function ConfigPanel({ node, onChange, onDelete, onClose }: Props
   const config = (node.data as unknown as { config?: Record<string, unknown> }).config ?? def?.defaultConfig ?? {}
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col gap-4 overflow-y-auto border-l border-zinc-200 bg-white p-5">
+    <aside className="flex w-72 shrink-0 flex-col gap-4 overflow-y-auto border-r border-zinc-200 bg-white p-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-50 text-zinc-600">

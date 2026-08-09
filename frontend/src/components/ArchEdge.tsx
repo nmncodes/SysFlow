@@ -1,4 +1,4 @@
-import { BaseEdge, getBezierPath, type EdgeProps } from 'reactflow'
+import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from 'reactflow'
 
 export interface ArchEdgeData {
   inFlight?: number
@@ -17,6 +17,11 @@ function latencyToDuration(latencyMs: number): number {
   return Math.min(4, Math.max(0.6, latencyMs / 30))
 }
 
+function formatRps(rps: number): string {
+  if (rps >= 1000) return `${(rps / 1000).toFixed(1)}k`
+  return Math.round(rps).toString()
+}
+
 export default function ArchEdge({
   id,
   sourceX,
@@ -27,7 +32,7 @@ export default function ArchEdge({
   targetPosition,
   data,
 }: EdgeProps<ArchEdgeData>) {
-  const [path] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
+  const [path, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
   const inFlight = data?.inFlight ?? 0
   const latency = data?.avgLatencyMs ?? 0
   const active = data?.active ?? false
@@ -35,6 +40,7 @@ export default function ArchEdge({
   const strokeWidth = active ? Math.min(6, 1.5 + inFlight / 4) : 1.5
   const strokeColor = active ? latencyToColor(latency) : '#d4d4d8'
   const particleCount = active ? Math.min(4, Math.max(1, Math.round(inFlight / 3))) : 0
+  const rps = inFlight * 10
 
   return (
     <>
@@ -50,6 +56,20 @@ export default function ArchEdge({
             />
           </circle>
         ))}
+      {active && rps > 0.5 && (
+        <EdgeLabelRenderer>
+          <div
+            style={{
+              position: 'absolute',
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+            }}
+            className="pointer-events-none flex items-center gap-1 rounded-full border border-zinc-100 bg-white/90 px-2 py-0.5 text-[10px] font-medium text-zinc-500 shadow-sm backdrop-blur-sm"
+          >
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: strokeColor }} />
+            {formatRps(rps)} rps · {Math.round(latency)}ms
+          </div>
+        </EdgeLabelRenderer>
+      )}
     </>
   )
 }

@@ -4,7 +4,7 @@ import { runSimulation, type SimulationResult, type Tick } from './api'
 import type { ArchNodeData } from '../components/ArchNode'
 import { deriveHealth } from '../components/nodes'
 
-const TICK_PLAYBACK_MS = 150
+const BASE_TICK_PLAYBACK_MS = 150
 
 export function useSimulation() {
   const [result, setResult] = useState<SimulationResult | null>(null)
@@ -12,6 +12,7 @@ export function useSimulation() {
   const [isPlaying, setIsPlaying] = useState(false)
   const [isRunning, setIsRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [speed, setSpeed] = useState(1)
   const timerRef = useRef<number | null>(null)
 
   const stopPlayback = useCallback(() => {
@@ -61,11 +62,11 @@ export function useSimulation() {
         }
         return i + 1
       })
-    }, TICK_PLAYBACK_MS)
+    }, BASE_TICK_PLAYBACK_MS / speed)
     return () => {
       if (timerRef.current !== null) window.clearInterval(timerRef.current)
     }
-  }, [isPlaying, result])
+  }, [isPlaying, result, speed])
 
   const currentTick: Tick | null = result?.ticks[tickIndex] ?? null
 
@@ -91,6 +92,8 @@ export function useSimulation() {
     isPlaying,
     isRunning,
     error,
+    speed,
+    setSpeed,
     run,
     pause: stopPlayback,
     resume: () => result && setIsPlaying(true),
