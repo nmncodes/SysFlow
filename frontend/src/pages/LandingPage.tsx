@@ -46,7 +46,7 @@ export default function LandingPage() {
           </nav>
           <Link
             to="/app"
-            className="inline-flex items-center gap-1.5 rounded-full bg-zinc-900 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-zinc-700"
+            className="btn-dark inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-medium transition-colors"
           >
             Open Editor
             <span aria-hidden>→</span>
@@ -73,7 +73,7 @@ export default function LandingPage() {
         <div className="mt-10 flex items-center justify-center gap-3">
           <Link
             to="/app"
-            className="rounded-full bg-zinc-900 px-6 py-3 text-[14px] font-medium text-white transition-colors hover:bg-zinc-700"
+            className="btn-dark rounded-full px-6 py-3 text-[14px] font-medium transition-colors"
           >
             Start building — it's free
           </Link>
@@ -170,7 +170,7 @@ export default function LandingPage() {
         </p>
         <Link
           to="/app"
-          className="mt-8 inline-block rounded-full bg-zinc-900 px-7 py-3.5 text-[14px] font-medium text-white transition-colors hover:bg-zinc-700"
+          className="btn-dark mt-8 inline-block rounded-full px-7 py-3.5 text-[14px] font-medium transition-colors"
         >
           Open the editor →
         </Link>

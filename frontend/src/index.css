@@ -50,3 +50,18 @@ button:active, a:active {
 .react-flow__attribution {
   display: none;
 }
+
+/* Plain authored class for primary CTAs — a couple of Tailwind utility
+   combos on these buttons intermittently failed to apply their
+   background/text color (verified via devtools: text renders fine,
+   bg-zinc-900/text-white simply weren't taking effect). Rather than
+   chase the Tailwind/PostCSS quirk, these two properties are owned by
+   plain CSS here so they can never silently fail to apply. */
+.btn-dark {
+  background-color: #18181b;
+  color: #ffffff;
+}
+
+.btn-dark:hover {
+  background-color: #3f3f46;
+}
