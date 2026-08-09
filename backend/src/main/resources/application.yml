@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: sysflow-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/sysflow}
+    username: ${POSTGRES_USER:sysflow}
+    password: ${POSTGRES_PASSWORD:sysflow}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+server:
+  port: 8080
+
+jwt:
+  secret: ${JWT_SECRET:change-me-in-env-this-is-a-dev-only-default-secret-value}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+gemini:
+  api-key: ${GEMINI_API_KEY:}
