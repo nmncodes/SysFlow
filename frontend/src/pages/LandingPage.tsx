@@ -30,6 +30,29 @@ const STEPS = [
 
 const NAV_LINK = 'text-[13.5px] text-zinc-500 transition-colors hover:text-zinc-900'
 
+const INCIDENT_NODES = [
+  { Icon: ClientIcon, label: 'Client', status: 'healthy' as const },
+  { Icon: LoadBalancerIcon, label: 'Load Balancer', status: 'healthy' as const },
+  { Icon: ServiceIcon, label: 'Service', status: 'critical' as const },
+  { Icon: DatabaseIcon, label: 'Database', status: 'critical' as const },
+]
+
+/** Mini version of the editor's animated edge particle — same visual language, used to make the hero preview feel alive rather than static. */
+function FlowConnector({ critical }: { critical: boolean }) {
+  const color = critical ? '#ef4444' : '#60a5fa'
+  const duration = critical ? 1.6 : 0.9
+  return (
+    <div className="flex w-10 items-center justify-center sm:w-16" aria-hidden>
+      <svg width="100%" height="16" viewBox="0 0 64 16" style={{ overflow: 'visible' }}>
+        <line x1="2" y1="8" x2="62" y2="8" stroke="#e4e4e7" strokeWidth="2" strokeLinecap="round" />
+        <circle r="3" fill={color}>
+          <animateMotion dur={`${duration}s`} repeatCount="indefinite" path="M2,8 H62" />
+        </circle>
+      </svg>
+    </div>
+  )
+}
+
 export default function LandingPage() {
   const features = useInView<HTMLDivElement>()
   const howItWorks = useInView<HTMLDivElement>()
@@ -130,14 +153,9 @@ export default function LandingPage() {
             ))}
           </div>
 
-          <div className="flex items-center justify-center gap-6 px-8 py-16 sm:gap-10">
-            {[
-              { Icon: ClientIcon, label: 'Client', status: 'healthy' },
-              { Icon: LoadBalancerIcon, label: 'Load Balancer', status: 'healthy' },
-              { Icon: ServiceIcon, label: 'Service', status: 'critical' },
-              { Icon: DatabaseIcon, label: 'Database', status: 'critical' },
-            ].map((n, i) => (
-              <div key={n.label} className="flex items-center gap-6 sm:gap-10">
+          <div className="flex items-center justify-center gap-1 px-8 py-16 sm:gap-2">
+            {INCIDENT_NODES.map((n, i) => (
+              <div key={n.label} className="flex items-center">
                 <div
                   className={`flex flex-col items-center gap-2 rounded-2xl border px-5 py-4 ${
                     n.status === 'critical' ? 'border-red-100 bg-red-50/30' : 'border-zinc-100 bg-white'
@@ -154,7 +172,9 @@ export default function LandingPage() {
                   </span>
                   <span className="text-xs font-medium text-zinc-600">{n.label}</span>
                 </div>
-                {i < 3 && <span className="hidden text-zinc-300 sm:block">→</span>}
+                {i < INCIDENT_NODES.length - 1 && (
+                  <FlowConnector critical={INCIDENT_NODES[i + 1].status === 'critical'} />
+                )}
               </div>
             ))}
           </div>
