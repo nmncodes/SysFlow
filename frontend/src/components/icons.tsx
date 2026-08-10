@@ -83,6 +83,50 @@ export function AutoScalingGroupIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function LightningIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M13 3 5 13.5h6L11 21l8-10.5h-6L13 3Z" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+export function SkullIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="9" cy="10.5" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="10.5" r="1.2" fill="currentColor" stroke="none" />
+      <path d="M6 11c0-3.9 2.7-7 6-7s6 3.1 6 7c0 2-1 3.7-2.3 4.8v2.7h-1.4v-1.7h-1v1.7h-1v-1.7h-1v1.7h-1.4v-2.7C7 14.7 6 13 6 11Z" />
+    </svg>
+  )
+}
+
+export function ClockIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </svg>
+  )
+}
+
+export function ThrottleIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 18 9 8l4 6 3-5 4 9" />
+    </svg>
+  )
+}
+
+export function PacketDropIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 6h16M4 12h10M4 18h7" />
+      <path d="M18 14v7M15 18l3 3 3-3" />
+    </svg>
+  )
+}
+
 export const COMPONENT_ICONS = {
   client: ClientIcon,
   loadBalancer: LoadBalancerIcon,

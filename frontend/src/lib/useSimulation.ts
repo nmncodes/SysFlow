@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Edge, Node } from 'reactflow'
-import { runSimulation, type SimulationResult, type Tick } from './api'
+import { runSimulation, type InjectedFailure, type SimulationResult, type Tick } from './api'
 import type { ArchNodeData } from '../components/ArchNode'
 import { deriveHealth } from '../components/nodes'
 
@@ -24,7 +24,13 @@ export function useSimulation() {
   }, [])
 
   const run = useCallback(
-    async (nodes: Node<ArchNodeData>[], edges: Edge[], targetRps: number, durationSeconds: number) => {
+    async (
+      nodes: Node<ArchNodeData>[],
+      edges: Edge[],
+      targetRps: number,
+      durationSeconds: number,
+      injectedFailures: InjectedFailure[] = [],
+    ) => {
       setIsRunning(true)
       setError(null)
       try {
@@ -33,6 +39,7 @@ export function useSimulation() {
           edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target })),
           targetRps,
           durationSeconds,
+          injectedFailures,
         })
         setResult(res)
         setTickIndex(0)

@@ -60,17 +60,16 @@ export default function LandingPage() {
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] bg-[radial-gradient(50%_50%_at_50%_0%,rgba(109,40,217,0.08),transparent)]"
         />
-        <p className="text-[13px] font-medium uppercase tracking-[0.14em] text-violet-600">
+        <p className="hero-in text-[13px] font-medium uppercase tracking-[0.14em] text-violet-600">
           Interactive System Design Simulator
         </p>
-        <h1 className="mx-auto mt-6 max-w-3xl text-[42px] font-medium leading-[1.1] tracking-[-0.02em] text-zinc-900 sm:text-[64px]">
-          Design systems that actually behave the way you think
+        <h1 className="hero-in hero-in-delay-1 mx-auto mt-6 max-w-3xl text-[40px] font-semibold leading-[1.08] tracking-[-0.025em] text-zinc-900 sm:text-[60px]">
+          Find the bottleneck <span className="text-red-500">before production does.</span>
         </h1>
-        <p className="mx-auto mt-6 max-w-lg text-[16px] leading-relaxed text-zinc-500 sm:text-[17px]">
-          Stop drawing static boxes and arrows. Build your architecture, run real traffic through
-          it, and find the bottlenecks before production does.
+        <p className="hero-in hero-in-delay-2 mx-auto mt-6 max-w-lg text-[16px] leading-relaxed text-zinc-500 sm:text-[17px]">
+          Draw it. Run real traffic. Watch it fail. Fix it.
         </p>
-        <div className="mt-10 flex items-center justify-center gap-3">
+        <div className="hero-in hero-in-delay-3 mt-10 flex items-center justify-center gap-3">
           <Link
             to="/app"
             className="btn-dark rounded-full px-6 py-3 text-[14px] font-medium transition-colors"
@@ -85,30 +84,55 @@ export default function LandingPage() {
           </a>
         </div>
 
-        {/* Preview mock */}
-        <div className="relative mx-auto mt-20 max-w-4xl rounded-2xl border border-zinc-100 bg-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.12)]">
-          <div className="flex items-center gap-1.5 border-b border-zinc-100 px-4 py-3">
-            <span className="h-2.5 w-2.5 rounded-full bg-zinc-200" />
-            <span className="h-2.5 w-2.5 rounded-full bg-zinc-200" />
-            <span className="h-2.5 w-2.5 rounded-full bg-zinc-200" />
+        {/* Incident preview mock */}
+        <div className="hero-in hero-in-delay-4 relative mx-auto mt-20 max-w-4xl rounded-2xl border border-zinc-100 bg-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.12)]">
+          <div className="flex items-center gap-3 border-b border-zinc-100 px-4 py-3">
+            <div className="flex gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-zinc-200" />
+              <span className="h-2.5 w-2.5 rounded-full bg-zinc-200" />
+              <span className="h-2.5 w-2.5 rounded-full bg-zinc-200" />
+            </div>
+            <span className="flex-1 text-center text-[12px] text-zinc-400">checkout · friday traffic surge</span>
+            <span className="flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-600 ring-1 ring-red-100">
+              <span className="live-dot h-1.5 w-1.5 rounded-full bg-red-500" />
+              CASCADING FAILURE
+            </span>
           </div>
+
+          <div className="grid grid-cols-2 divide-x divide-zinc-100 border-b border-zinc-100 sm:grid-cols-4">
+            {[
+              { label: 'Error rate', value: '86.4%' },
+              { label: 'p95 latency', value: '4,180ms' },
+              { label: 'Throughput', value: '0.6k rps' },
+              { label: 'Open issues', value: '3' },
+            ].map((s) => (
+              <div key={s.label} className="px-4 py-4 text-center">
+                <div className="text-[22px] font-semibold tracking-tight text-red-500">{s.value}</div>
+                <div className="mt-0.5 text-[11px] text-zinc-400">{s.label}</div>
+              </div>
+            ))}
+          </div>
+
           <div className="flex items-center justify-center gap-6 px-8 py-16 sm:gap-10">
             {[
               { Icon: ClientIcon, label: 'Client', status: 'healthy' },
               { Icon: LoadBalancerIcon, label: 'Load Balancer', status: 'healthy' },
-              { Icon: ServiceIcon, label: 'Service', status: 'warning' },
+              { Icon: ServiceIcon, label: 'Service', status: 'critical' },
               { Icon: DatabaseIcon, label: 'Database', status: 'critical' },
             ].map((n, i) => (
               <div key={n.label} className="flex items-center gap-6 sm:gap-10">
-                <div className="flex flex-col items-center gap-2 rounded-2xl border border-zinc-100 bg-white px-5 py-4">
+                <div
+                  className={`flex flex-col items-center gap-2 rounded-2xl border px-5 py-4 ${
+                    n.status === 'critical' ? 'border-red-100 bg-red-50/30' : 'border-zinc-100 bg-white'
+                  }`}
+                >
                   <span className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-50 text-zinc-700">
                     <n.Icon />
                     <span
-                      className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-white"
-                      style={{
-                        background:
-                          n.status === 'healthy' ? '#22c55e' : n.status === 'warning' ? '#f59e0b' : '#ef4444',
-                      }}
+                      className={`absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-white ${
+                        n.status === 'critical' ? 'live-dot' : ''
+                      }`}
+                      style={{ background: n.status === 'healthy' ? '#22c55e' : '#ef4444' }}
                     />
                   </span>
                   <span className="text-xs font-medium text-zinc-600">{n.label}</span>

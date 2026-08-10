@@ -1,6 +1,6 @@
 import { Handle, Position, type NodeProps } from 'reactflow'
 import { COMPONENT_LIBRARY, HEALTH_COLORS, type HealthState } from './nodes'
-import { COMPONENT_ICONS } from './icons'
+import { COMPONENT_ICONS, LightningIcon } from './icons'
 
 export interface ArchNodeData {
   componentType: string
@@ -8,6 +8,7 @@ export interface ArchNodeData {
   config: Record<string, unknown>
   health?: HealthState
   replicas?: number
+  hasFailure?: boolean
 }
 
 export default function ArchNode({ data, selected }: NodeProps<ArchNodeData>) {
@@ -43,6 +44,11 @@ export default function ArchNode({ data, selected }: NodeProps<ArchNodeData>) {
       {data.replicas !== undefined && (data.replicas > 1 || data.componentType === 'autoScalingGroup') && (
         <span className="absolute -left-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full border-2 border-white bg-zinc-800 px-1 text-[10px] font-bold text-white shadow-sm">
           x{data.replicas}
+        </span>
+      )}
+      {data.hasFailure && (
+        <span className="absolute -left-2 -bottom-2 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 text-white shadow-sm">
+          <LightningIcon width={11} height={11} />
         </span>
       )}
       <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border-2 !border-white !bg-violet-400" />

@@ -16,8 +16,10 @@ import ArchNode, { type ArchNodeData } from './ArchNode'
 import ArchEdge from './ArchEdge'
 import Palette from './Palette'
 import ConfigPanel from './ConfigPanel'
+import ContextMenu, { type ContextMenuState } from './ContextMenu'
 import { COMPONENT_LIBRARY, deriveHealth } from './nodes'
-import type { Tick } from '../lib/api'
+import type { InjectedFailure, Tick } from '../lib/api'
+import { makeEdgeFailure, makeNodeFailure } from '../lib/failures'
 
 const nodeTypes = { archNode: ArchNode }
 const edgeTypes = { archEdge: ArchEdge }
@@ -34,11 +36,25 @@ interface Props {
   setEdges: React.Dispatch<React.SetStateAction<Edge[]>>
   currentTick: Tick | null
   isPlaying: boolean
+  failures: InjectedFailure[]
+  setFailures: React.Dispatch<React.SetStateAction<InjectedFailure[]>>
 }
 
-export default function Canvas({ nodes, edges, onNodesChange, onEdgesChange, setNodes, setEdges, currentTick, isPlaying }: Props) {
+export default function Canvas({
+  nodes,
+  edges,
+  onNodesChange,
+  onEdgesChange,
+  setNodes,
+  setEdges,
+  currentTick,
+  isPlaying,
+  failures,
+  setFailures,
+}: Props) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null)
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
 
   const onConnect = useCallback(
@@ -102,6 +118,7 @@ export default function Canvas({ nodes, edges, onNodesChange, onEdgesChange, set
   const handleDelete = (nodeId: string) => {
     setNodes((nds) => nds.filter((n) => n.id !== nodeId))
     setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId))
+    setFailures((fs) => fs.filter((f) => f.nodeId !== nodeId))
     setSelectedNodeId(null)
   }
 
@@ -111,8 +128,7 @@ export default function Canvas({ nodes, edges, onNodesChange, onEdgesChange, set
       nds.map((n) => {
         const stats = currentTick?.nodes[n.id]
         const health = stats ? deriveHealth(stats.loadPct, stats.errorRatePct, stats.down) : 'idle'
-        const replicas = stats?.replicas
-        return n.data.health === health && n.data.replicas === replicas ? n : { ...n, data: { ...n.data, health, replicas } }
+        return n.data.health === health ? n : { ...n, data: { ...n.data, health } }
       }),
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -129,12 +145,33 @@ export default function Canvas({ nodes, edges, onNodesChange, onEdgesChange, set
             inFlight: stats?.inFlight ?? 0,
             avgLatencyMs: stats?.avgLatencyMs ?? 0,
             active: isPlaying && !!stats && stats.inFlight > 0.01,
+            hasFailure: failures.some((f) => f.edgeId === e.id),
           },
         }
       }),
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTick, isPlaying])
+  }, [currentTick, isPlaying, failures])
+
+  const applyNodeFailure = (nodeId: string, type: 'kill' | 'latency' | 'throttle') => {
+    setFailures((fs) => [...fs.filter((f) => f.nodeId !== nodeId), makeNodeFailure(nodeId, type)])
+    setContextMenu(null)
+  }
+
+  const applyEdgeFailure = (edgeId: string) => {
+    setFailures((fs) => [...fs.filter((f) => f.edgeId !== edgeId), makeEdgeFailure(edgeId)])
+    setContextMenu(null)
+  }
+
+  const clearFailure = () => {
+    if (!contextMenu) return
+    setFailures((fs) =>
+      contextMenu.targetType === 'node'
+        ? fs.filter((f) => f.nodeId !== contextMenu.targetId)
+        : fs.filter((f) => f.edgeId !== contextMenu.targetId),
+    )
+    setContextMenu(null)
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-1">
@@ -148,7 +185,10 @@ export default function Canvas({ nodes, edges, onNodesChange, onEdgesChange, set
       )}
       <div ref={wrapperRef} className="min-w-0 flex-1" onDrop={onDrop} onDragOver={onDragOver}>
         <ReactFlow
-          nodes={nodes}
+          nodes={nodes.map((n) => ({
+            ...n,
+            data: { ...n.data, hasFailure: failures.some((f) => f.nodeId === n.id) },
+          }))}
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
@@ -157,7 +197,18 @@ export default function Canvas({ nodes, edges, onNodesChange, onEdgesChange, set
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           onNodeClick={(_, node) => setSelectedNodeId(node.id)}
-          onPaneClick={() => setSelectedNodeId(null)}
+          onPaneClick={() => {
+            setSelectedNodeId(null)
+            setContextMenu(null)
+          }}
+          onNodeContextMenu={(e, node) => {
+            e.preventDefault()
+            setContextMenu({ x: e.clientX, y: e.clientY, targetType: 'node', targetId: node.id })
+          }}
+          onEdgeContextMenu={(e, edge) => {
+            e.preventDefault()
+            setContextMenu({ x: e.clientX, y: e.clientY, targetType: 'edge', targetId: edge.id })
+          }}
           fitView
         >
           <Background gap={22} color="#e4e4e7" />
@@ -166,6 +217,20 @@ export default function Canvas({ nodes, edges, onNodesChange, onEdgesChange, set
         </ReactFlow>
       </div>
       <Palette />
+      {contextMenu && (
+        <ContextMenu
+          state={contextMenu}
+          hasFailure={failures.some((f) =>
+            contextMenu.targetType === 'node' ? f.nodeId === contextMenu.targetId : f.edgeId === contextMenu.targetId,
+          )}
+          onKill={() => applyNodeFailure(contextMenu.targetId, 'kill')}
+          onLatency={() => applyNodeFailure(contextMenu.targetId, 'latency')}
+          onThrottle={() => applyNodeFailure(contextMenu.targetId, 'throttle')}
+          onDropPackets={() => applyEdgeFailure(contextMenu.targetId)}
+          onClear={clearFailure}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   )
 }

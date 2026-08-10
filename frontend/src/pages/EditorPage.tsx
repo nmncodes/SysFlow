@@ -4,15 +4,25 @@ import { useEdgesState, useNodesState, type Edge } from 'reactflow'
 import Canvas from '../components/Canvas'
 import type { ArchNodeData } from '../components/ArchNode'
 import { useSimulation } from '../lib/useSimulation'
+import type { InjectedFailure } from '../lib/api'
+import { ClockIcon, PacketDropIcon, SkullIcon, ThrottleIcon } from '../components/icons'
 
 const SPEED_OPTIONS = [0.5, 1, 2, 4]
 const TRAFFIC_OPTIONS = [0.5, 1, 2.5, 5]
+
+const CHAOS_TYPES: { type: InjectedFailure['type']; label: string; Icon: typeof SkullIcon }[] = [
+  { type: 'kill', label: 'Kill node', Icon: SkullIcon },
+  { type: 'latency', label: 'Add latency', Icon: ClockIcon },
+  { type: 'throttle', label: 'Throttle', Icon: ThrottleIcon },
+  { type: 'dropPct', label: 'Drop packets', Icon: PacketDropIcon },
+]
 
 export default function EditorPage() {
   const [nodes, setNodes, onNodesChange] = useNodesState<ArchNodeData>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
   const [baseRps, setBaseRps] = useState(100)
   const [traffic, setTraffic] = useState(1)
+  const [failures, setFailures] = useState<InjectedFailure[]>([])
   const sim = useSimulation()
 
   const hasClient = nodes.some((n) => n.data.componentType === 'client')
@@ -23,7 +33,7 @@ export default function EditorPage() {
       sim.resume()
       return
     }
-    sim.run(nodes, edges, baseRps * traffic, 3)
+    sim.run(nodes, edges, baseRps * traffic, 3, failures)
   }
 
   const global = sim.currentTick?.global
@@ -79,6 +89,8 @@ export default function EditorPage() {
         setEdges={setEdges}
         currentTick={sim.currentTick}
         isPlaying={sim.isPlaying}
+        failures={failures}
+        setFailures={setFailures}
       />
 
       <footer className="flex h-16 shrink-0 items-center justify-between gap-4 border-t border-zinc-200 bg-white/80 px-6 backdrop-blur-sm">
@@ -134,6 +146,26 @@ export default function EditorPage() {
               className="w-24 accent-violet-600"
             />
           </label>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-zinc-500">Chaos:</span>
+            {CHAOS_TYPES.map(({ type, label, Icon }) => {
+              const activeCount = failures.filter((f) => f.type === type).length
+              return (
+                <button
+                  key={type}
+                  title={activeCount > 0 ? `${label} — click to clear` : `${label} (right-click a ${type === 'dropPct' ? 'edge' : 'node'} to apply)`}
+                  onClick={() => activeCount > 0 && setFailures((fs) => fs.filter((f) => f.type !== type))}
+                  className={`flex h-7 w-7 items-center justify-center rounded-lg transition ${
+                    activeCount > 0
+                      ? 'bg-red-50 text-red-500 ring-1 ring-red-100'
+                      : 'text-zinc-300 hover:bg-zinc-50 hover:text-zinc-400'
+                  }`}
+                >
+                  <Icon width={14} height={14} />
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
