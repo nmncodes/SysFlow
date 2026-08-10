@@ -27,6 +27,7 @@ public class SimulationEngine {
 
         double sumRps = 0, sumErrorRate = 0, sumP95 = 0;
         Map<String, Double> maxLoadByNode = new HashMap<>();
+        Map<String, Integer> asgReplicas = new HashMap<>();
 
         for (int t = 0; t < config.totalTicks(); t++) {
             Map<String, InjectedFailure> activeNodeFailures = activeFailuresByNode(config, t);
@@ -56,7 +57,13 @@ public class SimulationEngine {
                 InjectedFailure killOrDegrade = activeNodeFailures.get(node.id());
                 boolean killed = killOrDegrade != null && "kill".equals(killOrDegrade.type());
 
-                double capacity = capacityOf(node);
+                int replicas = 1;
+                if ("autoScalingGroup".equals(node.type())) {
+                    replicas = asgReplicas.getOrDefault(node.id(), (int) node.getNumber("minReplicas", 1));
+                }
+
+                double baseCapacity = capacityOf(node);
+                double capacity = "autoScalingGroup".equals(node.type()) ? baseCapacity * replicas : baseCapacity;
                 double effectiveCapacity = killOrDegrade != null && "throttle".equals(killOrDegrade.type())
                         ? capacity * (1 - clampPct(killOrDegrade.throttlePct()))
                         : capacity;
@@ -88,7 +95,20 @@ public class SimulationEngine {
                 double totalIn = arriving + arrivingFailed;
                 double errorRatePct = totalIn <= 0 ? 0 : Math.min(100, (failedHere / totalIn) * 100);
 
-                nodeStats.put(node.id(), new NodeTickStats(round2(loadPct), round2(errorRatePct), round2(nodeLatency), killed));
+                nodeStats.put(node.id(), new NodeTickStats(round2(loadPct), round2(errorRatePct), round2(nodeLatency), killed, replicas));
+
+                if ("autoScalingGroup".equals(node.type())) {
+                    double targetLoad = node.getNumber("targetLoadPct", 70);
+                    int maxReplicas = (int) node.getNumber("maxReplicas", 10);
+                    int minReplicas = (int) node.getNumber("minReplicas", 1);
+                    if (loadPct > targetLoad && replicas < maxReplicas) {
+                        asgReplicas.put(node.id(), replicas + 1);
+                    } else if (loadPct < (targetLoad - 20) && replicas > minReplicas) {
+                        asgReplicas.put(node.id(), replicas - 1);
+                    } else {
+                        asgReplicas.put(node.id(), replicas);
+                    }
+                }
 
                 if (graph.outgoing(node.id()).isEmpty() && !isClient) {
                     totalAttempted += arriving + arrivingFailed;
@@ -191,6 +211,7 @@ public class SimulationEngine {
             case "loadBalancer" -> node.getNumber("maxThroughput", 1000);
             case "apiGateway" -> node.getNumber("rateLimit", 500);
             case "service" -> node.getNumber("maxConcurrency", 500);
+            case "autoScalingGroup" -> node.getNumber("baseCapacityPerReplica", 500);
             case "cache" -> Double.MAX_VALUE;
             case "database" -> node.getNumber("maxConnections", 200);
             case "queue" -> node.getNumber("maxThroughput", 1000);
@@ -202,7 +223,7 @@ public class SimulationEngine {
         return switch (node.type()) {
             case "loadBalancer" -> 1 + random.nextDouble() * 2;
             case "apiGateway" -> 2 + random.nextDouble() * 3;
-            case "service" -> {
+            case "service", "autoScalingGroup" -> {
                 double min = node.getNumber("minLatencyMs", 20);
                 double max = node.getNumber("maxLatencyMs", 80);
                 yield min + random.nextDouble() * Math.max(0, max - min);

@@ -7,6 +7,7 @@ export interface ArchNodeData {
   label: string
   config: Record<string, unknown>
   health?: HealthState
+  replicas?: number
 }
 
 export default function ArchNode({ data, selected }: NodeProps<ArchNodeData>) {
@@ -38,6 +39,11 @@ export default function ArchNode({ data, selected }: NodeProps<ArchNodeData>) {
           className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-white"
           style={{ background: ringColor }}
         />
+      )}
+      {data.replicas !== undefined && (data.replicas > 1 || data.componentType === 'autoScalingGroup') && (
+        <span className="absolute -left-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full border-2 border-white bg-zinc-800 px-1 text-[10px] font-bold text-white shadow-sm">
+          x{data.replicas}
+        </span>
       )}
       <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border-2 !border-white !bg-violet-400" />
     </div>

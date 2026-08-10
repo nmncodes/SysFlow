@@ -6,6 +6,7 @@ export type ComponentType =
   | 'cache'
   | 'database'
   | 'queue'
+  | 'autoScalingGroup'
 
 export type ComponentCategory = 'Client' | 'Traffic & Edge' | 'Compute' | 'Data'
 
@@ -43,6 +44,12 @@ export const COMPONENT_LIBRARY: ComponentDef[] = [
     label: 'Database',
     category: 'Data',
     defaultConfig: { readLatencyMs: 15, writeLatencyMs: 30, maxConnections: 200, replicaCount: 0 },
+  },
+  {
+    type: 'autoScalingGroup',
+    label: 'Auto-Scaling Group',
+    category: 'Compute',
+    defaultConfig: { minReplicas: 1, maxReplicas: 10, targetLoadPct: 70, baseCapacityPerReplica: 500, minLatencyMs: 20, maxLatencyMs: 80 },
   },
 ]
 

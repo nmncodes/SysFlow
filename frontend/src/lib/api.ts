@@ -5,6 +5,7 @@ export interface NodeTickStats {
   errorRatePct: number
   avgLatencyMs: number
   down: boolean
+  replicas?: number
 }
 
 export interface EdgeTickStats {

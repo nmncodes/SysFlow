@@ -22,3 +22,19 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# Local environment files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Test/build cache
+coverage/
+.nyc_output/
+*.tsbuildinfo
+.cache/
+.tmp/
+
+# Local runtime artifacts
+*.pid
+*.pid.lock

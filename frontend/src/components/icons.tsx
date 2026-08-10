@@ -73,6 +73,16 @@ export function QueueIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function AutoScalingGroupIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3" y="3" width="10" height="10" rx="1" />
+      <rect x="8" y="8" width="10" height="10" rx="1" />
+      <rect x="13" y="13" width="8" height="8" rx="1" />
+    </svg>
+  )
+}
+
 export const COMPONENT_ICONS = {
   client: ClientIcon,
   loadBalancer: LoadBalancerIcon,
@@ -81,4 +91,5 @@ export const COMPONENT_ICONS = {
   cache: CacheIcon,
   database: DatabaseIcon,
   queue: QueueIcon,
+  autoScalingGroup: AutoScalingGroupIcon,
 } as const

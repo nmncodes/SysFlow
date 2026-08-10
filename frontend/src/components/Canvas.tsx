@@ -111,7 +111,8 @@ export default function Canvas({ nodes, edges, onNodesChange, onEdgesChange, set
       nds.map((n) => {
         const stats = currentTick?.nodes[n.id]
         const health = stats ? deriveHealth(stats.loadPct, stats.errorRatePct, stats.down) : 'idle'
-        return n.data.health === health ? n : { ...n, data: { ...n.data, health } }
+        const replicas = stats?.replicas
+        return n.data.health === health && n.data.replicas === replicas ? n : { ...n, data: { ...n.data, health, replicas } }
       }),
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
