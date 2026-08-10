@@ -16,31 +16,36 @@ Turn system architecture from a static diagram into a living simulation — buil
 
 Most system design tools stop at drawing boxes and arrows. SysFlow treats an architecture diagram as a **running simulation**:
 
-- **Build** — drag Load Balancers, Services, Caches, Databases, and Message Queues onto a canvas and wire them together.
+- **Build** — drag any of 17 components (Client, Load Balancer, API Gateway, Service, Cache, Database, CDN, WAF, Auto-Scaling Group, and more) onto a canvas and wire them together.
 - **Simulate** — hit Run and watch animated request traffic flow through your design in real time. Particle speed and color reflect real latency, not a number you have to go read.
-- **Break it** — kill a node, throttle a service, or drop packets on an edge, and watch the failure cascade visually.
-- **Improve** — get AI-generated, graph-specific feedback (single points of failure, missing caches, unprotected databases) before they cost you.
+- **Break it** — right-click a node to kill it, add latency, or throttle it; right-click an edge to drop packets. Watch the failure cascade visually.
+- **Improve** — click Analyze for rule-grounded, graph-specific feedback (single points of failure, missing caches, unprotected databases) — optionally rewritten by Gemini for clarity.
+- **Save it** — register/log in and your architectures persist across sessions.
 
 > The guiding principle behind every design decision: **make architecture visually understandable, not just drawable.** See [`docs/01-PRD.md`](docs/01-PRD.md) for the full product vision.
 
 ## Quick Start
 
-**Prerequisites:** Node.js 20+, Java 21 (JDK), Maven (or use the wrapper once added), and optionally Docker.
+**Prerequisites:** Node.js 20+, Java 21 (JDK), Maven, and a running PostgreSQL instance (Docker is easiest).
 
 ```bash
-# 1. Backend — simulation engine + API
+# 1. Database
+docker run -d --name sysflow-postgres -e POSTGRES_DB=sysflow -e POSTGRES_USER=sysflow \
+  -e POSTGRES_PASSWORD=sysflow -p 5433:5432 postgres:16-alpine
+
+# 2. Backend — simulation engine + API + auth
 cd backend
 mvn spring-boot:run
 # → http://localhost:8080
 
-# 2. Frontend — landing page + editor
+# 3. Frontend — landing page + editor
 cd frontend
 npm install
 npm run dev
 # → http://localhost:5173
 ```
 
-Open `http://localhost:5173` for the landing page, then **Open Editor** to build and simulate an architecture. See [`SETUP.md`](SETUP.md) for environment variables and Docker Compose usage.
+Open `http://localhost:5173` for the landing page, then **Open Editor** to build and simulate an architecture — no login needed to try it. Register/log in only when you want to save a project. See [`SETUP.md`](SETUP.md) for environment variables and Docker Compose usage.
 
 ## Project Status
 
@@ -52,10 +57,10 @@ Actively in development. Phases below track [`docs/05-ROADMAP.md`](docs/05-ROADM
 | 1 — Static Editor | ✅ Done | Drag-and-drop canvas, component palette, inline config panel |
 | 2 — Simulation Engine | ✅ Done | Tick-based request propagation, capacity/latency modeling, SPOF detection (unit tested) |
 | 3 — Live Canvas | ✅ Done | Animated particle edges, live node health colors, real-time metrics from the engine |
-| 4 — Failure Injection | ⏳ Next | Kill/throttle/latency/packet-drop controls |
-| 5 — AI Advisory | ⏳ Planned | Rule-based analysis + Gemini-generated recommendations |
-| 6 — Auth + Persistence | ⏳ Planned | JWT auth, save/load projects (PostgreSQL) |
-| 7 — Polish | ⏳ Planned | Onboarding, starter templates, responsive pass |
+| 4 — Failure Injection | ✅ Done | Right-click kill/throttle/latency on nodes, packet-drop on edges |
+| 5 — AI Advisory | ✅ Done | Rule-based analysis + optional Gemini-generated recommendations |
+| 6 — Auth + Persistence | ✅ Done | JWT auth, project CRUD scoped per user (PostgreSQL) |
+| 7 — Polish | ⏳ Next | Onboarding, starter templates, responsive pass |
 
 ## How It Works
 
@@ -76,7 +81,7 @@ You design the graph in the browser; the backend runs a simplified probabilistic
 
 ```
 frontend/    React + TypeScript + Vite — landing page & simulation editor
-backend/     Spring Boot — simulation engine, REST API, (soon) auth & AI
+backend/     Spring Boot — simulation engine, REST API, auth, AI advisory
 docs/        Product & engineering docs — see below
 ```
 
@@ -100,9 +105,9 @@ docs/        Product & engineering docs — see below
 | Frontend | React 18, TypeScript, Vite, React Flow, Tailwind CSS |
 | Backend | Spring Boot 3, Java 21 |
 | Simulation | Custom tick-based engine (see [docs/02-ARCHITECTURE.md](docs/02-ARCHITECTURE.md)) |
-| Database | PostgreSQL *(landing in Phase 6)* |
-| Auth | Spring Security + JWT *(landing in Phase 6)* |
-| AI | Gemini API, proxied through the backend *(landing in Phase 5)* |
+| Database | PostgreSQL |
+| Auth | Spring Security + JWT |
+| AI | Gemini API, proxied through the backend (optional — falls back to rule-based findings with no key) |
 | Infra | Docker + Docker Compose |
 
 ## Testing
@@ -112,7 +117,7 @@ cd backend
 mvn test
 ```
 
-Simulation engine correctness is covered by unit tests for healthy, saturated, SPOF, and failure-injection scenarios. See [`docs/07-TESTING-STRATEGY.md`](docs/07-TESTING-STRATEGY.md) for what's automated vs. manually verified.
+Runs against an in-memory H2 database (see `application-test.yml`) — no live Postgres required. Covers the simulation engine (healthy/saturated/SPOF/failure-injection scenarios), the AI rule engine, and the full register→login→project-CRUD auth flow (14 tests total). See [`docs/07-TESTING-STRATEGY.md`](docs/07-TESTING-STRATEGY.md) for what's automated vs. manually verified.
 
 ## Team
 

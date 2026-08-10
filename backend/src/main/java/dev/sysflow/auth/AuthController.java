@@ -1,30 +1,47 @@
 package dev.sysflow.auth;
 
+import dev.sysflow.auth.dto.AuthResponse;
+import dev.sysflow.auth.dto.LoginRequest;
+import dev.sysflow.auth.dto.RegisterRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Map;
-
-/**
- * Phase 6 TODO: real JWT-based register/login per docs/04-DATA-MODEL-AND-API.md.
- */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+
+    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
+    }
+
     @PostMapping("/register")
-    public ResponseEntity<Map<String, String>> register(@RequestBody Map<String, String> request) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
-                .body(Map.of("message", "auth module not yet implemented — see docs/05-ROADMAP.md Phase 6"));
+    public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
+        if (userRepository.existsByEmail(request.email())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "An account with this email already exists");
+        }
+        User user = new User(request.email(), passwordEncoder.encode(request.password()), request.displayName());
+        userRepository.save(user);
+        String token = jwtService.generateToken(user.getId(), user.getEmail());
+        return new AuthResponse(token, user.getEmail(), user.getDisplayName());
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(@RequestBody Map<String, String> request) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
-                .body(Map.of("message", "auth module not yet implemented — see docs/05-ROADMAP.md Phase 6"));
+    public AuthResponse login(@Valid @RequestBody LoginRequest request) {
+        User user = userRepository.findByEmail(request.email())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password"));
+        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
+        }
+        String token = jwtService.generateToken(user.getId(), user.getEmail());
+        return new AuthResponse(token, user.getEmail(), user.getDisplayName());
     }
 }
