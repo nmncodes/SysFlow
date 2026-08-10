@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useEdgesState, useNodesState, type Edge } from 'reactflow'
 import Canvas from '../components/Canvas'
+import FindingsPanel from '../components/FindingsPanel'
 import type { ArchNodeData } from '../components/ArchNode'
 import { useSimulation } from '../lib/useSimulation'
-import type { InjectedFailure } from '../lib/api'
+import { analyzeGraph, type AnalyzeResult, type InjectedFailure } from '../lib/api'
 import { ClockIcon, PacketDropIcon, SkullIcon, ThrottleIcon } from '../components/icons'
 
 const SPEED_OPTIONS = [0.5, 1, 2, 4]
@@ -23,6 +24,9 @@ export default function EditorPage() {
   const [baseRps, setBaseRps] = useState(100)
   const [traffic, setTraffic] = useState(1)
   const [failures, setFailures] = useState<InjectedFailure[]>([])
+  const [analysis, setAnalysis] = useState<AnalyzeResult | null>(null)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [focusRequest, setFocusRequest] = useState<{ nodeId: string; token: number } | null>(null)
   const sim = useSimulation()
 
   const hasClient = nodes.some((n) => n.data.componentType === 'client')
@@ -34,6 +38,22 @@ export default function EditorPage() {
       return
     }
     sim.run(nodes, edges, baseRps * traffic, 3, failures)
+  }
+
+  const handleAnalyze = async () => {
+    setIsAnalyzing(true)
+    try {
+      const result = await analyzeGraph(
+        nodes.map((n) => ({ id: n.id, type: n.data.componentType, config: n.data.config })),
+        edges.map((e) => ({ id: e.id, source: e.source, target: e.target })),
+        sim.result?.summary ?? null,
+      )
+      setAnalysis(result)
+    } catch {
+      setAnalysis({ findings: [], aiEnabled: false })
+    } finally {
+      setIsAnalyzing(false)
+    }
   }
 
   const global = sim.currentTick?.global
@@ -52,7 +72,7 @@ export default function EditorPage() {
         </Link>
 
         {sim.isPlaying && global && (
-          <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-3 rounded-full bg-zinc-900 px-4 py-1.5 text-[12px] font-medium text-white shadow-md">
+          <div className="status-pill-in absolute left-1/2 top-1/2 flex items-center gap-3 rounded-full bg-zinc-900 px-4 py-1.5 text-[12px] font-medium text-white shadow-md">
             <span className={global.errorRatePct >= 5 ? 'text-red-400' : 'text-emerald-400'}>
               err {global.errorRatePct.toFixed(1)}%
             </span>
@@ -80,18 +100,29 @@ export default function EditorPage() {
         </div>
       </header>
 
-      <Canvas
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        setNodes={setNodes}
-        setEdges={setEdges}
-        currentTick={sim.currentTick}
-        isPlaying={sim.isPlaying}
-        failures={failures}
-        setFailures={setFailures}
-      />
+      <div className="flex min-h-0 flex-1">
+        <Canvas
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          setNodes={setNodes}
+          setEdges={setEdges}
+          currentTick={sim.currentTick}
+          isPlaying={sim.isPlaying}
+          failures={failures}
+          setFailures={setFailures}
+          focusRequest={focusRequest}
+        />
+        {analysis && (
+          <FindingsPanel
+            findings={analysis.findings}
+            aiEnabled={analysis.aiEnabled}
+            onFocusNode={(nodeId) => setFocusRequest({ nodeId, token: Date.now() })}
+            onClose={() => setAnalysis(null)}
+          />
+        )}
+      </div>
 
       <footer className="flex h-16 shrink-0 items-center justify-between gap-4 border-t border-zinc-200 bg-white/80 px-6 backdrop-blur-sm">
         <div className="flex items-center gap-2">
@@ -174,8 +205,12 @@ export default function EditorPage() {
               ⚠ SPOF: {sim.result.summary.singlePointsOfFailure.join(', ')}
             </span>
           )}
-          <button className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:opacity-90">
-            <span>✨</span> Analyze
+          <button
+            onClick={handleAnalyze}
+            disabled={nodes.length === 0 || isAnalyzing}
+            className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <span>✨</span> {isAnalyzing ? 'Analyzing…' : 'Analyze'}
           </button>
         </div>
       </footer>

@@ -25,7 +25,7 @@ export default function ArchNode({ data, selected }: NodeProps<ArchNodeData>) {
           ? `0 0 0 2px ${ringColor}33, 0 4px 16px rgba(0,0,0,0.08)`
           : `0 0 0 1.5px ${ringColor}55, 0 1px 3px rgba(0,0,0,0.04)`,
       }}
-      className={`relative flex min-w-[136px] flex-col items-center gap-1 rounded-2xl border border-white bg-white px-4 py-3.5 transition-shadow ${
+      className={`node-pop-in relative flex min-w-[136px] flex-col items-center gap-1 rounded-2xl border border-white bg-white px-4 py-3.5 transition-shadow ${
         pulsing ? 'animate-pulse' : ''
       }`}
     >

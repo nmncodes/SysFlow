@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ClientIcon, DatabaseIcon, LoadBalancerIcon, ServiceIcon } from '../components/icons'
+import { useInView } from '../lib/useInView'
 
 const FEATURES = [
   {
@@ -30,6 +31,10 @@ const STEPS = [
 const NAV_LINK = 'text-[13.5px] text-zinc-500 transition-colors hover:text-zinc-900'
 
 export default function LandingPage() {
+  const features = useInView<HTMLDivElement>()
+  const howItWorks = useInView<HTMLDivElement>()
+  const cta = useInView<HTMLDivElement>()
+
   return (
     <div className="min-h-screen bg-white text-zinc-900 antialiased">
       <header className="sticky top-0 z-20 border-b border-zinc-100/80 bg-white/70 backdrop-blur-md">
@@ -55,33 +60,45 @@ export default function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="relative overflow-hidden px-6 pb-28 pt-24 text-center sm:pt-32">
+      <section className="relative overflow-hidden px-6 pb-28 pt-24 sm:pt-32" style={{ textAlign: 'center' }}>
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] bg-[radial-gradient(50%_50%_at_50%_0%,rgba(109,40,217,0.08),transparent)]"
         />
-        <p className="hero-in text-[13px] font-medium uppercase tracking-[0.14em] text-violet-600">
-          Interactive System Design Simulator
-        </p>
-        <h1 className="hero-in hero-in-delay-1 mx-auto mt-6 max-w-3xl text-[40px] font-semibold leading-[1.08] tracking-[-0.025em] text-zinc-900 sm:text-[60px]">
-          Find the bottleneck <span className="text-red-500">before production does.</span>
-        </h1>
-        <p className="hero-in hero-in-delay-2 mx-auto mt-6 max-w-lg text-[16px] leading-relaxed text-zinc-500 sm:text-[17px]">
-          Draw it. Run real traffic. Watch it fail. Fix it.
-        </p>
-        <div className="hero-in hero-in-delay-3 mt-10 flex items-center justify-center gap-3">
-          <Link
-            to="/app"
-            className="btn-dark rounded-full px-6 py-3 text-[14px] font-medium transition-colors"
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+          <p className="hero-in text-[13px] font-medium uppercase tracking-[0.14em] text-violet-600">
+            Interactive System Design Simulator
+          </p>
+          <h1
+            className="hero-in hero-in-delay-1 mt-6 max-w-3xl text-[40px] font-semibold leading-[1.08] tracking-[-0.025em] text-zinc-900 sm:text-[60px]"
+            style={{ textAlign: 'center' }}
           >
-            Start building — it's free
-          </Link>
-          <a
-            href="#how-it-works"
-            className="rounded-full px-6 py-3 text-[14px] font-medium text-zinc-600 transition-colors hover:text-zinc-900"
+            Find the bottleneck{' '}
+            <span className="relative inline-block text-red-500">
+              before production does.
+              <span className="underline-sweep" aria-hidden />
+            </span>
+          </h1>
+          <p
+            className="hero-in hero-in-delay-2 mt-6 max-w-lg text-[16px] leading-relaxed text-zinc-500 sm:text-[17px]"
+            style={{ textAlign: 'center' }}
           >
-            See how it works
-          </a>
+            Draw it. Run real traffic. Watch it fail. Fix it.
+          </p>
+          <div className="hero-in hero-in-delay-3 mt-10 flex items-center justify-center gap-3">
+            <Link
+              to="/app"
+              className="btn-dark rounded-full px-6 py-3 text-[14px] font-medium transition-colors"
+            >
+              Start building — it's free
+            </Link>
+            <a
+              href="#how-it-works"
+              className="rounded-full px-6 py-3 text-[14px] font-medium text-zinc-600 transition-colors hover:text-zinc-900"
+            >
+              See how it works
+            </a>
+          </div>
         </div>
 
         {/* Incident preview mock */}
@@ -146,20 +163,22 @@ export default function LandingPage() {
 
       {/* Features */}
       <section id="features" className="mx-auto max-w-5xl px-6 py-24">
-        <div className="mx-auto max-w-lg text-center">
+        <div ref={features.ref} className={`reveal ${features.inView ? 'in-view' : ''} mx-auto max-w-lg text-center`}>
           <h2 className="text-[30px] font-medium tracking-[-0.01em] text-zinc-900">Built to build intuition</h2>
           <p className="mt-3 text-[15px] text-zinc-500">
             Every feature exists to make one thing true — you can look at your architecture and know how it will behave.
           </p>
         </div>
-        <div className="mt-16 grid grid-cols-1 gap-x-10 gap-y-10 sm:grid-cols-2">
+        <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2">
           {FEATURES.map((f, i) => (
-            <div key={f.title} className="flex gap-4">
-              <span className="mt-0.5 text-[13px] font-medium text-zinc-300">{String(i + 1).padStart(2, '0')}</span>
-              <div>
-                <h3 className="text-[15px] font-medium text-zinc-900">{f.title}</h3>
-                <p className="mt-1.5 text-[14px] leading-relaxed text-zinc-500">{f.desc}</p>
-              </div>
+            <div
+              key={f.title}
+              className={`reveal hover-lift ${features.inView ? 'in-view' : ''} rounded-2xl border border-zinc-100 p-6 hover:border-violet-100 hover:shadow-[0_12px_30px_-12px_rgba(109,40,217,0.15)]`}
+              style={{ transitionDelay: features.inView ? `${i * 90}ms` : '0ms' }}
+            >
+              <span className="text-[13px] font-semibold text-violet-300">{String(i + 1).padStart(2, '0')}</span>
+              <h3 className="mt-2 text-[15px] font-medium text-zinc-900">{f.title}</h3>
+              <p className="mt-1.5 text-[14px] leading-relaxed text-zinc-500">{f.desc}</p>
             </div>
           ))}
         </div>
@@ -168,14 +187,18 @@ export default function LandingPage() {
       {/* How it works */}
       <section id="how-it-works" className="border-t border-zinc-100 bg-zinc-50/50 py-24">
         <div className="mx-auto max-w-5xl px-6">
-          <div className="mx-auto max-w-lg text-center">
+          <div ref={howItWorks.ref} className={`reveal ${howItWorks.inView ? 'in-view' : ''} mx-auto max-w-lg text-center`}>
             <h2 className="text-[30px] font-medium tracking-[-0.01em] text-zinc-900">From idea to stress-tested design</h2>
             <p className="mt-3 text-[15px] text-zinc-500">Four steps. No deployment required.</p>
           </div>
           <div className="mt-16 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
-            {STEPS.map((s) => (
-              <div key={s.n}>
-                <span className="text-[13px] font-medium text-violet-500">{s.n}</span>
+            {STEPS.map((s, i) => (
+              <div
+                key={s.n}
+                className={`reveal ${howItWorks.inView ? 'in-view' : ''}`}
+                style={{ transitionDelay: howItWorks.inView ? `${i * 90}ms` : '0ms' }}
+              >
+                <span className="text-[13px] font-semibold text-violet-500">{s.n}</span>
                 <h3 className="mt-2 text-[15px] font-medium text-zinc-900">{s.title}</h3>
                 <p className="mt-1.5 text-[14px] leading-relaxed text-zinc-500">{s.desc}</p>
               </div>
@@ -186,18 +209,20 @@ export default function LandingPage() {
 
       {/* CTA */}
       <section className="mx-auto max-w-5xl px-6 py-28 text-center">
-        <h2 className="text-[32px] font-medium tracking-[-0.01em] text-zinc-900 sm:text-[38px]">
-          Ready to see your system come alive?
-        </h2>
-        <p className="mx-auto mt-3 max-w-sm text-[15px] text-zinc-500">
-          Build your first architecture in under a minute. No account required to try it.
-        </p>
-        <Link
-          to="/app"
-          className="btn-dark mt-8 inline-block rounded-full px-7 py-3.5 text-[14px] font-medium transition-colors"
-        >
-          Open the editor →
-        </Link>
+        <div ref={cta.ref} className={`reveal ${cta.inView ? 'in-view' : ''}`}>
+          <h2 className="text-[32px] font-medium tracking-[-0.01em] text-zinc-900 sm:text-[38px]">
+            Ready to see your system come alive?
+          </h2>
+          <p className="mx-auto mt-3 max-w-sm text-[15px] text-zinc-500">
+            Build your first architecture in under a minute. No account required to try it.
+          </p>
+          <Link
+            to="/app"
+            className="btn-dark mt-8 inline-block rounded-full px-7 py-3.5 text-[14px] font-medium transition-colors"
+          >
+            Open the editor →
+          </Link>
+        </div>
       </section>
 
       <footer className="border-t border-zinc-100 py-8">

@@ -79,3 +79,35 @@ export async function runSimulation(input: RunSimulationInput): Promise<Simulati
   }
   return res.json()
 }
+
+export interface Finding {
+  severity: 'critical' | 'warning' | 'info'
+  title: string
+  affectedNodeIds: string[]
+  explanation: string
+  recommendation: string
+}
+
+export interface AnalyzeResult {
+  findings: Finding[]
+  aiEnabled: boolean
+}
+
+export async function analyzeGraph(
+  nodes: { id: string; type: string; config: Record<string, unknown> }[],
+  edges: { id: string; source: string; target: string }[],
+  lastSimulationSummary?: SimulationSummary | null,
+): Promise<AnalyzeResult> {
+  const res = await fetch(`${API_BASE}/ai/analyze`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      graphJson: { nodes, edges },
+      lastSimulationSummary: lastSimulationSummary ?? null,
+    }),
+  })
+  if (!res.ok) {
+    throw new Error(`Analyze request failed: ${res.status}`)
+  }
+  return res.json()
+}

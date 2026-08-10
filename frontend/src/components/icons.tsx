@@ -83,6 +83,91 @@ export function AutoScalingGroupIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function MobileIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="7" y="2.5" width="10" height="19" rx="2" />
+      <path d="M11 18.2h2" />
+    </svg>
+  )
+}
+
+export function WebBrowserIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3" y="4.5" width="18" height="15" rx="2" />
+      <path d="M3 8.5h18" />
+      <circle cx="6" cy="6.5" r="0.6" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+export function DnsIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3c2.5 2.5 3.8 6 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-6-3.8-9s1.3-6.5 3.8-9Z" />
+    </svg>
+  )
+}
+
+export function CdnIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="3" />
+      <circle cx="12" cy="4" r="1.4" />
+      <circle cx="19.5" cy="16" r="1.4" />
+      <circle cx="4.5" cy="16" r="1.4" />
+      <path d="M12 7v2M17.4 15 14.5 13.3M6.6 15l2.9-1.7" />
+    </svg>
+  )
+}
+
+export function WafIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 3 4 6.5v5c0 5 3.4 7.9 8 9.5 4.6-1.6 8-4.5 8-9.5v-5L12 3Z" />
+      <path d="M9 12.5 11 14.5 15.5 9.5" />
+    </svg>
+  )
+}
+
+export function IngressIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 5h6M4 12h10M4 19h16" />
+      <path d="M16 5h4v4M16 9l4-4" />
+    </svg>
+  )
+}
+
+export function WorkerIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+      <path d="M9 9h6v6H9z" />
+    </svg>
+  )
+}
+
+export function ServerlessIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M13 3 5 13.5h6L11 21l8-10.5h-6L13 3Z" />
+      <circle cx="12" cy="12" r="9.5" strokeDasharray="2 3" />
+    </svg>
+  )
+}
+
+export function DataWarehouseIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 21V9l8-6 8 6v12" />
+      <path d="M4 21h16M9 21v-7h6v7" />
+    </svg>
+  )
+}
+
 export function LightningIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base} {...props}>
@@ -129,11 +214,20 @@ export function PacketDropIcon(props: SVGProps<SVGSVGElement>) {
 
 export const COMPONENT_ICONS = {
   client: ClientIcon,
+  mobile: MobileIcon,
+  webBrowser: WebBrowserIcon,
+  dns: DnsIcon,
+  cdn: CdnIcon,
   loadBalancer: LoadBalancerIcon,
   apiGateway: GatewayIcon,
+  waf: WafIcon,
+  ingress: IngressIcon,
   service: ServiceIcon,
-  cache: CacheIcon,
-  database: DatabaseIcon,
+  worker: WorkerIcon,
+  serverless: ServerlessIcon,
   queue: QueueIcon,
   autoScalingGroup: AutoScalingGroupIcon,
+  cache: CacheIcon,
+  database: DatabaseIcon,
+  dataWarehouse: DataWarehouseIcon,
 } as const

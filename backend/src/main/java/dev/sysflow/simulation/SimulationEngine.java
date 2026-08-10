@@ -207,13 +207,20 @@ public class SimulationEngine {
 
     private double capacityOf(GraphNode node) {
         return switch (node.type()) {
-            case "client" -> Double.MAX_VALUE;
+            case "client", "mobile", "webBrowser" -> Double.MAX_VALUE;
+            case "dns" -> Double.MAX_VALUE;
+            case "cdn" -> node.getNumber("maxThroughput", 5000);
             case "loadBalancer" -> node.getNumber("maxThroughput", 1000);
             case "apiGateway" -> node.getNumber("rateLimit", 500);
+            case "waf" -> node.getNumber("maxThroughput", 2000);
+            case "ingress" -> node.getNumber("maxThroughput", 1500);
             case "service" -> node.getNumber("maxConcurrency", 500);
+            case "worker" -> node.getNumber("maxConcurrency", 300);
+            case "serverless" -> node.getNumber("maxConcurrency", 1000);
             case "autoScalingGroup" -> node.getNumber("baseCapacityPerReplica", 500);
             case "cache" -> Double.MAX_VALUE;
             case "database" -> node.getNumber("maxConnections", 200);
+            case "dataWarehouse" -> node.getNumber("maxConnections", 100);
             case "queue" -> node.getNumber("maxThroughput", 1000);
             default -> 1000;
         };
@@ -221,9 +228,18 @@ public class SimulationEngine {
 
     private double latencyOf(GraphNode node, Random random) {
         return switch (node.type()) {
+            case "dns" -> node.getNumber("resolutionLatencyMs", 5);
+            case "cdn" -> {
+                double hitRate = clampPct(node.getNumber("hitRatePct", 90) / 100.0);
+                double hitLatency = node.getNumber("hitLatencyMs", 3);
+                double missLatency = node.getNumber("missLatencyMs", 35);
+                yield random.nextDouble() < hitRate ? hitLatency : missLatency;
+            }
             case "loadBalancer" -> 1 + random.nextDouble() * 2;
             case "apiGateway" -> 2 + random.nextDouble() * 3;
-            case "service", "autoScalingGroup" -> {
+            case "waf" -> node.getNumber("extraLatencyMs", 2) + random.nextDouble() * 2;
+            case "ingress" -> 1 + random.nextDouble() * 2;
+            case "service", "worker", "serverless", "autoScalingGroup" -> {
                 double min = node.getNumber("minLatencyMs", 20);
                 double max = node.getNumber("maxLatencyMs", 80);
                 yield min + random.nextDouble() * Math.max(0, max - min);
@@ -235,6 +251,7 @@ public class SimulationEngine {
                 yield random.nextDouble() < hitRate ? hitLatency : missLatency;
             }
             case "database" -> node.getNumber("readLatencyMs", 15) + random.nextDouble() * 5;
+            case "dataWarehouse" -> node.getNumber("readLatencyMs", 60) + random.nextDouble() * 15;
             case "queue" -> 5 + random.nextDouble() * 10;
             default -> 5;
         };
