@@ -39,6 +39,8 @@ interface Props {
   failures: InjectedFailure[]
   setFailures: React.Dispatch<React.SetStateAction<InjectedFailure[]>>
   focusRequest?: { nodeId: string; token: number } | null
+  exportRequest?: number
+  onSelectionChange?: (nodeId: string | null) => void
 }
 
 export default function Canvas({
@@ -53,8 +55,14 @@ export default function Canvas({
   failures,
   setFailures,
   focusRequest,
+  exportRequest,
+  onSelectionChange,
 }: Props) {
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const [selectedNodeId, setSelectedNodeIdState] = useState<string | null>(null)
+  const setSelectedNodeId = (id: string | null) => {
+    setSelectedNodeIdState(id)
+    onSelectionChange?.(id)
+  }
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -165,6 +173,20 @@ export default function Canvas({
     setSelectedNodeId(node.id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusRequest])
+
+  useEffect(() => {
+    if (!exportRequest || !wrapperRef.current) return
+    const el = wrapperRef.current
+    import('html-to-image').then(({ toPng }) => {
+      toPng(el, { backgroundColor: '#fafafa', pixelRatio: 2 }).then((dataUrl) => {
+        const link = document.createElement('a')
+        link.download = 'sysflow-architecture.png'
+        link.href = dataUrl
+        link.click()
+      })
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exportRequest])
 
   const applyNodeFailure = (nodeId: string, type: 'kill' | 'latency' | 'throttle') => {
     setFailures((fs) => [...fs.filter((f) => f.nodeId !== nodeId), makeNodeFailure(nodeId, type)])

@@ -1,12 +1,18 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { useEdgesState, useNodesState, type Edge } from 'reactflow'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useEdgesState, useNodesState, type Edge, type Node } from 'reactflow'
 import Canvas from '../components/Canvas'
 import FindingsPanel from '../components/FindingsPanel'
 import type { ArchNodeData } from '../components/ArchNode'
 import { useSimulation } from '../lib/useSimulation'
 import { analyzeGraph, type AnalyzeResult, type InjectedFailure } from '../lib/api'
 import { ClockIcon, PacketDropIcon, SkullIcon, ThrottleIcon } from '../components/icons'
+import { useAuth } from '../lib/AuthContext'
+import { createProject, getProject, updateProject } from '../lib/projects'
+import { TEMPLATES } from '../lib/templates'
+import { estimateTotalMonthlyCost } from '../lib/cost'
+import { useHistory } from '../lib/useHistory'
+import type { ComponentType } from '../components/nodes'
 
 const SPEED_OPTIONS = [0.5, 1, 2, 4]
 const TRAFFIC_OPTIONS = [0.5, 1, 2.5, 5]
@@ -18,6 +24,16 @@ const CHAOS_TYPES: { type: InjectedFailure['type']; label: string; Icon: typeof 
   { type: 'dropPct', label: 'Drop packets', Icon: PacketDropIcon },
 ]
 
+function toGraphNodes(nodes: Node<ArchNodeData>[]) {
+  return nodes.map((n) => ({
+    id: n.id,
+    type: n.data.componentType,
+    config: n.data.config,
+    position: n.position,
+    label: n.data.label,
+  }))
+}
+
 export default function EditorPage() {
   const [nodes, setNodes, onNodesChange] = useNodesState<ArchNodeData>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
@@ -27,7 +43,70 @@ export default function EditorPage() {
   const [analysis, setAnalysis] = useState<AnalyzeResult | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [focusRequest, setFocusRequest] = useState<{ nodeId: string; token: number } | null>(null)
+  const [exportRequest, setExportRequest] = useState(0)
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const [projectId, setProjectId] = useState<string | null>(null)
+  const [projectName, setProjectName] = useState('Untitled Project')
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [saveDraftName, setSaveDraftName] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
+
   const sim = useSimulation()
+  const auth = useAuth()
+  const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const loadedRef = useRef(false)
+  const history = useHistory(nodes, edges, setNodes, setEdges)
+
+  // Load from a template or a saved project once, on mount.
+  useEffect(() => {
+    if (loadedRef.current) return
+    loadedRef.current = true
+
+    const templateId = params.get('template')
+    const loadProjectId = params.get('projectId')
+
+    if (templateId) {
+      const template = TEMPLATES.find((t) => t.id === templateId)
+      if (template) {
+        setNodes(
+          template.graph.nodes.map((n) => ({
+            id: n.id,
+            type: 'archNode',
+            position: n.position ?? { x: 0, y: 0 },
+            data: { componentType: n.type, label: n.label ?? n.type, config: n.config, health: 'idle' },
+          })),
+        )
+        setEdges(template.graph.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: 'archEdge' })))
+        setProjectName(template.name)
+      }
+    } else if (loadProjectId) {
+      getProject(loadProjectId)
+        .then((project) => {
+          setProjectId(project.id)
+          setProjectName(project.name)
+          setNodes(
+            project.graphJson.nodes.map((n) => ({
+              id: n.id,
+              type: 'archNode',
+              position: n.position ?? { x: 0, y: 0 },
+              data: { componentType: n.type, label: n.label ?? n.type, config: n.config, health: 'idle' },
+            })),
+          )
+          setEdges(project.graphJson.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: 'archEdge' })))
+        })
+        .catch(() => setToast("Couldn't load that project"))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 3000)
+    return () => clearTimeout(t)
+  }, [toast])
 
   const hasClient = nodes.some((n) => n.data.componentType === 'client')
   const canRun = nodes.length > 0 && hasClient && !sim.isRunning
@@ -56,7 +135,77 @@ export default function EditorPage() {
     }
   }
 
+  const performSave = async (name: string) => {
+    setIsSaving(true)
+    setSaveError(null)
+    const graphJson = { nodes: toGraphNodes(nodes), edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target })) }
+    try {
+      if (projectId) {
+        await updateProject(projectId, name, '', graphJson)
+      } else {
+        const created = await createProject(name, '', graphJson)
+        setProjectId(created.id)
+      }
+      setProjectName(name)
+      setToast('Saved')
+      setShowSaveDialog(false)
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Save failed')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleSaveClick = () => {
+    if (!auth.user) {
+      navigate('/login?redirect=/app')
+      return
+    }
+    if (projectId) {
+      performSave(projectName)
+    } else {
+      setSaveDraftName(projectName === 'Untitled Project' ? '' : projectName)
+      setShowSaveDialog(true)
+    }
+  }
+
+  const handleDeleteSelected = () => {
+    if (!selectedNodeId) return
+    setNodes((nds) => nds.filter((n) => n.id !== selectedNodeId))
+    setEdges((eds) => eds.filter((e) => e.source !== selectedNodeId && e.target !== selectedNodeId))
+    setFailures((fs) => fs.filter((f) => f.nodeId !== selectedNodeId))
+    setSelectedNodeId(null)
+  }
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      if (['INPUT', 'TEXTAREA'].includes(target.tagName)) return
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        history.undo()
+      } else if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) {
+        e.preventDefault()
+        history.redo()
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        handleSaveClick()
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedNodeId) {
+          e.preventDefault()
+          handleDeleteSelected()
+        }
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedNodeId, projectId, projectName, nodes, edges])
+
   const global = sim.currentTick?.global
+  const monthlyCost = estimateTotalMonthlyCost(nodes.map((n) => ({ type: n.data.componentType as ComponentType })))
 
   return (
     <div className="flex h-screen flex-col bg-[#fafafa] text-zinc-900">
@@ -67,7 +216,7 @@ export default function EditorPage() {
           </div>
           <div className="flex flex-col leading-none">
             <span className="text-[15px] font-semibold tracking-tight text-zinc-900">SysFlow</span>
-            <span className="text-xs text-zinc-400">Untitled Project</span>
+            <span className="text-xs text-zinc-400">{projectName}</span>
           </div>
         </Link>
 
@@ -83,8 +232,24 @@ export default function EditorPage() {
           </div>
         )}
 
-        <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-xs font-medium text-zinc-500">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={history.undo}
+            disabled={!history.canUndo}
+            title="Undo (Ctrl+Z)"
+            className="rounded-lg border border-zinc-200 bg-white px-2.5 py-2 text-sm text-zinc-500 shadow-sm transition hover:border-zinc-300 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            ↶
+          </button>
+          <button
+            onClick={history.redo}
+            disabled={!history.canRedo}
+            title="Redo (Ctrl+Shift+Z)"
+            className="rounded-lg border border-zinc-200 bg-white px-2.5 py-2 text-sm text-zinc-500 shadow-sm transition hover:border-zinc-300 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            ↷
+          </button>
+          <label className="ml-2 flex items-center gap-2 text-xs font-medium text-zinc-500">
             Target RPS
             <input
               type="number"
@@ -94,8 +259,49 @@ export default function EditorPage() {
               className="w-20 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-sm text-zinc-800 outline-none focus:border-violet-300 focus:bg-white focus:ring-2 focus:ring-violet-100"
             />
           </label>
-          <button className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50">
-            Save
+          <button
+            onClick={() => setExportRequest((t) => t + 1)}
+            title="Export as PNG"
+            className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50"
+          >
+            Export
+          </button>
+          <button
+            onClick={() => {
+              if (!projectId) {
+                setToast('Save the project first to get a share link')
+                return
+              }
+              navigator.clipboard.writeText(`${window.location.origin}/share/${projectId}`)
+              setToast('Share link copied')
+            }}
+            title="Copy a read-only share link"
+            className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50"
+          >
+            Share
+          </button>
+          {auth.user ? (
+            <Link
+              to="/projects"
+              className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50"
+            >
+              My Projects
+            </Link>
+          ) : (
+            <Link
+              to="/login"
+              className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50"
+            >
+              Log in
+            </Link>
+          )}
+          <button
+            onClick={handleSaveClick}
+            disabled={isSaving}
+            title="Save (Ctrl+S)"
+            className="btn-dark rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+          >
+            {isSaving ? 'Saving…' : 'Save'}
           </button>
         </div>
       </header>
@@ -113,6 +319,8 @@ export default function EditorPage() {
           failures={failures}
           setFailures={setFailures}
           focusRequest={focusRequest}
+          exportRequest={exportRequest}
+          onSelectionChange={setSelectedNodeId}
         />
         {analysis && (
           <FindingsPanel
@@ -150,6 +358,11 @@ export default function EditorPage() {
             ⟲ Reset
           </button>
           {sim.error && <span className="text-xs text-red-500">{sim.error}</span>}
+          {nodes.length > 0 && (
+            <span className="ml-2 text-xs text-zinc-400" title="Rough illustrative estimate — not real cloud pricing">
+              ~${monthlyCost}/mo
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-6">
@@ -214,6 +427,41 @@ export default function EditorPage() {
           </button>
         </div>
       </footer>
+
+      {showSaveDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20" onClick={() => setShowSaveDialog(false)}>
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-semibold text-zinc-900">Save project</h3>
+            <input
+              autoFocus
+              type="text"
+              placeholder="Project name"
+              value={saveDraftName}
+              onChange={(e) => setSaveDraftName(e.target.value)}
+              className="mt-4 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-800 outline-none focus:border-violet-300 focus:bg-white focus:ring-2 focus:ring-violet-100"
+            />
+            {saveError && <p className="mt-2 text-xs text-red-500">{saveError}</p>}
+            <div className="mt-4 flex justify-end gap-2">
+              <button onClick={() => setShowSaveDialog(false)} className="rounded-lg px-3 py-2 text-sm text-zinc-500 hover:text-zinc-700">
+                Cancel
+              </button>
+              <button
+                onClick={() => saveDraftName.trim() && performSave(saveDraftName.trim())}
+                disabled={!saveDraftName.trim() || isSaving}
+                className="btn-dark rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+              >
+                {isSaving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-full bg-zinc-900 px-4 py-2 text-sm text-white shadow-lg">
+          {toast}
+        </div>
+      )}
     </div>
   )
 }
