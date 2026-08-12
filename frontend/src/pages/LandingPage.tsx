@@ -68,6 +68,7 @@ function CircuitBackdrop({
               : 'radial-gradient(circle at 50% 50%, rgba(18,184,212,0.12), transparent 42%), radial-gradient(circle at 20% 45%, rgba(56,189,248,0.055), transparent 24%), radial-gradient(circle at 80% 55%, rgba(56,189,248,0.055), transparent 24%)',
         }}
       />
+
       {variant === 'grid' && (
         <div
           className="absolute inset-0 opacity-60"
@@ -79,7 +80,13 @@ function CircuitBackdrop({
           }}
         />
       )}
-      <svg className="absolute inset-0 h-full w-full opacity-45" viewBox="0 0 1440 760" fill="none" preserveAspectRatio="none">
+
+      <svg
+        className="absolute inset-0 h-full w-full opacity-45"
+        viewBox="0 0 1440 760"
+        fill="none"
+        preserveAspectRatio="none"
+      >
         <g stroke="#12b8d4" strokeWidth="1.2">
           <path d="M0 180H74V118H154" />
           <path d="M0 300H122V246H210V170H274" />
@@ -88,6 +95,7 @@ function CircuitBackdrop({
           <path d="M84 760V690H154V620H232" />
           <path d="M1358 760V680H1288V610H1208" />
         </g>
+
         <g fill="#12b8d4">
           <circle cx="154" cy="118" r="3" />
           <circle cx="210" cy="246" r="3" />
@@ -96,6 +104,7 @@ function CircuitBackdrop({
           <circle cx="154" cy="690" r="3" />
           <circle cx="1288" cy="680" r="3" />
         </g>
+
         <g stroke="#9fe8f2" strokeWidth="1" opacity="0.75">
           <circle cx="180" cy="190" r="62" />
           <circle cx="180" cy="190" r="86" />
@@ -106,6 +115,7 @@ function CircuitBackdrop({
     </div>
   )
 }
+
 function FlowPath({
   d,
   critical = false,
@@ -116,6 +126,7 @@ function FlowPath({
   duration?: number
 }) {
   const color = critical ? '#ef4444' : BLUE
+
   return (
     <g aria-hidden>
       <path
@@ -125,6 +136,7 @@ function FlowPath({
         strokeWidth="2.8"
         strokeLinecap="round"
       />
+
       <circle r="4.5" fill={color}>
         <animateMotion dur={`${duration}s`} repeatCount="indefinite" path={d} />
       </circle>
@@ -163,19 +175,30 @@ function PreviewNode({
       <div className="flex items-center justify-between">
         <span
           className={`flex h-11 w-11 items-center justify-center rounded-xl ${
-            critical ? 'bg-red-50 text-red-500' : accent ? 'bg-[#e8faff] text-[#079fbb]' : 'bg-zinc-50 text-zinc-700'
+            critical
+              ? 'bg-red-50 text-red-500'
+              : accent
+                ? 'bg-[#e8faff] text-[#079fbb]'
+                : 'bg-zinc-50 text-zinc-700'
           }`}
         >
           <Icon width={22} height={22} />
         </span>
+
         <span
           className={`h-3 w-3 rounded-full border-2 border-white ${
             critical ? 'live-dot bg-red-500' : 'bg-emerald-500'
           }`}
         />
       </div>
-      <div className="mt-3 truncate text-[14px] font-bold text-zinc-800">{label}</div>
-      <div className={`mt-1 text-[11px] ${critical ? 'text-red-500' : 'text-zinc-400'}`}>{meta}</div>
+
+      <div className="mt-3 truncate text-[14px] font-bold text-zinc-800">
+        {label}
+      </div>
+
+      <div className={`mt-1 text-[11px] ${critical ? 'text-red-500' : 'text-zinc-400'}`}>
+        {meta}
+      </div>
     </div>
   )
 }
@@ -192,7 +215,9 @@ export default function LandingPage() {
         <div className="mx-auto flex h-[76px] max-w-6xl items-center justify-between px-6">
           <Link to="/" className="flex items-center gap-3" aria-label="SysFlow home">
             <img src={logo} alt="SysFlow" className="h-12 w-12 object-contain" />
-            <span className="text-[23px] font-bold tracking-[-0.035em] text-[#0f172a]">SysFlow</span>
+            <span className="text-[23px] font-bold tracking-[-0.035em] text-[#0f172a]">
+              SysFlow
+            </span>
           </Link>
 
           <nav className="hidden items-center gap-9 sm:flex">
@@ -200,10 +225,12 @@ export default function LandingPage() {
               Features
               <span className="absolute -bottom-2 left-0 h-[2px] w-0 rounded-full bg-[#12b8d4] transition-all duration-200 group-hover:w-full" />
             </a>
+
             <a href="#how-it-works" className={NAV_LINK}>
               How it works
               <span className="absolute -bottom-2 left-0 h-[2px] w-0 rounded-full bg-[#12b8d4] transition-all duration-200 group-hover:w-full" />
             </a>
+
             <a href="#templates" className={NAV_LINK}>
               Templates
               <span className="absolute -bottom-2 left-0 h-[2px] w-0 rounded-full bg-[#12b8d4] transition-all duration-200 group-hover:w-full" />
@@ -253,6 +280,7 @@ export default function LandingPage() {
             >
               Start building — it's free
             </Link>
+
             <a
               href="#how-it-works"
               className="rounded-full border border-zinc-200 bg-white/85 px-6 py-3.5 text-[15px] font-semibold text-zinc-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#a7e8f1] hover:text-[#079fbb]"
@@ -272,8 +300,12 @@ export default function LandingPage() {
                   <span className="h-2.5 w-2.5 rounded-full bg-zinc-200" />
                   <span className="h-2.5 w-2.5 rounded-full bg-zinc-200" />
                 </div>
-                <span className="hidden text-[12px] font-medium text-zinc-400 sm:inline">checkout · friday traffic surge</span>
+
+                <span className="hidden text-[12px] font-medium text-zinc-400 sm:inline">
+                  checkout · friday traffic surge
+                </span>
               </div>
+
               <span className="flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1.5 text-[11px] font-semibold text-red-600 ring-1 ring-red-100">
                 <span className="live-dot h-1.5 w-1.5 rounded-full bg-red-500" />
                 BOTTLENECK DETECTED
@@ -288,8 +320,12 @@ export default function LandingPage() {
                 { label: 'Open issues', value: '3', tone: 'text-red-500' },
               ].map((s) => (
                 <div key={s.label} className="px-4 py-4 text-center sm:py-4.5">
-                  <div className={`text-[25px] font-semibold tracking-[-0.03em] ${s.tone}`}>{s.value}</div>
-                  <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-400">{s.label}</div>
+                  <div className={`text-[25px] font-semibold tracking-[-0.03em] ${s.tone}`}>
+                    {s.value}
+                  </div>
+                  <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-400">
+                    {s.label}
+                  </div>
                 </div>
               ))}
             </div>
@@ -297,16 +333,22 @@ export default function LandingPage() {
             <div className="relative z-10 border-t border-zinc-100 bg-white/75 px-4 py-5 sm:px-7 sm:py-5.5">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <div className="text-[14px] font-bold text-zinc-800">Live architecture</div>
-                  <div className="mt-0.5 text-[11px] text-zinc-400">Requests are flowing through the system</div>
+                  <div className="text-[14px] font-bold text-zinc-800">
+                    Live architecture
+                  </div>
+                  <div className="mt-0.5 text-[11px] text-zinc-400">
+                    Requests are flowing through the system
+                  </div>
                 </div>
+
                 <div className="hidden items-center gap-2 rounded-full border border-zinc-200 bg-white/90 px-3 py-1.5 text-[11px] font-medium text-zinc-500 sm:flex">
                   <span className="h-1.5 w-1.5 rounded-full bg-[#12b8d4]" />
                   Simulation running
                 </div>
               </div>
 
-              <div className="relative mx-auto h-[350px] w-full overflow-hidden rounded-2xl border border-zinc-100 bg-white/88 shadow-[inset_0_1px_8px_rgba(15,23,42,0.025)]">
+              {/* Diagram */}
+              <div className="relative mx-auto h-[390px] w-full overflow-hidden rounded-2xl border border-zinc-100 bg-white/88 shadow-[inset_0_1px_8px_rgba(15,23,42,0.025)]">
                 <div
                   aria-hidden
                   className="pointer-events-none absolute inset-0 opacity-75"
@@ -317,31 +359,117 @@ export default function LandingPage() {
                   }}
                 />
 
-                <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 1000 350" preserveAspectRatio="none" aria-hidden>
+                <svg
+                  className="pointer-events-none absolute inset-0 h-full w-full"
+                  viewBox="0 0 1000 390"
+                  preserveAspectRatio="none"
+                  aria-hidden
+                >
+                  {/* Main horizontal flow */}
                   <FlowPath d="M112 105 H208" duration={0.9} />
                   <FlowPath d="M312 105 H408" duration={1.0} />
                   <FlowPath d="M512 105 H608" duration={1.1} />
                   <FlowPath d="M712 105 H808" critical duration={1.65} />
-                  <FlowPath d="M808 135 C808 175 500 180 500 230" duration={1.3} />
-                  <FlowPath d="M808 135 C808 175 650 190 650 230" critical duration={1.7} />
-                  <FlowPath d="M808 135 C808 175 800 190 800 230" duration={1.4} />
+
+                  {/* Order Service → Cache */}
+                  <FlowPath
+                    d="M900 135 C900 165 570 175 570 205"
+                    duration={1.3}
+                  />
+
+                  {/* Order Service → Database */}
+                  <FlowPath
+                    d="M900 135 C900 165 750 180 750 205"
+                    critical
+                    duration={1.7}
+                  />
+
+                  {/* Order Service → Queue */}
+                  <FlowPath
+                    d="M900 135 C900 165 930 175 930 205"
+                    duration={1.4}
+                  />
                 </svg>
 
-                <PreviewNode Icon={ClientIcon} label="Client" meta="1.2k rps" left="10%" top="62px" accent />
-                <PreviewNode Icon={CdnIcon} label="CDN" meta="edge cache" left="30%" top="62px" />
-                <PreviewNode Icon={GatewayIcon} label="API Gateway" meta="healthy" left="50%" top="62px" accent />
-                <PreviewNode Icon={LoadBalancerIcon} label="Load Balancer" meta="4.2k rps" left="70%" top="62px" />
-                <PreviewNode Icon={ServiceIcon} label="Order Service" meta="87% capacity" left="90%" top="62px" critical />
-                <PreviewNode Icon={CacheIcon} label="Cache" meta="62% hit rate" left="57%" top="220px" />
-                <PreviewNode Icon={DatabaseIcon} label="Database" meta="418ms p95" left="75%" top="220px" critical />
-                <PreviewNode Icon={QueueIcon} label="Queue" meta="1.8k pending" left="93%" top="220px" />
+                <PreviewNode
+                  Icon={ClientIcon}
+                  label="Client"
+                  meta="1.2k rps"
+                  left="10%"
+                  top="62px"
+                  accent
+                />
+
+                <PreviewNode
+                  Icon={CdnIcon}
+                  label="CDN"
+                  meta="edge cache"
+                  left="30%"
+                  top="62px"
+                />
+
+                <PreviewNode
+                  Icon={GatewayIcon}
+                  label="API Gateway"
+                  meta="healthy"
+                  left="50%"
+                  top="62px"
+                  accent
+                />
+
+                <PreviewNode
+                  Icon={LoadBalancerIcon}
+                  label="Load Balancer"
+                  meta="4.2k rps"
+                  left="70%"
+                  top="62px"
+                />
+
+                <PreviewNode
+                  Icon={ServiceIcon}
+                  label="Order Service"
+                  meta="87% capacity"
+                  left="90%"
+                  top="62px"
+                  critical
+                />
+
+                <PreviewNode
+                  Icon={CacheIcon}
+                  label="Cache"
+                  meta="62% hit rate"
+                  left="57%"
+                  top="205px"
+                />
+
+                <PreviewNode
+                  Icon={DatabaseIcon}
+                  label="Database"
+                  meta="418ms p95"
+                  left="75%"
+                  top="205px"
+                  critical
+                />
+
+                <PreviewNode
+                  Icon={QueueIcon}
+                  label="Queue"
+                  meta="1.8k pending"
+                  left="93%"
+                  top="205px"
+                />
 
                 <div className="absolute bottom-3 left-3 rounded-xl border border-red-100 bg-white/94 px-3 py-2 shadow-sm backdrop-blur sm:left-4">
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-red-500" />
-                    <span className="text-[11px] font-semibold text-red-600">Bottleneck</span>
+                    <span className="text-[11px] font-semibold text-red-600">
+                      Bottleneck
+                    </span>
                   </div>
-                  <div className="mt-0.5 text-[10px] text-zinc-400">Order Service → Database</div>
+
+                  <div className="mt-0.5 text-[10px] text-zinc-400">
+                    Order Service → Database
+                  </div>
                 </div>
               </div>
             </div>
@@ -350,17 +478,25 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section id="features" className="relative overflow-hidden border-t border-zinc-200/60 bg-[#f8fcfd] px-6 py-20 sm:py-24">
+      <section
+        id="features"
+        className="relative overflow-hidden border-t border-zinc-200/60 bg-[#f8fcfd] px-6 py-20 sm:py-24"
+      >
         <CircuitBackdrop variant="grid" className="opacity-45" />
 
         <div className="relative z-10 mx-auto max-w-6xl">
-          <div ref={features.ref} className={`reveal ${features.inView ? 'in-view' : ''} mx-auto max-w-3xl text-center`}>
+          <div
+            ref={features.ref}
+            className={`reveal ${features.inView ? 'in-view' : ''} mx-auto max-w-3xl text-center`}
+          >
             <div className="mx-auto mb-5 inline-flex rounded-full border border-[#b8edf4] bg-white/90 px-4 py-1.5 text-[12px] font-bold uppercase tracking-[0.12em] text-[#079fbb] shadow-sm">
               Built for systems thinking
             </div>
+
             <h2 className="text-[36px] font-bold tracking-[-0.04em] text-[#0f172a] sm:text-[46px]">
               Understand how your architecture behaves.
             </h2>
+
             <p className="mx-auto mt-5 max-w-2xl text-[17px] leading-7 text-zinc-500 sm:text-[18px]">
               Every feature exists to turn an architecture diagram into something you can reason about, stress and improve.
             </p>
@@ -374,11 +510,20 @@ export default function LandingPage() {
                 style={{ transitionDelay: features.inView ? `${i * 90}ms` : '0ms' }}
               >
                 <div className="flex items-start justify-between">
-                  <span className="text-[18px] font-extrabold tracking-[0.12em] text-[#12b8d4]">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="text-[23px] font-extrabold tracking-[0.22em] text-[#12b8d4]">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+
                   <span className="h-3 w-3 rounded-full bg-[#c9f5fa] shadow-[0_0_0_5px_rgba(201,245,250,0.4)]" />
                 </div>
-                <h3 className="mt-8 text-[21px] font-bold text-[#0f172a]">{f.title}</h3>
-                <p className="mt-3 text-[16px] leading-7 text-zinc-500">{f.desc}</p>
+
+                <h3 className="mt-8 text-[24px] font-bold text-[#0f172a]">
+                  {f.title}
+                </h3>
+
+                <p className="mt-3 text-[19px] leading-7 text-zinc-500">
+                  {f.desc}
+                </p>
               </div>
             ))}
           </div>
@@ -386,19 +531,37 @@ export default function LandingPage() {
       </section>
 
       {/* Templates */}
-      <section id="templates" className="relative overflow-hidden border-y border-zinc-200/70 bg-[#eef9fb] py-20 sm:py-24">
+      <section
+        id="templates"
+        className="relative overflow-hidden border-y border-zinc-200/70 bg-[#eef9fb] py-20 sm:py-24"
+      >
         <CircuitBackdrop variant="glow" className="opacity-45" />
 
         <div className="relative z-10 mx-auto max-w-6xl px-6">
-          <div ref={templates.ref} className={`reveal ${templates.inView ? 'in-view' : ''} flex flex-col justify-between gap-5 sm:flex-row sm:items-end`}>
+          <div
+            ref={templates.ref}
+            className={`reveal ${templates.inView ? 'in-view' : ''} flex flex-col justify-between gap-5 sm:flex-row sm:items-end`}
+          >
             <div>
               <div className="mb-4 inline-flex rounded-full border border-[#b8edf4] bg-white/90 px-4 py-1.5 text-[12px] font-bold uppercase tracking-[0.12em] text-[#079fbb]">
                 Start faster
               </div>
-              <h2 className="text-[36px] font-bold tracking-[-0.04em] text-[#0f172a] sm:text-[46px]">Start from a real architecture.</h2>
-              <p className="mt-4 max-w-xl text-[17px] leading-7 text-zinc-500">Pick a template, change the topology and see where it breaks under load.</p>
+
+              <h2 className="text-[36px] font-bold tracking-[-0.04em] text-[#0f172a] sm:text-[46px]">
+                Start from a real architecture.
+              </h2>
+
+              <p className="mt-4 max-w-xl text-[17px] leading-7 text-zinc-500">
+                Pick a template, change the topology and see where it breaks under load.
+              </p>
             </div>
-            <Link to="/app" className="text-[15px] font-bold text-[#079fbb] transition-all hover:translate-x-1 hover:text-[#057f95]">Browse in editor →</Link>
+
+            <Link
+              to="/app"
+              className="text-[15px] font-bold text-[#079fbb] transition-all hover:translate-x-1 hover:text-[#057f95]"
+            >
+              Browse in editor →
+            </Link>
           </div>
 
           <div className="mt-11 grid grid-cols-1 gap-5 md:grid-cols-3">
@@ -410,24 +573,48 @@ export default function LandingPage() {
                 style={{ transitionDelay: templates.inView ? `${i * 90}ms` : '0ms' }}
               >
                 <div className="flex items-center justify-between">
-                  <span className="rounded-full bg-[#effcff] px-3 py-1.5 text-[11px] font-bold tracking-[0.1em] text-[#079fbb]">{template.accent}</span>
-                  <span className="text-[16px] text-zinc-300 transition-colors group-hover:text-[#12b8d4]">→</span>
+                  <span className="rounded-full bg-[#effcff] px-3 py-1.5 text-[11px] font-bold tracking-[0.1em] text-[#079fbb]">
+                    {template.accent}
+                  </span>
+
+                  <span className="text-[16px] text-zinc-300 transition-colors group-hover:text-[#12b8d4]">
+                    →
+                  </span>
                 </div>
 
                 <div className="mt-7 flex h-28 items-center justify-center rounded-xl border border-zinc-100 bg-[#fbfdfe] shadow-inner">
                   <div className="flex items-center gap-2 text-zinc-400">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-[#079fbb] shadow-sm"><ClientIcon width={19} height={19} /></span>
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-[#079fbb] shadow-sm">
+                      <ClientIcon width={19} height={19} />
+                    </span>
+
                     <span className="h-px w-5 bg-[#bdeef4]" />
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-sm"><GatewayIcon width={19} height={19} /></span>
+
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-sm">
+                      <GatewayIcon width={19} height={19} />
+                    </span>
+
                     <span className="h-px w-5 bg-[#bdeef4]" />
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-sm"><ServiceIcon width={19} height={19} /></span>
+
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-sm">
+                      <ServiceIcon width={19} height={19} />
+                    </span>
+
                     <span className="h-px w-5 bg-[#bdeef4]" />
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-sm"><DatabaseIcon width={19} height={19} /></span>
+
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-sm">
+                      <DatabaseIcon width={19} height={19} />
+                    </span>
                   </div>
                 </div>
 
-                <h3 className="mt-6 text-[19px] font-bold text-[#0f172a]">{template.name}</h3>
-                <p className="mt-2 text-[15px] leading-6 text-zinc-500">{template.desc}</p>
+                <h3 className="mt-6 text-[19px] font-bold text-[#0f172a]">
+                  {template.name}
+                </h3>
+
+                <p className="mt-2 text-[15px] leading-6 text-zinc-500">
+                  {template.desc}
+                </p>
               </Link>
             ))}
           </div>
@@ -435,16 +622,28 @@ export default function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section id="how-it-works" className="relative overflow-hidden border-b border-zinc-200/70 bg-[#fafdfe] py-20 sm:py-24">
+      <section
+        id="how-it-works"
+        className="relative overflow-hidden border-b border-zinc-200/70 bg-[#fafdfe] py-20 sm:py-24"
+      >
         <CircuitBackdrop variant="grid" className="opacity-35" />
 
         <div className="relative z-10 mx-auto max-w-6xl px-6">
-          <div ref={howItWorks.ref} className={`reveal ${howItWorks.inView ? 'in-view' : ''} mx-auto max-w-3xl text-center`}>
+          <div
+            ref={howItWorks.ref}
+            className={`reveal ${howItWorks.inView ? 'in-view' : ''} mx-auto max-w-3xl text-center`}
+          >
             <div className="mx-auto mb-5 inline-flex rounded-full border border-[#b8edf4] bg-white/90 px-4 py-1.5 text-[12px] font-bold uppercase tracking-[0.12em] text-[#079fbb]">
               How SysFlow works
             </div>
-            <h2 className="text-[36px] font-bold tracking-[-0.04em] text-[#0f172a] sm:text-[46px]">From idea to stress-tested design.</h2>
-            <p className="mt-5 text-[17px] leading-7 text-zinc-500 sm:text-[18px]">Four steps. No deployment required.</p>
+
+            <h2 className="text-[36px] font-bold tracking-[-0.04em] text-[#0f172a] sm:text-[46px]">
+              From idea to stress-tested design.
+            </h2>
+
+            <p className="mt-5 text-[17px] leading-7 text-zinc-500 sm:text-[18px]">
+              Four steps. No deployment required.
+            </p>
           </div>
 
           <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -454,9 +653,17 @@ export default function LandingPage() {
                 className={`reveal ${howItWorks.inView ? 'in-view' : ''} rounded-2xl border border-zinc-200/80 bg-white/94 p-7 shadow-[0_16px_42px_-28px_rgba(15,23,42,0.22)] transition-all duration-300 hover:-translate-y-1 hover:border-[#8de3ee] hover:shadow-[0_22px_50px_-24px_rgba(18,184,212,0.25)]`}
                 style={{ transitionDelay: howItWorks.inView ? `${i * 90}ms` : '0ms' }}
               >
-                <span className="text-[19px] font-extrabold tracking-[0.12em] text-[#12b8d4]">{s.n}</span>
-                <h3 className="mt-8 text-[21px] font-bold text-[#0f172a]">{s.title}</h3>
-                <p className="mt-3 text-[16px] leading-7 text-zinc-500">{s.desc}</p>
+                <span className="text-[19px] font-extrabold tracking-[0.12em] text-[#12b8d4]">
+                  {s.n}
+                </span>
+
+                <h3 className="mt-8 text-[21px] font-bold text-[#0f172a]">
+                  {s.title}
+                </h3>
+
+                <p className="mt-3 text-[16px] leading-7 text-zinc-500">
+                  {s.desc}
+                </p>
               </div>
             ))}
           </div>
@@ -466,12 +673,21 @@ export default function LandingPage() {
       {/* CTA */}
       <section className="relative overflow-hidden px-6 py-24 text-center sm:py-28">
         <CircuitBackdrop variant="glow" className="opacity-40" />
-        <div ref={cta.ref} className={`relative z-10 reveal ${cta.inView ? 'in-view' : ''} mx-auto max-w-3xl`}>
+
+        <div
+          ref={cta.ref}
+          className={`relative z-10 reveal ${cta.inView ? 'in-view' : ''} mx-auto max-w-3xl`}
+        >
           <div className="mx-auto mb-6 h-3 w-3 rounded-full bg-[#12b8d4] shadow-[0_0_0_8px_rgba(18,184,212,0.10),0_0_30px_rgba(18,184,212,0.35)]" />
-          <h2 className="text-[40px] font-bold tracking-[-0.04em] text-[#0f172a] sm:text-[50px]">See your system come alive.</h2>
+
+          <h2 className="text-[40px] font-bold tracking-[-0.04em] text-[#0f172a] sm:text-[50px]">
+            See your system come alive.
+          </h2>
+
           <p className="mx-auto mt-5 max-w-2xl text-[17px] leading-7 text-zinc-500 sm:text-[18px]">
             Build an architecture, run traffic through it and find the weak point before production does.
           </p>
+
           <Link
             to="/app"
             className="btn-dark mt-9 inline-flex rounded-full px-8 py-4 text-[16px] font-bold shadow-[0_12px_28px_-14px_rgba(15,23,42,0.55)] transition-all hover:-translate-y-0.5"
@@ -487,6 +703,7 @@ export default function LandingPage() {
             <img src={logo} alt="" className="h-7 w-7 object-contain" />
             <span>© 2026 SysFlow</span>
           </div>
+
           <span>Built by Aryan, Naman, Aditya, Isha, Debojyoti</span>
         </div>
       </footer>
