@@ -13,6 +13,7 @@ import { TEMPLATES } from '../lib/templates'
 import { estimateTotalMonthlyCost } from '../lib/cost'
 import { useHistory } from '../lib/useHistory'
 import type { ComponentType } from '../components/nodes'
+import { stashPendingSave, takePendingSave } from '../lib/pendingSave'
 
 const SPEED_OPTIONS = [0.5, 1, 2, 4]
 const TRAFFIC_OPTIONS = [0.5, 1, 2.5, 5]
@@ -52,6 +53,7 @@ export default function EditorPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [isLoadingProject, setIsLoadingProject] = useState(false)
 
   const sim = useSimulation()
   const auth = useAuth()
@@ -64,6 +66,24 @@ export default function EditorPage() {
   useEffect(() => {
     if (loadedRef.current) return
     loadedRef.current = true
+
+    const pending = takePendingSave()
+    if (pending) {
+      setNodes(
+        pending.graphJson.nodes.map((n) => ({
+          id: n.id,
+          type: 'archNode',
+          position: n.position ?? { x: 0, y: 0 },
+          data: { componentType: n.type, label: n.label ?? n.type, config: n.config, health: 'idle' },
+        })),
+      )
+      setEdges(pending.graphJson.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: 'archEdge' })))
+      setProjectName(pending.name)
+      setSaveDraftName(pending.name === 'Untitled Project' ? '' : pending.name)
+      setShowSaveDialog(true)
+      setToast('Welcome back — pick up where you left off and save')
+      return
+    }
 
     const templateId = params.get('template')
     const loadProjectId = params.get('projectId')
@@ -83,6 +103,7 @@ export default function EditorPage() {
         setProjectName(template.name)
       }
     } else if (loadProjectId) {
+      setIsLoadingProject(true)
       getProject(loadProjectId)
         .then((project) => {
           setProjectId(project.id)
@@ -98,6 +119,7 @@ export default function EditorPage() {
           setEdges(project.graphJson.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: 'archEdge' })))
         })
         .catch(() => setToast("Couldn't load that project"))
+        .finally(() => setIsLoadingProject(false))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -158,6 +180,8 @@ export default function EditorPage() {
 
   const handleSaveClick = () => {
     if (!auth.user) {
+      const graphJson = { nodes: toGraphNodes(nodes), edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target })) }
+      stashPendingSave(projectName, graphJson)
       navigate('/login?redirect=/app')
       return
     }
@@ -209,7 +233,7 @@ export default function EditorPage() {
 
   return (
     <div className="flex h-screen flex-col bg-[#fafafa] text-zinc-900">
-      <header className="relative flex h-16 shrink-0 items-center justify-between border-b border-zinc-200 bg-white/80 px-6 backdrop-blur-sm">
+      <header className="relative flex min-h-16 flex-wrap items-center justify-between gap-y-2 border-b border-zinc-200 bg-white/80 px-4 py-2 backdrop-blur-sm sm:px-6">
         <Link to="/" className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 text-sm font-semibold text-white shadow-sm">
             S
@@ -232,7 +256,7 @@ export default function EditorPage() {
           </div>
         )}
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={history.undo}
             disabled={!history.canUndo}
@@ -250,7 +274,8 @@ export default function EditorPage() {
             ↷
           </button>
           <label className="ml-2 flex items-center gap-2 text-xs font-medium text-zinc-500">
-            Target RPS
+            <span className="hidden sm:inline">Target RPS</span>
+            <span className="sm:hidden">RPS</span>
             <input
               type="number"
               min={1}
@@ -306,7 +331,15 @@ export default function EditorPage() {
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1">
+        {isLoadingProject && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70 backdrop-blur-sm">
+            <div className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm text-zinc-500 shadow-md">
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-zinc-300 border-t-violet-500" />
+              Loading project…
+            </div>
+          </div>
+        )}
         <Canvas
           nodes={nodes}
           edges={edges}
@@ -332,8 +365,8 @@ export default function EditorPage() {
         )}
       </div>
 
-      <footer className="flex h-16 shrink-0 items-center justify-between gap-4 border-t border-zinc-200 bg-white/80 px-6 backdrop-blur-sm">
-        <div className="flex items-center gap-2">
+      <footer className="flex min-h-16 flex-wrap items-center justify-between gap-3 border-t border-zinc-200 bg-white/80 px-4 py-2 backdrop-blur-sm sm:px-6">
+        <div className="flex flex-wrap items-center gap-2">
           {!sim.isPlaying ? (
             <button
               onClick={handleRun}
@@ -365,7 +398,7 @@ export default function EditorPage() {
           )}
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6">
           <label className="flex items-center gap-2 text-xs font-medium text-zinc-500">
             Speed: {sim.speed}x
             <input
