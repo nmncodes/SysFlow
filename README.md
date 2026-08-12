@@ -26,12 +26,14 @@ Most system design tools stop at drawing boxes and arrows. SysFlow treats an arc
 
 ## Quick Start
 
-**Prerequisites:** Node.js 20+, Java 21 (JDK), Maven, and a running PostgreSQL instance (Docker is easiest).
+**Prerequisites:** Node.js 20+, Java 21 (JDK), Maven. *(We now use Neon serverless PostgreSQL, so Docker is no longer required for local dev!)*
 
 ```bash
-# 1. Database
-docker run -d --name sysflow-postgres -e POSTGRES_DB=sysflow -e POSTGRES_USER=sysflow \
-  -e POSTGRES_PASSWORD=sysflow -p 5433:5432 postgres:16-alpine
+# 1. Environment Setup
+# Create a .env file in the `backend/` folder and add the Neon DB credentials:
+# SPRING_DATASOURCE_URL=jdbc:postgresql://...
+# POSTGRES_USER=...
+# POSTGRES_PASSWORD=...
 
 # 2. Backend — simulation engine + API + auth
 cd backend
