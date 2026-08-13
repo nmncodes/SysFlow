@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import ReactFlow, {
   Background,
   Controls,
-  MiniMap,
   addEdge,
   type Connection,
   type Edge,
@@ -14,6 +13,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import ArchNode, { type ArchNodeData } from './ArchNode'
 import ArchEdge from './ArchEdge'
+import ArchitectureOverview from './ArchitectureOverview'
 import Palette from './Palette'
 import ConfigPanel from './ConfigPanel'
 import ContextMenu, { type ContextMenuState } from './ContextMenu'
@@ -66,6 +66,8 @@ export default function Canvas({
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
+
+
 
   const onConnect = useCallback(
     (connection: Connection) => setEdges((eds) => addEdge({ ...connection, type: 'archEdge' }, eds)),
@@ -248,7 +250,7 @@ export default function Canvas({
         >
           <Background gap={22} color="#e4e4e7" />
           <Controls className="!shadow-md [&>button]:!border-zinc-200 [&>button]:!bg-white" />
-          {nodes.length > 0 && <MiniMap pannable zoomable className="!bg-white !shadow-md" />}
+          <ArchitectureOverview nodes={nodes} edges={edges} />
         </ReactFlow>
         {nodes.length === 0 && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">

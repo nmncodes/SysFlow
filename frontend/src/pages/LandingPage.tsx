@@ -10,7 +10,7 @@ import {
   ServiceIcon,
 } from '../components/icons'
 import { useInView } from '../lib/useInView'
-import logo from '../assets/logo.png'
+import logo from '../assets/vite.svg'
 
 const BLUE = '#12b8d4'
 const BLUE_DARK = '#079fbb'
