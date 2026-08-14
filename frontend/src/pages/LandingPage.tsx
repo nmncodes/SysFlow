@@ -42,9 +42,9 @@ const STEPS = [
 ]
 
 const TEMPLATES = [
-  { name: '3-Tier Application', desc: 'Client, load balancer, service and database.', accent: '3-TIER' },
-  { name: 'URL Shortener', desc: 'Gateway, redirect service, cache and database.', accent: 'READ-HEAVY' },
-  { name: 'Chat Application', desc: 'API, queue, workers and persistent storage.', accent: 'ASYNC' },
+  { id: 'basic-3-tier', name: '3-Tier Application', desc: 'Client, load balancer, service and database.', accent: '3-TIER' },
+  { id: 'url-shortener', name: 'URL Shortener', desc: 'Gateway, redirect service, cache and database.', accent: 'READ-HEAVY' },
+  { id: 'chat-app', name: 'Chat Application', desc: 'API, queue, workers and persistent storage.', accent: 'ASYNC' },
 ]
 
 const NAV_LINK =
@@ -568,7 +568,7 @@ export default function LandingPage() {
             {TEMPLATES.map((template, i) => (
               <Link
                 key={template.name}
-                to="/app"
+                to={`/app?template=${template.id}`}
                 className={`reveal hover-lift ${templates.inView ? 'in-view' : ''} group rounded-2xl border border-zinc-200/80 bg-white/96 p-7 shadow-[0_16px_45px_-25px_rgba(15,23,42,0.22)] transition-all duration-300 hover:-translate-y-1 hover:border-[#8de3ee] hover:shadow-[0_24px_55px_-22px_rgba(18,184,212,0.30)]`}
                 style={{ transitionDelay: templates.inView ? `${i * 90}ms` : '0ms' }}
               >
