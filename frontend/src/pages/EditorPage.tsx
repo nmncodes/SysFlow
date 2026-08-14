@@ -391,11 +391,11 @@ export default function EditorPage() {
             ⟲ Reset
           </button>
           {sim.error && <span className="text-xs text-red-500">{sim.error}</span>}
-          {nodes.length > 0 && (
+          {/* {nodes.length > 0 && (
             <span className="ml-2 text-xs text-zinc-400" title="Rough illustrative estimate — not real cloud pricing">
               ~${monthlyCost}/mo
             </span>
-          )}
+          )} */}
         </div>
 
         <div className="flex flex-wrap items-center gap-4 sm:gap-6">
