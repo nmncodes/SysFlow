@@ -2,6 +2,12 @@ import { Handle, Position, type NodeProps } from 'reactflow'
 import { COMPONENT_LIBRARY, HEALTH_COLORS, type HealthState } from './nodes'
 import { COMPONENT_ICONS, LightningIcon } from './icons'
 
+export interface ArchNodeMetrics {
+  cpu?: number
+  latency?: number
+  rps?: number
+}
+
 export interface ArchNodeData {
   componentType: string
   label: string
@@ -9,6 +15,20 @@ export interface ArchNodeData {
   health?: HealthState
   replicas?: number
   hasFailure?: boolean
+  metrics?: ArchNodeMetrics
+  connectionTarget?: boolean
+  connectionSource?: boolean
+  onConfigure?: () => void
+  onDuplicate?: () => void
+  onDelete?: () => void
+}
+
+const HEALTH_LABEL: Record<HealthState, string> = {
+  idle: 'Ready',
+  healthy: 'Healthy',
+  underLoad: 'Warning',
+  critical: 'Critical',
+  down: 'Down',
 }
 
 export default function ArchNode({ data, selected }: NodeProps<ArchNodeData>) {
@@ -17,41 +37,68 @@ export default function ArchNode({ data, selected }: NodeProps<ArchNodeData>) {
   const health: HealthState = data.health ?? 'idle'
   const ringColor = HEALTH_COLORS[health]
   const pulsing = health === 'underLoad' || health === 'critical'
+  const metrics = data.metrics
+  const borderColor = selected ? '#8b5cf6' : health === 'down' ? '#ef4444' : health === 'critical' ? '#fca5a5' : health === 'underLoad' ? '#fcd34d' : '#dbe7eb'
+  const capacity = Number(data.config?.maxThroughput ?? data.config?.maxConcurrency ?? 0)
+  const currentRps = Number(metrics?.rps ?? 0)
+  const capacityPct = capacity > 0 ? Math.min(100, Math.round((currentRps / capacity) * 100)) : 0
+  const capacityColor = capacityPct >= 90 ? '#ef4444' : capacityPct >= 70 ? '#f59e0b' : '#12b7d2'
 
   return (
     <div
-      style={{
-        boxShadow: selected
-          ? `0 0 0 2px ${ringColor}33, 0 4px 16px rgba(0,0,0,0.08)`
-          : `0 0 0 1.5px ${ringColor}55, 0 1px 3px rgba(0,0,0,0.04)`,
-      }}
-      className={`node-pop-in relative flex min-w-[136px] flex-col items-center gap-1 rounded-2xl border border-white bg-white px-4 py-3.5 transition-shadow ${
-        pulsing ? 'animate-pulse' : ''
-      }`}
+      className={`sysflow-node node-pop-in group relative flex min-w-[172px] flex-col rounded-[18px] border bg-white px-3.5 py-3.5 shadow-sm transition-all duration-200 ${
+        selected ? 'z-20 shadow-[0_0_0_3px_rgba(124,58,237,0.13),0_12px_28px_rgba(24,24,27,0.12)]' : 'hover:-translate-y-0.5 hover:shadow-lg'
+      } ${data.connectionTarget ? 'connection-target' : ''} ${data.connectionSource ? 'connection-source' : ''} ${pulsing ? 'node-health-pulse' : ''}`}
+      style={{ borderColor }}
     >
-      <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-2 !border-white !bg-violet-400" />
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-50 text-zinc-700">
-        {Icon && <Icon />}
-      </span>
-      <span className="text-sm font-medium text-zinc-800">{data.label}</span>
-      <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">{def?.label}</span>
-      {health !== 'idle' && (
-        <span
-          className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-white"
-          style={{ background: ringColor }}
-        />
+      <Handle type="target" position={Position.Left} className="sysflow-handle !h-3 !w-3 !border-2 !border-white !bg-cyan-500" />
+      <Handle type="source" position={Position.Right} className="sysflow-handle !h-3 !w-3 !border-2 !border-white !bg-cyan-500" />
+
+      <div className="node-topline" />
+      <div className="mb-2.5 flex items-center justify-between gap-2">
+        <span className="node-icon-wrap flex h-10 w-10 items-center justify-center rounded-[13px] text-zinc-700" style={{ color: ringColor }}>
+          {Icon && <Icon width={19} height={19} />}
+        </span>
+        <span className="node-health-badge rounded-full px-2 py-1 text-[9px] font-semibold" style={{ color: ringColor, backgroundColor: `${ringColor}15` }}>
+          {HEALTH_LABEL[health]}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: ringColor }} /><span className="text-sm font-bold tracking-[-0.01em] text-zinc-900">{data.label}</span></div>
+      <span className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400">{def?.label}</span>
+
+      {capacity > 0 && (
+        <div className="mt-3">
+          <div className="mb-1.5 flex items-center justify-between text-[8px] font-bold uppercase tracking-wider text-zinc-400"><span>Capacity</span><span style={{ color: capacityColor }}>{capacityPct}%</span></div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-zinc-100"><div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(3, capacityPct)}%`, backgroundColor: capacityColor }} /></div>
+        </div>
       )}
+
+      {metrics && (metrics.cpu !== undefined || metrics.latency !== undefined || metrics.rps !== undefined) && (
+        <div className="mt-3 grid grid-cols-3 gap-1 border-t border-zinc-100 pt-2 text-[9px] text-zinc-500">
+          <span><b className="block text-zinc-700">{Math.round(metrics.cpu ?? 0)}%</b>CPU</span>
+          <span><b className="block text-zinc-700">{Math.round(metrics.latency ?? 0)}ms</b>Latency</span>
+          <span><b className="block text-zinc-700">{Math.round(metrics.rps ?? 0)}</b>RPS</span>
+        </div>
+      )}
+
       {data.replicas !== undefined && (data.replicas > 1 || data.componentType === 'autoScalingGroup') && (
-        <span className="absolute -left-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full border-2 border-white bg-zinc-800 px-1 text-[10px] font-bold text-white shadow-sm">
+        <span className="absolute -left-2 -top-2 flex h-5 min-w-[22px] items-center justify-center rounded-full border-2 border-white bg-zinc-900 px-1 text-[9px] font-bold text-white shadow-sm">
           x{data.replicas}
         </span>
       )}
+
       {data.hasFailure && (
-        <span className="absolute -left-2 -bottom-2 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 text-white shadow-sm">
+        <span className="absolute -left-2 -bottom-2 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-red-500 text-white shadow-sm" title="Failure injected">
           <LightningIcon width={11} height={11} />
         </span>
       )}
-      <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border-2 !border-white !bg-violet-400" />
+
+      <div className="node-actions absolute -right-2 -top-11 flex items-center gap-1 rounded-xl border border-zinc-200 bg-white p-1 shadow-lg">
+        <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={data.onConfigure} title="Configure" className="rounded-lg px-2 py-1 text-[10px] font-medium text-zinc-500 hover:bg-violet-50 hover:text-violet-600">Configure</button>
+        <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={data.onDuplicate} title="Duplicate" className="rounded-lg px-2 py-1 text-[10px] font-medium text-zinc-500 hover:bg-zinc-50">Duplicate</button>
+        <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={data.onDelete} title="Delete" className="rounded-lg px-2 py-1 text-[10px] font-medium text-red-500 hover:bg-red-50">Delete</button>
+      </div>
     </div>
   )
 }

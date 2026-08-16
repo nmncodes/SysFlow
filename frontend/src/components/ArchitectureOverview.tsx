@@ -18,9 +18,9 @@ interface ArchitectureOverviewProps {
 const DEFAULT_NODE_WIDTH = 136
 const DEFAULT_NODE_HEIGHT = 94
 
-const VIEW_WIDTH = 280
-const VIEW_HEIGHT = 190
-const PADDING = 40
+const VIEW_WIDTH = 220
+const VIEW_HEIGHT = 150
+const PADDING = 22
 
 // Color mapping for component types (matches Canvas MiniMap)
 function getComponentColor(componentType: string): string {
@@ -121,15 +121,19 @@ export default function ArchitectureOverview({
 
   return (
     <div
-      className="absolute bottom-4 right-4 z-10 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-md"
+      className="sysflow-minimap absolute bottom-4 right-4 z-10 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg"
       style={{
         width: VIEW_WIDTH,
         height: VIEW_HEIGHT,
       }}
     >
+      <div className="flex items-center justify-between border-b border-zinc-100 px-3 py-2">
+        <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Minimap</span>
+        <span className="text-[9px] text-zinc-300">Architecture overview</span>
+      </div>
       <svg
         width={VIEW_WIDTH}
-        height={VIEW_HEIGHT}
+        height={VIEW_HEIGHT - 34}
         viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
         className="block"
       >
@@ -138,8 +142,8 @@ export default function ArchitectureOverview({
           x={0}
           y={0}
           width={VIEW_WIDTH}
-          height={VIEW_HEIGHT}
-          fill="white"
+          height={VIEW_HEIGHT - 34}
+          fill="#fbfeff"
         />
 
         {/* Connections */}

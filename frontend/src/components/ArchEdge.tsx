@@ -5,17 +5,18 @@ export interface ArchEdgeData {
   avgLatencyMs?: number
   active?: boolean
   hasFailure?: boolean
+  selected?: boolean
+  onSelect?: () => void
 }
 
 function latencyToColor(latencyMs: number): string {
-  if (latencyMs <= 25) return '#60a5fa'
-  if (latencyMs <= 60) return '#f59e0b'
+  if (latencyMs <= 60) return '#22c1dc'
+  if (latencyMs <= 120) return '#f59e0b'
   return '#ef4444'
 }
 
 function latencyToDuration(latencyMs: number): number {
-  // slower particle = higher latency; clamp so it never freezes or blurs
-  return Math.min(4, Math.max(0.6, latencyMs / 30))
+  return Math.min(4, Math.max(0.65, latencyMs / 30))
 }
 
 function formatRps(rps: number): string {
@@ -38,27 +39,52 @@ export default function ArchEdge({
   const latency = data?.avgLatencyMs ?? 0
   const active = data?.active ?? false
   const hasFailure = data?.hasFailure ?? false
-
-  const strokeWidth = active ? Math.min(6, 1.5 + inFlight / 4) : 1.5
-  const strokeColor = hasFailure ? '#ef4444' : active ? latencyToColor(latency) : '#d4d4d8'
+  const selected = data?.selected ?? false
+  const strokeWidth = selected ? 3 : active ? Math.min(5, 1.8 + inFlight / 4) : 2
+  const strokeColor = hasFailure ? '#ef4444' : active ? latencyToColor(latency) : '#22c1dc'
   const particleCount = active ? Math.min(4, Math.max(1, Math.round(inFlight / 3))) : 0
   const rps = inFlight * 10
+  const markerId = `sysflow-arrow-${id.replace(/[^a-zA-Z0-9_-]/g, '-')}`
 
   return (
     <>
+      <defs>
+        <filter id={`sysflow-glow-${markerId}`} x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2.2" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+        <marker id={markerId} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill={strokeColor} />
+        </marker>
+      </defs>
       <BaseEdge
         id={id}
         path={path}
+        markerEnd={`url(#${markerId})`}
         style={{
           stroke: strokeColor,
           strokeWidth,
-          strokeDasharray: hasFailure ? '6 4' : undefined,
-          transition: 'stroke 0.3s, stroke-width 0.3s',
+          strokeLinecap: 'round',
+          strokeDasharray: hasFailure ? '7 5' : undefined,
+          opacity: selected ? 1 : 0.82,
+          filter: active || selected ? `url(#sysflow-glow-${markerId})` : undefined,
+          transition: 'stroke 0.3s, stroke-width 0.3s, opacity 0.3s',
+        }}
+      />
+      <path
+        d={path}
+        fill="none"
+        stroke="transparent"
+        strokeWidth={18}
+        className="react-flow__edge-interaction"
+        onClick={(event) => {
+          event.stopPropagation()
+          data?.onSelect?.()
         }}
       />
       {active &&
         Array.from({ length: particleCount }).map((_, i) => (
-          <circle key={i} r={3.5} fill={strokeColor}>
+          <circle key={i} r={3.2} fill={strokeColor} pointerEvents="none" className="sysflow-traffic-particle">
             <animateMotion
               dur={`${latencyToDuration(latency)}s`}
               begin={`${(i * latencyToDuration(latency)) / particleCount}s`}
@@ -74,10 +100,10 @@ export default function ArchEdge({
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
             }}
-            className="pointer-events-none flex items-center gap-1 rounded-full border border-zinc-100 bg-white/90 px-2 py-0.5 text-[10px] font-medium text-zinc-500 shadow-sm backdrop-blur-sm"
+            className="pointer-events-none flex items-center gap-1 rounded-full border border-zinc-200 bg-white/95 px-2 py-1 text-[10px] font-semibold text-zinc-600 shadow-sm backdrop-blur-sm"
           >
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: strokeColor }} />
-            {hasFailure && <span className="text-red-500">40% dropped ·</span>}
+            {hasFailure && <span className="text-red-500">Failed ·</span>}
             {formatRps(rps)} rps · {Math.round(latency)}ms
           </div>
         </EdgeLabelRenderer>

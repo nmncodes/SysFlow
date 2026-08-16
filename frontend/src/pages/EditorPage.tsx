@@ -10,19 +10,21 @@ import { ClockIcon, PacketDropIcon, SkullIcon, ThrottleIcon } from '../component
 import { useAuth } from '../lib/AuthContext'
 import { createProject, getProject, updateProject } from '../lib/projects'
 import { TEMPLATES } from '../lib/templates'
-import { estimateTotalMonthlyCost } from '../lib/cost'
 import { useHistory } from '../lib/useHistory'
-import type { ComponentType } from '../components/nodes'
 import { stashPendingSave, takePendingSave } from '../lib/pendingSave'
+import logo from '../assets/logo.png'
 
 const SPEED_OPTIONS = [0.5, 1, 2, 4]
 const TRAFFIC_OPTIONS = [0.5, 1, 2.5, 5]
+const RPS_PRESETS = [100, 500, 1000, 5000, 10000]
 
-const CHAOS_TYPES: { type: InjectedFailure['type']; label: string; Icon: typeof SkullIcon }[] = [
-  { type: 'kill', label: 'Kill node', Icon: SkullIcon },
-  { type: 'latency', label: 'Add latency', Icon: ClockIcon },
-  { type: 'throttle', label: 'Throttle', Icon: ThrottleIcon },
-  { type: 'dropPct', label: 'Drop packets', Icon: PacketDropIcon },
+type ChaosType = InjectedFailure['type']
+
+const CHAOS_TYPES: { type: ChaosType; label: string; Icon: typeof SkullIcon }[] = [
+  { type: 'kill', label: 'Kill Node', Icon: SkullIcon },
+  { type: 'latency', label: 'Add Latency', Icon: ClockIcon },
+  { type: 'dropPct', label: 'Drop Packets', Icon: PacketDropIcon },
+  { type: 'throttle', label: 'Reduce Capacity', Icon: ThrottleIcon },
 ]
 
 function toGraphNodes(nodes: Node<ArchNodeData>[]) {
@@ -33,6 +35,16 @@ function toGraphNodes(nodes: Node<ArchNodeData>[]) {
     position: n.position,
     label: n.data.label,
   }))
+}
+
+function downloadText(filename: string, content: string, type: string) {
+  const blob = new Blob([content], { type })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
 }
 
 export default function EditorPage() {
@@ -54,6 +66,15 @@ export default function EditorPage() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [isLoadingProject, setIsLoadingProject] = useState(false)
+  const [isDirty, setIsDirty] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
+  const [templatesOpen, setTemplatesOpen] = useState(false)
+  const [chaosOpen, setChaosOpen] = useState(false)
+  const [chaosType, setChaosType] = useState<ChaosType>('kill')
+  const [chaosTarget, setChaosTarget] = useState('')
+  const [chaosLatency, setChaosLatency] = useState(100)
+  const [chaosDrop, setChaosDrop] = useState(10)
+  const [chaosThrottle, setChaosThrottle] = useState(50)
 
   const sim = useSimulation()
   const auth = useAuth()
@@ -62,21 +83,18 @@ export default function EditorPage() {
   const loadedRef = useRef(false)
   const history = useHistory(nodes, edges, setNodes, setEdges)
 
-  // Load from a template or a saved project once, on mount.
   useEffect(() => {
     if (loadedRef.current) return
     loadedRef.current = true
 
     const pending = takePendingSave()
     if (pending) {
-      setNodes(
-        pending.graphJson.nodes.map((n) => ({
-          id: n.id,
-          type: 'archNode',
-          position: n.position ?? { x: 0, y: 0 },
-          data: { componentType: n.type, label: n.label ?? n.type, config: n.config, health: 'idle' },
-        })),
-      )
+      setNodes(pending.graphJson.nodes.map((n) => ({
+        id: n.id,
+        type: 'archNode',
+        position: n.position ?? { x: 0, y: 0 },
+        data: { componentType: n.type, label: n.label ?? n.type, config: n.config, health: 'idle' },
+      })))
       setEdges(pending.graphJson.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: 'archEdge' })))
       setProjectName(pending.name)
       setSaveDraftName(pending.name === 'Untitled Project' ? '' : pending.name)
@@ -91,14 +109,12 @@ export default function EditorPage() {
     if (templateId) {
       const template = TEMPLATES.find((t) => t.id === templateId)
       if (template) {
-        setNodes(
-          template.graph.nodes.map((n) => ({
-            id: n.id,
-            type: 'archNode',
-            position: n.position ?? { x: 0, y: 0 },
-            data: { componentType: n.type, label: n.label ?? n.type, config: n.config, health: 'idle' },
-          })),
-        )
+        setNodes(template.graph.nodes.map((n) => ({
+          id: n.id,
+          type: 'archNode',
+          position: n.position ?? { x: 0, y: 0 },
+          data: { componentType: n.type, label: n.label ?? n.type, config: n.config, health: 'idle' },
+        })))
         setEdges(template.graph.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: 'archEdge' })))
         setProjectName(template.name)
       }
@@ -108,14 +124,12 @@ export default function EditorPage() {
         .then((project) => {
           setProjectId(project.id)
           setProjectName(project.name)
-          setNodes(
-            project.graphJson.nodes.map((n) => ({
-              id: n.id,
-              type: 'archNode',
-              position: n.position ?? { x: 0, y: 0 },
-              data: { componentType: n.type, label: n.label ?? n.type, config: n.config, health: 'idle' },
-            })),
-          )
+          setNodes(project.graphJson.nodes.map((n) => ({
+            id: n.id,
+            type: 'archNode',
+            position: n.position ?? { x: 0, y: 0 },
+            data: { componentType: n.type, label: n.label ?? n.type, config: n.config, health: 'idle' },
+          })))
           setEdges(project.graphJson.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: 'archEdge' })))
         })
         .catch(() => setToast("Couldn't load that project"))
@@ -126,12 +140,26 @@ export default function EditorPage() {
 
   useEffect(() => {
     if (!toast) return
-    const t = setTimeout(() => setToast(null), 3000)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => setToast(null), 3000)
+    return () => clearTimeout(timer)
   }, [toast])
 
   const hasClient = nodes.some((n) => n.data.componentType === 'client')
   const canRun = nodes.length > 0 && hasClient && !sim.isRunning
+  const global = sim.currentTick?.global
+  const simulationState = sim.isRunning ? 'Starting' : sim.isPlaying ? 'Running' : sim.result ? 'Paused' : 'Ready'
+
+  const markDirty = () => setIsDirty(true)
+
+  const handleNodesChange = (changes: Parameters<typeof onNodesChange>[0]) => {
+    if (changes.length > 0) setIsDirty(true)
+    onNodesChange(changes)
+  }
+
+  const handleEdgesChange = (changes: Parameters<typeof onEdgesChange>[0]) => {
+    if (changes.length > 0) setIsDirty(true)
+    onEdgesChange(changes)
+  }
 
   const handleRun = () => {
     if (sim.result) {
@@ -152,6 +180,7 @@ export default function EditorPage() {
       setAnalysis(result)
     } catch {
       setAnalysis({ findings: [], aiEnabled: false })
+      setToast('Analysis service is unavailable — showing local checks')
     } finally {
       setIsAnalyzing(false)
     }
@@ -169,7 +198,8 @@ export default function EditorPage() {
         setProjectId(created.id)
       }
       setProjectName(name)
-      setToast('Saved')
+      setIsDirty(false)
+      setToast('Project saved')
       setShowSaveDialog(false)
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : 'Save failed')
@@ -193,20 +223,57 @@ export default function EditorPage() {
     }
   }
 
-  const handleDeleteSelected = () => {
-    if (!selectedNodeId) return
-    setNodes((nds) => nds.filter((n) => n.id !== selectedNodeId))
-    setEdges((eds) => eds.filter((e) => e.source !== selectedNodeId && e.target !== selectedNodeId))
-    setFailures((fs) => fs.filter((f) => f.nodeId !== selectedNodeId))
+  const applyTemplate = (templateId: string) => {
+    const template = TEMPLATES.find((item) => item.id === templateId)
+    if (!template) return
+    setNodes(template.graph.nodes.map((n) => ({
+      id: n.id,
+      type: 'archNode',
+      position: n.position ?? { x: 0, y: 0 },
+      data: { componentType: n.type, label: n.label ?? n.type, config: n.config, health: 'idle' },
+    })))
+    setEdges(template.graph.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: 'archEdge' })))
+    setProjectName(template.name)
     setSelectedNodeId(null)
+    setTemplatesOpen(false)
+    setIsDirty(true)
+    setToast(`${template.name} loaded`)
   }
 
-  // Keyboard shortcuts
+  const exportJson = () => {
+    downloadText('sysflow-architecture.json', JSON.stringify({ projectName, nodes: toGraphNodes(nodes), edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target })) }, null, 2), 'application/json')
+    setExportOpen(false)
+  }
+
+  const exportPdf = () => {
+    setExportOpen(false)
+    window.print()
+  }
+
+  const nodeTargets = nodes
+  const edgeTargets = edges
+  const chaosTargetOptions = chaosType === 'dropPct' ? edgeTargets : nodeTargets
+
+  useEffect(() => {
+    if (!chaosTargetOptions.some((item) => item.id === chaosTarget)) setChaosTarget(chaosTargetOptions[0]?.id ?? '')
+  }, [chaosType, nodes.length, edges.length, chaosTarget])
+
+  const injectChaos = () => {
+    if (!chaosTarget) return
+    let failure: InjectedFailure
+    if (chaosType === 'kill') failure = { type: 'kill', nodeId: chaosTarget, fromTick: 0 }
+    else if (chaosType === 'latency') failure = { type: 'latency', nodeId: chaosTarget, fromTick: 0, extraMs: Math.max(1, chaosLatency) }
+    else if (chaosType === 'throttle') failure = { type: 'throttle', nodeId: chaosTarget, fromTick: 0, throttlePct: Math.max(1, Math.min(100, chaosThrottle)) }
+    else failure = { type: 'dropPct', edgeId: chaosTarget, fromTick: 0, dropPct: Math.max(1, Math.min(100, chaosDrop)) }
+    setFailures((current) => [...current.filter((item) => !(item.type === failure.type && (item.nodeId === failure.nodeId || item.edgeId === failure.edgeId))), failure])
+    setIsDirty(true)
+    setToast(`${CHAOS_TYPES.find((item) => item.type === chaosType)?.label} injected`)
+  }
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
-      if (['INPUT', 'TEXTAREA'].includes(target.tagName)) return
-
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
         e.preventDefault()
         history.undo()
@@ -216,11 +283,22 @@ export default function EditorPage() {
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault()
         handleSaveClick()
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+        e.preventDefault()
+        setNodes((nds) => nds.map((node) => ({ ...node, selected: true })))
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedNodeId) {
           e.preventDefault()
-          handleDeleteSelected()
+          setNodes((nds) => nds.filter((node) => node.id !== selectedNodeId))
+          setEdges((eds) => eds.filter((edge) => edge.source !== selectedNodeId && edge.target !== selectedNodeId))
+          setFailures((fs) => fs.filter((failure) => failure.nodeId !== selectedNodeId))
+          setSelectedNodeId(null)
+          setIsDirty(true)
         }
+      } else if (e.key === 'Escape') {
+        setExportOpen(false)
+        setTemplatesOpen(false)
+        setChaosOpen(false)
       }
     }
     window.addEventListener('keydown', handler)
@@ -228,123 +306,74 @@ export default function EditorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedNodeId, projectId, projectName, nodes, edges])
 
-  const global = sim.currentTick?.global
-  const monthlyCost = estimateTotalMonthlyCost(nodes.map((n) => ({ type: n.data.componentType as ComponentType })))
-
   return (
-    <div className="flex h-screen flex-col bg-[#fafafa] text-zinc-900">
-      <header className="relative flex min-h-16 flex-wrap items-center justify-between gap-y-2 border-b border-zinc-200 bg-white/80 px-4 py-2 backdrop-blur-sm sm:px-6">
-        <Link to="/" className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 text-sm font-semibold text-white shadow-sm">
-            S
-          </div>
-          <div className="flex flex-col leading-none">
-            <span className="text-[15px] font-semibold tracking-tight text-zinc-900">SysFlow</span>
-            <span className="text-xs text-zinc-400">{projectName}</span>
-          </div>
-        </Link>
-
-        {sim.isPlaying && global && (
-          <div className="status-pill-in absolute left-1/2 top-1/2 flex items-center gap-3 rounded-full bg-zinc-900 px-4 py-1.5 text-[12px] font-medium text-white shadow-md">
-            <span className={global.errorRatePct >= 5 ? 'text-red-400' : 'text-emerald-400'}>
-              err {global.errorRatePct.toFixed(1)}%
-            </span>
-            <span className="text-zinc-500">·</span>
-            <span>rps {Math.round(global.rps)}</span>
-            <span className="text-zinc-500">·</span>
-            <span>p95 {Math.round(global.p95)}ms</span>
-          </div>
-        )}
-
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={history.undo}
-            disabled={!history.canUndo}
-            title="Undo (Ctrl+Z)"
-            className="rounded-lg border border-zinc-200 bg-white px-2.5 py-2 text-sm text-zinc-500 shadow-sm transition hover:border-zinc-300 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-30"
-          >
-            ↶
-          </button>
-          <button
-            onClick={history.redo}
-            disabled={!history.canRedo}
-            title="Redo (Ctrl+Shift+Z)"
-            className="rounded-lg border border-zinc-200 bg-white px-2.5 py-2 text-sm text-zinc-500 shadow-sm transition hover:border-zinc-300 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-30"
-          >
-            ↷
-          </button>
-          <label className="ml-2 flex items-center gap-2 text-xs font-medium text-zinc-500">
-            <span className="hidden sm:inline">Target RPS</span>
-            <span className="sm:hidden">RPS</span>
+    <div className="editor-shell flex h-screen min-h-0 flex-col bg-[#f8fcfd] text-zinc-900">
+      <header className="editor-header relative z-30 flex min-h-[76px] items-center justify-between gap-3 border-b border-zinc-200 bg-white px-4 py-2 shadow-[0_1px_0_rgba(0,0,0,0.02)] sm:px-6">
+        <div className="flex min-w-[220px] items-center gap-3">
+          <Link to="/" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+            <img src={logo} alt="SysFlow" className="h-11 w-11 object-contain" />
+          </Link>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2"><span className="text-base font-semibold tracking-tight text-zinc-900">SysFlow</span><span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[8px] font-semibold uppercase text-zinc-400">Editor</span></div>
             <input
-              type="number"
-              min={1}
-              value={baseRps}
-              onChange={(e) => setBaseRps(Math.max(1, Number(e.target.value)))}
-              className="w-20 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-sm text-zinc-800 outline-none focus:border-violet-300 focus:bg-white focus:ring-2 focus:ring-violet-100"
+              value={projectName}
+              onChange={(e) => { setProjectName(e.target.value); markDirty() }}
+              onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+              title="Edit project name"
+              className="mt-0.5 w-44 border-0 bg-transparent p-0 text-xs text-zinc-400 outline-none hover:text-zinc-600 focus:text-zinc-800"
             />
-          </label>
-          <button
-            onClick={() => setExportRequest((t) => t + 1)}
-            title="Export as PNG"
-            className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50"
-          >
-            Export
-          </button>
-          <button
-            onClick={() => {
-              if (!projectId) {
-                setToast('Save the project first to get a share link')
-                return
-              }
-              navigator.clipboard.writeText(`${window.location.origin}/share/${projectId}`)
-              setToast('Share link copied')
-            }}
-            title="Copy a read-only share link"
-            className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50"
-          >
-            Share
-          </button>
-          {auth.user ? (
-            <Link
-              to="/projects"
-              className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50"
-            >
-              My Projects
-            </Link>
-          ) : (
-            <Link
-              to="/login"
-              className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50"
-            >
-              Log in
-            </Link>
-          )}
-          <button
-            onClick={handleSaveClick}
-            disabled={isSaving}
-            title="Save (Ctrl+S)"
-            className="btn-dark rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
-          >
-            {isSaving ? 'Saving…' : 'Save'}
-          </button>
+          </div>
+        </div>
+
+        <div className="hidden min-w-0 flex-1 items-center justify-center gap-2 lg:flex">
+          <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${isDirty ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
+            <span className="h-1.5 w-1.5 rounded-full bg-current" /> {isSaving ? 'Saving…' : isDirty ? 'Unsaved changes' : 'Saved'}
+          </span>
+          {isLoadingProject && <span className="text-[10px] text-zinc-400">Loading project…</span>}
+        </div>
+
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <button onClick={history.undo} disabled={!history.canUndo} title="Undo (Ctrl+Z)" className="toolbar-icon" aria-label="Undo">↶</button>
+          <button onClick={history.redo} disabled={!history.canRedo} title="Redo (Ctrl+Y)" className="toolbar-icon" aria-label="Redo">↷</button>
+
+          <div className="target-rps-box hidden items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2 xl:flex">
+            <div><p className="text-[10px] font-bold text-zinc-500">Target RPS <span className="text-zinc-300">ⓘ</span></p><input type="number" min={1} max={1000000} value={baseRps} onChange={(e) => { const value = Math.min(1000000, Math.max(1, Number(e.target.value) || 1)); setBaseRps(value); markDirty() }} className="w-20 border-0 bg-transparent p-0 text-sm font-bold text-zinc-900 outline-none" /></div>
+            <div className="flex items-end gap-1">
+              {RPS_PRESETS.map((value) => <button key={value} onClick={() => { setBaseRps(value); markDirty() }} className={`rps-preset ${baseRps === value ? 'active' : ''}`}>{value >= 1000 ? `${value / 1000}K` : value}</button>)}
+            </div>
+          </div>
+
+          <div className="relative">
+            <button onClick={() => { setExportOpen((v) => !v); setTemplatesOpen(false) }} className="toolbar-button">Export⌄</button>
+            {exportOpen && <div className="popover-menu right-0 top-12">
+              <button onClick={() => { setExportRequest((v) => v + 1); setExportOpen(false) }}>PNG image</button>
+              <button onClick={exportJson}>JSON graph</button>
+              <button onClick={exportPdf}>PDF / Print</button>
+            </div>}
+          </div>
+
+          <button onClick={() => { if (!projectId) { setToast('Save the project first to get a share link'); return }; navigator.clipboard.writeText(`${window.location.origin}/share/${projectId}`); setToast('Share link copied') }} className="toolbar-button hidden md:block">Share ↗</button>
+
+          <div className="relative">
+            <button onClick={() => { setTemplatesOpen((v) => !v); setExportOpen(false) }} className="toolbar-button hidden md:block">Templates</button>
+            {templatesOpen && <div className="popover-menu right-0 top-12 w-64">
+              <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400">Start with a template</p>
+              {TEMPLATES.map((template) => <button key={template.id} onClick={() => applyTemplate(template.id)}><span className="block font-semibold text-zinc-800">{template.name}</span><span className="mt-0.5 block text-[10px] leading-relaxed text-zinc-400">{template.description}</span></button>)}
+            </div>}
+          </div>
+
+          {auth.user ? <Link to="/projects" className="toolbar-button hidden lg:block">Projects</Link> : <Link to="/login" className="toolbar-button hidden lg:block">Log in</Link>}
+          <button onClick={handleSaveClick} disabled={isSaving} title="Save (Ctrl+S)" className="btn-dark rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-50">{isSaving ? 'Saving…' : 'Save'}</button>
         </div>
       </header>
 
-      <div className="relative flex min-h-0 flex-1">
-        {isLoadingProject && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70 backdrop-blur-sm">
-            <div className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm text-zinc-500 shadow-md">
-              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-zinc-300 border-t-violet-500" />
-              Loading project…
-            </div>
-          </div>
-        )}
+      <div className="flex min-h-0 flex-1">
+        {isLoadingProject && <div className="absolute inset-0 z-40 flex items-center justify-center bg-white/60 backdrop-blur-sm"><div className="rounded-full bg-white px-4 py-2 text-sm text-zinc-500 shadow-lg">Loading project…</div></div>}
         <Canvas
           nodes={nodes}
           edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
+          onNodesChange={handleNodesChange}
+          onEdgesChange={handleEdgesChange}
           setNodes={setNodes}
           setEdges={setEdges}
           currentTick={sim.currentTick}
@@ -354,147 +383,73 @@ export default function EditorPage() {
           focusRequest={focusRequest}
           exportRequest={exportRequest}
           onSelectionChange={setSelectedNodeId}
+          onDirty={markDirty}
+          hideSidebar={!!analysis}
         />
-        {analysis && (
-          <FindingsPanel
-            findings={analysis.findings}
-            aiEnabled={analysis.aiEnabled}
-            onFocusNode={(nodeId) => setFocusRequest({ nodeId, token: Date.now() })}
-            onClose={() => setAnalysis(null)}
-          />
-        )}
+        {analysis && <FindingsPanel findings={analysis.findings} aiEnabled={analysis.aiEnabled} summary={sim.result?.summary} onFocusNode={(nodeId) => setFocusRequest({ nodeId, token: Date.now() })} onClose={() => setAnalysis(null)} />}
       </div>
 
-      <footer className="flex min-h-16 flex-wrap items-center justify-between gap-3 border-t border-zinc-200 bg-white/80 px-4 py-2 backdrop-blur-sm sm:px-6">
-        <div className="flex flex-wrap items-center gap-2">
-          {!sim.isPlaying ? (
-            <button
-              onClick={handleRun}
-              disabled={!canRun}
-              className="flex items-center gap-1.5 rounded-lg bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm ring-1 ring-emerald-100 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <span>▶</span> {sim.isRunning ? 'Running…' : 'Run'}
-            </button>
-          ) : (
-            <button
-              onClick={sim.pause}
-              className="flex items-center gap-1.5 rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-600 shadow-sm ring-1 ring-red-100 transition hover:bg-red-100"
-            >
-              <span>■</span> Stop
-            </button>
-          )}
-          <button
-            onClick={sim.reset}
-            disabled={!sim.result}
-            className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-500 shadow-sm transition hover:border-zinc-300 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            ⟲ Reset
-          </button>
-          {sim.error && <span className="text-xs text-red-500">{sim.error}</span>}
-          {/* {nodes.length > 0 && (
-            <span className="ml-2 text-xs text-zinc-400" title="Rough illustrative estimate — not real cloud pricing">
-              ~${monthlyCost}/mo
-            </span>
-          )} */}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-          <label className="flex items-center gap-2 text-xs font-medium text-zinc-500">
-            Speed: {sim.speed}x
-            <input
-              type="range"
-              min={0}
-              max={SPEED_OPTIONS.length - 1}
-              step={1}
-              value={SPEED_OPTIONS.indexOf(sim.speed)}
-              onChange={(e) => sim.setSpeed(SPEED_OPTIONS[Number(e.target.value)])}
-              className="w-24 accent-violet-600"
-            />
-          </label>
-          <label className="flex items-center gap-2 text-xs font-medium text-zinc-500">
-            Traffic: {traffic}x
-            <input
-              type="range"
-              min={0}
-              max={TRAFFIC_OPTIONS.length - 1}
-              step={1}
-              value={TRAFFIC_OPTIONS.indexOf(traffic)}
-              onChange={(e) => setTraffic(TRAFFIC_OPTIONS[Number(e.target.value)])}
-              className="w-24 accent-violet-600"
-            />
-          </label>
+      <footer className="simulation-footer relative z-30 border-t border-zinc-200 bg-white px-4 py-2.5 shadow-[0_-4px_20px_rgba(0,0,0,0.04)] sm:px-5">
+        <div className="flex min-w-0 flex-wrap items-center gap-3 xl:flex-nowrap">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-zinc-500">Chaos:</span>
-            {CHAOS_TYPES.map(({ type, label, Icon }) => {
-              const activeCount = failures.filter((f) => f.type === type).length
-              return (
-                <button
-                  key={type}
-                  title={activeCount > 0 ? `${label} — click to clear` : `${label} (right-click a ${type === 'dropPct' ? 'edge' : 'node'} to apply)`}
-                  onClick={() => activeCount > 0 && setFailures((fs) => fs.filter((f) => f.type !== type))}
-                  className={`flex h-7 w-7 items-center justify-center rounded-lg transition ${
-                    activeCount > 0
-                      ? 'bg-red-50 text-red-500 ring-1 ring-red-100'
-                      : 'text-zinc-300 hover:bg-zinc-50 hover:text-zinc-400'
-                  }`}
-                >
-                  <Icon width={14} height={14} />
-                </button>
-              )
-            })}
+            <button onClick={handleRun} disabled={!canRun} className="run-button"><span>{sim.isPlaying ? '▶' : '▶'}</span> {sim.isPlaying ? 'Running' : sim.result ? 'Resume' : sim.isRunning ? 'Starting…' : 'Run'}<small>Ctrl + Enter</small></button>
+            {sim.isPlaying && <button onClick={sim.pause} className="simulation-secondary">Pause</button>}
+            {sim.result && <button onClick={sim.reset} className="simulation-secondary danger">Stop</button>}
           </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          {sim.result && sim.result.summary.singlePointsOfFailure.length > 0 && (
-            <span className="text-xs text-amber-600">
-              ⚠ SPOF: {sim.result.summary.singlePointsOfFailure.join(', ')}
-            </span>
-          )}
-          <button
-            onClick={handleAnalyze}
-            disabled={nodes.length === 0 || isAnalyzing}
-            className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <span>✨</span> {isAnalyzing ? 'Analyzing…' : 'Analyze'}
-          </button>
+          <div className="simulation-state"><span className={`state-dot ${simulationState.toLowerCase()}`} /> Simulation: <b>{simulationState}</b></div>
+
+          <div className="segmented-group"><span>Speed</span>{SPEED_OPTIONS.map((value) => <button key={value} onClick={() => sim.setSpeed(value)} className={sim.speed === value ? 'active' : ''}>{value}×</button>)}</div>
+          <div className="segmented-group"><span>Traffic</span>{TRAFFIC_OPTIONS.map((value) => <button key={value} onClick={() => { setTraffic(value); markDirty() }} className={traffic === value ? 'active' : ''}>{value}×</button>)}</div>
+
+          <div className="relative">
+            <button onClick={() => setChaosOpen((v) => !v)} className={`chaos-button ${failures.length > 0 ? 'active' : ''}`}>⚡ Chaos {failures.length > 0 && <b>{failures.length}</b>}</button>
+            {chaosOpen && <div className="chaos-popover">
+              <div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Chaos engineering</p><p className="mt-0.5 text-xs font-semibold text-zinc-900">Inject a controlled failure</p></div><button onClick={() => setChaosOpen(false)} className="text-zinc-400">✕</button></div>
+              <div className="mt-3 grid grid-cols-2 gap-1.5">{CHAOS_TYPES.map(({ type, label, Icon }) => <button key={type} onClick={() => setChaosType(type)} className={`chaos-option ${chaosType === type ? 'active' : ''}`}><Icon width={14} height={14} />{label}</button>)}</div>
+              <label className="mt-3 block text-[10px] font-semibold uppercase tracking-wide text-zinc-400">{chaosType === 'dropPct' ? 'Select edge' : 'Select node'}
+                <select value={chaosTarget} onChange={(e) => setChaosTarget(e.target.value)} className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-2.5 py-2 text-xs text-zinc-700 outline-none focus:border-violet-400">
+                  {chaosTargetOptions.length === 0 && <option value="">No targets available</option>}
+                  {chaosTargetOptions.map((item) => <option key={item.id} value={item.id}>{chaosType === 'dropPct' && 'source' in item ? `${item.source} → ${item.target}` : nodes.find((n) => n.id === item.id)?.data.label}</option>)}
+                </select>
+              </label>
+              {chaosType === 'latency' && <label className="mt-2 block text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Latency (ms)<input type="number" min={1} value={chaosLatency} onChange={(e) => setChaosLatency(Number(e.target.value))} className="mt-1.5 w-full rounded-lg border border-zinc-200 px-2.5 py-2 text-xs" /></label>}
+              {chaosType === 'dropPct' && <label className="mt-2 block text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Drop packets (%)<input type="number" min={1} max={100} value={chaosDrop} onChange={(e) => setChaosDrop(Number(e.target.value))} className="mt-1.5 w-full rounded-lg border border-zinc-200 px-2.5 py-2 text-xs" /></label>}
+              {chaosType === 'throttle' && <label className="mt-2 block text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Reduce capacity (%)<input type="number" min={1} max={100} value={chaosThrottle} onChange={(e) => setChaosThrottle(Number(e.target.value))} className="mt-1.5 w-full rounded-lg border border-zinc-200 px-2.5 py-2 text-xs" /></label>}
+              <button onClick={injectChaos} disabled={!chaosTarget} className="mt-3 w-full rounded-lg bg-zinc-900 px-3 py-2 text-xs font-semibold text-white hover:bg-zinc-700 disabled:opacity-40">Inject Failure</button>
+              {failures.length > 0 && <button onClick={() => { setFailures([]); setIsDirty(true) }} className="mt-2 w-full text-[10px] font-semibold text-red-500">Clear all failures</button>}
+            </div>}
+          </div>
+
+          <div className="live-metrics ml-auto flex min-w-[310px] items-center gap-5 rounded-xl border border-zinc-100 bg-zinc-50/70 px-4 py-2">
+            <div><span>RPS</span><b>{Math.round(global?.rps ?? 0).toLocaleString()}</b></div>
+            <div><span>p95 latency</span><b>{Math.round(global?.p95 ?? 0)}ms</b></div>
+            <div><span>Error rate</span><b className={(global?.errorRatePct ?? 0) >= 5 ? 'bad' : ''}>{(global?.errorRatePct ?? 0).toFixed(1)}%</b></div>
+            <div><span>Throughput</span><b>{((global?.rps ?? 0) / 100).toFixed(1)} MB/s</b></div>
+          </div>
+
+          <button onClick={handleAnalyze} disabled={nodes.length === 0 || isAnalyzing} className="analyze-button">✨ <span>{isAnalyzing ? 'Analyzing…' : 'Analyze'}</span><small>AI Analysis</small></button>
         </div>
+        {sim.error && <p className="mt-1 text-xs text-red-500">{sim.error}</p>}
       </footer>
 
+      <div className="shortcut-strip hidden items-center justify-center gap-5 border-t border-zinc-100 bg-white px-4 py-1.5 text-[9px] text-zinc-400 lg:flex">
+        <span><kbd>Delete</kbd> Delete node</span><span><kbd>Ctrl + Z</kbd> Undo</span><span><kbd>Ctrl + Y</kbd> Redo</span><span><kbd>Ctrl + S</kbd> Save</span><span><kbd>Ctrl + A</kbd> Select all</span><span><kbd>Space + Drag</kbd> Pan</span><span><kbd>Esc</kbd> Cancel connection</span>
+      </div>
+
       {showSaveDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20" onClick={() => setShowSaveDialog(false)}>
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-sm font-semibold text-zinc-900">Save project</h3>
-            <input
-              autoFocus
-              type="text"
-              placeholder="Project name"
-              value={saveDraftName}
-              onChange={(e) => setSaveDraftName(e.target.value)}
-              className="mt-4 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-800 outline-none focus:border-violet-300 focus:bg-white focus:ring-2 focus:ring-violet-100"
-            />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 p-4 backdrop-blur-sm" onClick={() => setShowSaveDialog(false)}>
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-zinc-900">Save project</h3>
+            <p className="mt-1 text-xs text-zinc-400">Give this architecture a name so you can return to it later.</p>
+            <input autoFocus type="text" placeholder="Project name" value={saveDraftName} onChange={(e) => setSaveDraftName(e.target.value)} className="mt-4 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-800 outline-none focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100" />
             {saveError && <p className="mt-2 text-xs text-red-500">{saveError}</p>}
-            <div className="mt-4 flex justify-end gap-2">
-              <button onClick={() => setShowSaveDialog(false)} className="rounded-lg px-3 py-2 text-sm text-zinc-500 hover:text-zinc-700">
-                Cancel
-              </button>
-              <button
-                onClick={() => saveDraftName.trim() && performSave(saveDraftName.trim())}
-                disabled={!saveDraftName.trim() || isSaving}
-                className="btn-dark rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
-              >
-                {isSaving ? 'Saving…' : 'Save'}
-              </button>
-            </div>
+            <div className="mt-4 flex justify-end gap-2"><button onClick={() => setShowSaveDialog(false)} className="rounded-xl px-3 py-2 text-sm text-zinc-500 hover:bg-zinc-50">Cancel</button><button onClick={() => saveDraftName.trim() && performSave(saveDraftName.trim())} disabled={!saveDraftName.trim() || isSaving} className="btn-dark rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-50">{isSaving ? 'Saving…' : 'Save'}</button></div>
           </div>
         </div>
       )}
 
-      {toast && (
-        <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-full bg-zinc-900 px-4 py-2 text-sm text-white shadow-lg">
-          {toast}
-        </div>
-      )}
+      {toast && <div className="fixed bottom-28 left-1/2 z-50 -translate-x-1/2 rounded-full bg-zinc-900 px-4 py-2 text-xs font-medium text-white shadow-xl">{toast}</div>}
     </div>
   )
 }
