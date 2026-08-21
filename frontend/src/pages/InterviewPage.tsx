@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { listInterviewPrompts, type InterviewPrompt } from '../lib/api'
+import logo from '../assets/logo.png'
 
 const DIFFICULTY_STYLE: Record<string, string> = {
   Easy: 'bg-emerald-50 text-emerald-600',
@@ -25,8 +26,8 @@ export default function InterviewPage() {
     <div className="min-h-screen bg-[#fafafa]">
       <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-zinc-900 text-[13px] font-semibold text-white">S</div>
+          <Link to="/" className="flex items-center gap-2">
+            <img src={logo} alt="SysFlow" className="h-8 w-8 object-contain" />
             <span className="text-[14px] font-semibold tracking-tight">SysFlow</span>
           </Link>
           <Link to="/app" className="text-sm font-medium text-zinc-700 hover:text-zinc-900">Editor</Link>

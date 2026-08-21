@@ -46,7 +46,7 @@ export default function ArchNode({ data, selected }: NodeProps<ArchNodeData>) {
 
   return (
     <div
-      className={`sysflow-node node-pop-in group relative flex min-w-[172px] flex-col rounded-[18px] border bg-white px-3.5 py-3.5 shadow-sm transition-all duration-200 ${
+      className={`sysflow-node node-pop-in group relative flex min-w-[150px] flex-col rounded-2xl border bg-white px-3 py-2.5 shadow-sm transition-all duration-200 ${
         selected ? 'z-20 shadow-[0_0_0_3px_rgba(124,58,237,0.13),0_12px_28px_rgba(24,24,27,0.12)]' : 'hover:-translate-y-0.5 hover:shadow-lg'
       } ${data.connectionTarget ? 'connection-target' : ''} ${data.connectionSource ? 'connection-source' : ''} ${pulsing ? 'node-health-pulse' : ''}`}
       style={{ borderColor }}
@@ -55,11 +55,11 @@ export default function ArchNode({ data, selected }: NodeProps<ArchNodeData>) {
       <Handle type="source" position={Position.Right} className="sysflow-handle !h-3 !w-3 !border-2 !border-white !bg-cyan-500" />
 
       <div className="node-topline" />
-      <div className="mb-2.5 flex items-center justify-between gap-2">
-        <span className="node-icon-wrap flex h-10 w-10 items-center justify-center rounded-[13px] text-zinc-700" style={{ color: ringColor }}>
-          {Icon && <Icon width={19} height={19} />}
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="node-icon-wrap flex h-7 w-7 items-center justify-center rounded-lg text-zinc-700" style={{ color: ringColor }}>
+          {Icon && <Icon width={15} height={15} />}
         </span>
-        <span className="node-health-badge rounded-full px-2 py-1 text-[9px] font-semibold" style={{ color: ringColor, backgroundColor: `${ringColor}15` }}>
+        <span className="node-health-badge rounded-full px-1.5 py-0.5 text-[8px] font-semibold" style={{ color: ringColor, backgroundColor: `${ringColor}15` }}>
           {HEALTH_LABEL[health]}
         </span>
       </div>
@@ -94,10 +94,10 @@ export default function ArchNode({ data, selected }: NodeProps<ArchNodeData>) {
         </span>
       )}
 
-      <div className="node-actions absolute -right-2 -top-11 flex items-center gap-1 rounded-xl border border-zinc-200 bg-white p-1 shadow-lg">
-        <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={data.onConfigure} title="Configure" className="rounded-lg px-2 py-1 text-[10px] font-medium text-zinc-500 hover:bg-violet-50 hover:text-violet-600">Configure</button>
-        <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={data.onDuplicate} title="Duplicate" className="rounded-lg px-2 py-1 text-[10px] font-medium text-zinc-500 hover:bg-zinc-50">Duplicate</button>
-        <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={data.onDelete} title="Delete" className="rounded-lg px-2 py-1 text-[10px] font-medium text-red-500 hover:bg-red-50">Delete</button>
+      <div className="node-actions absolute -right-1.5 -top-8 flex items-center gap-0.5 rounded-lg border border-zinc-200 bg-white p-0.5 shadow-md">
+        <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={data.onConfigure} title="Configure" className="rounded-md px-1.5 py-0.5 text-[9px] font-medium text-zinc-500 hover:bg-violet-50 hover:text-violet-600">Configure</button>
+        <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={data.onDuplicate} title="Duplicate" className="rounded-md px-1.5 py-0.5 text-[9px] font-medium text-zinc-500 hover:bg-zinc-50">Duplicate</button>
+        <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={data.onDelete} title="Delete" className="rounded-md px-1.5 py-0.5 text-[9px] font-medium text-red-500 hover:bg-red-50">Delete</button>
       </div>
     </div>
   )

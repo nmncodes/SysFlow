@@ -4,6 +4,7 @@ import ReactFlow, { Background, Controls, type Edge, type Node } from 'reactflow
 import 'reactflow/dist/style.css'
 import ArchNode, { type ArchNodeData } from '../components/ArchNode'
 import { getPublicProject, type ProjectDetail } from '../lib/projects'
+import logo from '../assets/logo.png'
 
 const nodeTypes = { archNode: ArchNode }
 
@@ -47,10 +48,8 @@ export default function ShareViewPage() {
   return (
     <div className="flex h-screen flex-col bg-[#fafafa]">
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-6">
-        <Link to="/" className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-zinc-900 text-[12px] font-semibold text-white">
-            S
-          </div>
+        <Link to="/" className="flex items-center gap-2">
+          <img src={logo} alt="SysFlow" className="h-8 w-8 object-contain" />
           <div className="flex flex-col leading-none">
             <span className="text-sm font-semibold text-zinc-900">{project.name}</span>
             <span className="text-[11px] text-zinc-400">Shared from SysFlow · read-only</span>

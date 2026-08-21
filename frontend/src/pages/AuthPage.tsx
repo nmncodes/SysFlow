@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
+import logo from '../assets/logo.png'
 
 export default function AuthPage() {
   const [params] = useSearchParams()
@@ -36,9 +37,7 @@ export default function AuthPage() {
     <div className="flex min-h-screen items-center justify-center bg-[#fafafa] px-6">
       <div className="w-full max-w-sm">
         <Link to="/" className="mb-8 flex items-center justify-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 text-sm font-semibold text-white shadow-sm">
-            S
-          </div>
+          <img src={logo} alt="SysFlow" className="h-9 w-9 object-contain" />
           <span className="text-[15px] font-semibold tracking-tight text-zinc-900">SysFlow</span>
         </Link>
 

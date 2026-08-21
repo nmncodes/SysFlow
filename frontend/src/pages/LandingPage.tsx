@@ -273,7 +273,7 @@ export default function LandingPage() {
               Find what breaks.
               <span
                 aria-hidden
-                className="absolute -bottom-1 left-[2%] right-[2%] h-2.5 rounded-full bg-[#bff2f7] opacity-95"
+                className="absolute -bottom-1 left-1/2 h-2.5 w-[92%] -translate-x-1/2 rounded-full bg-[#bff2f7] opacity-95"
               />
             </span>
           </h1>

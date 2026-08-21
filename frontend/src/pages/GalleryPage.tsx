@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 import { listGallery, type GalleryItem } from '../lib/projects'
+import logo from '../assets/logo.png'
 
 export default function GalleryPage() {
   const { user } = useAuth()
@@ -21,8 +22,8 @@ export default function GalleryPage() {
     <div className="min-h-screen bg-[#fafafa]">
       <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-zinc-900 text-[13px] font-semibold text-white">S</div>
+          <Link to="/" className="flex items-center gap-2">
+            <img src={logo} alt="SysFlow" className="h-8 w-8 object-contain" />
             <span className="text-[14px] font-semibold tracking-tight">SysFlow</span>
           </Link>
           <div className="flex items-center gap-4 text-sm text-zinc-500">
