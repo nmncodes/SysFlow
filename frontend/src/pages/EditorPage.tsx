@@ -500,41 +500,13 @@ export default function EditorPage() {
             <span className="h-1.5 w-1.5 rounded-full bg-current" /> {isSaving ? 'Saving…' : isDirty ? 'Unsaved changes' : 'Saved'}
           </span>
           {nodes.length > 0 && (
-            <div className="relative">
-              <button
-                onClick={toggleRealPricing}
-                title="Illustrative estimate — click for real Azure pricing where available"
-                className="flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-[10px] font-semibold text-zinc-600 hover:bg-zinc-200"
-              >
-                ~${estimatedMonthlyCost.toLocaleString()}/mo <span className="text-zinc-400">▾</span>
-              </button>
-              {realPricingOpen && (
-                <div className="popover-menu right-0 top-8 w-80">
-                  <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400">Cost breakdown</p>
-                  {isLoadingRealPricing && <p className="px-3 py-2 text-xs text-zinc-400">Fetching real Azure pricing…</p>}
-                  {realPricingError && <p className="px-3 py-2 text-xs text-red-500">{realPricingError} — showing illustrative only.</p>}
-                  {!isLoadingRealPricing && realPricing && (
-                    <>
-                      <div className="px-3 py-2">
-                        <p className="text-sm font-semibold text-zinc-900">${realPricing.totalMonthlyCostUsd.toFixed(2)}/mo</p>
-                        <p className="text-[10px] text-zinc-400">Mixing real Azure prices ({realPricing.region}) where verified, illustrative elsewhere</p>
-                      </div>
-                      <div className="max-h-56 overflow-y-auto">
-                        {realPricing.nodes.map((n) => (
-                          <div key={n.id} className="flex items-center justify-between px-3 py-1.5 text-xs">
-                            <span className="truncate text-zinc-600">{n.id}</span>
-                            <span className="flex items-center gap-1.5 shrink-0">
-                              <span className={`rounded-full px-1.5 py-0.5 text-[8px] font-semibold uppercase ${n.source === 'real' ? 'bg-emerald-50 text-emerald-600' : 'bg-zinc-100 text-zinc-400'}`}>{n.source}</span>
-                              <span className="font-medium text-zinc-700">${n.monthlyCostUsd.toFixed(2)}</span>
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
+            <button
+              onClick={toggleRealPricing}
+              title="Illustrative estimate — click for real Azure pricing where available"
+              className="flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-[10px] font-semibold text-zinc-600 hover:bg-zinc-200"
+            >
+              ~${estimatedMonthlyCost.toLocaleString()}/mo <span className="text-zinc-400">▾</span>
+            </button>
           )}
           {isLoadingProject && <span className="text-[10px] text-zinc-400">Loading project…</span>}
         </div>
@@ -588,6 +560,7 @@ export default function EditorPage() {
               <div className="my-1 border-t border-zinc-100" />
               <button onClick={() => { srsFileInputRef.current?.click(); setMobileMenuOpen(false) }} disabled={isImportingSrs}>{isImportingSrs ? 'Importing…' : 'Import SRS'}</button>
               {projectId && <button onClick={() => { openHistory(); setMobileMenuOpen(false) }}>History</button>}
+              {nodes.length > 0 && <button onClick={() => { setMobileMenuOpen(false); toggleRealPricing() }}>Cost estimate (~${estimatedMonthlyCost.toLocaleString()}/mo)</button>}
               <div className="my-1 border-t border-zinc-100" />
               <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400">Templates</p>
               {TEMPLATES.map((template) => <button key={template.id} onClick={() => { applyTemplate(template.id); setMobileMenuOpen(false) }}><span className="block font-semibold text-zinc-800">{template.name}</span></button>)}
@@ -705,6 +678,38 @@ export default function EditorPage() {
                   ))}
                 </ul>
               </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {realPricingOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 p-4 backdrop-blur-sm" onClick={() => setRealPricingOpen(false)}>
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold text-zinc-900">Cost breakdown</h3>
+              <button onClick={() => setRealPricingOpen(false)} className="text-zinc-400 hover:text-zinc-700">✕</button>
+            </div>
+            {isLoadingRealPricing && <p className="mt-3 text-xs text-zinc-400">Fetching real Azure pricing…</p>}
+            {realPricingError && <p className="mt-3 text-xs text-red-500">{realPricingError} — showing illustrative only.</p>}
+            {!isLoadingRealPricing && realPricing && (
+              <>
+                <div className="mt-3">
+                  <p className="text-xl font-bold text-zinc-900">${realPricing.totalMonthlyCostUsd.toFixed(2)}<span className="text-sm font-medium text-zinc-400">/mo</span></p>
+                  <p className="mt-0.5 text-[11px] text-zinc-400">Mixing real Azure prices ({realPricing.region}) where verified, illustrative elsewhere</p>
+                </div>
+                <div className="mt-3 max-h-56 space-y-0.5 overflow-y-auto rounded-xl border border-zinc-100 py-1">
+                  {realPricing.nodes.map((n) => (
+                    <div key={n.id} className="flex items-center justify-between px-3 py-1.5 text-xs">
+                      <span className="truncate text-zinc-600">{n.id}</span>
+                      <span className="flex items-center gap-1.5 shrink-0">
+                        <span className={`rounded-full px-1.5 py-0.5 text-[8px] font-semibold uppercase ${n.source === 'real' ? 'bg-emerald-50 text-emerald-600' : 'bg-zinc-100 text-zinc-400'}`}>{n.source}</span>
+                        <span className="font-medium text-zinc-700">${n.monthlyCostUsd.toFixed(2)}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </div>
