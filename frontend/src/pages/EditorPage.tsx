@@ -14,6 +14,7 @@ import { useHistory } from '../lib/useHistory'
 import { stashPendingSave, takePendingSave } from '../lib/pendingSave'
 import { estimateTotalMonthlyCost, replicasOf } from '../lib/cost'
 import { generateDockerCompose } from '../lib/iac'
+import { useCollabSession } from '../lib/collab'
 import { COMPONENT_LIBRARY, type ComponentType } from '../components/nodes'
 import CompareModal from '../components/CompareModal'
 import SrsDiffModal from '../components/SrsDiffModal'
@@ -105,6 +106,32 @@ export default function EditorPage() {
   const [params] = useSearchParams()
   const loadedRef = useRef(false)
   const history = useHistory(nodes, edges, setNodes, setEdges)
+  const collab = useCollabSession(projectId, auth.user?.displayName ?? null)
+  const applyingRemoteGraphRef = useRef(false)
+
+  collab.onRemoteGraph((payload) => {
+    applyingRemoteGraphRef.current = true
+    setNodes(payload.nodes.map((n) => ({
+      id: n.id,
+      type: 'archNode',
+      position: n.position,
+      data: { componentType: n.type, label: n.label, config: n.config, health: 'idle' },
+    })))
+    setEdges(payload.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: 'archEdge' })))
+  })
+
+  useEffect(() => {
+    if (!projectId) return
+    if (applyingRemoteGraphRef.current) {
+      applyingRemoteGraphRef.current = false
+      return
+    }
+    collab.broadcastGraph({
+      nodes: nodes.map((n) => ({ id: n.id, type: n.data.componentType, label: n.data.label, config: n.data.config, position: n.position })),
+      edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target })),
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes, edges, projectId])
 
   useEffect(() => {
     if (loadedRef.current) return
@@ -509,6 +536,15 @@ export default function EditorPage() {
             </button>
           )}
           {isLoadingProject && <span className="text-[10px] text-zinc-400">Loading project…</span>}
+          {projectId && collab.collaborators.length > 0 && (
+            <span title={collab.collaborators.map((c) => c.name).join(', ') + ' also viewing this project'} className="flex items-center -space-x-1.5">
+              {collab.collaborators.slice(0, 4).map((c) => (
+                <span key={c.clientId} className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-white text-[9px] font-bold text-white" style={{ background: c.color }}>
+                  {c.name.charAt(0).toUpperCase()}
+                </span>
+              ))}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2">
@@ -635,6 +671,8 @@ export default function EditorPage() {
           onDirty={markDirty}
           hideSidebar={!!analysis}
           onCompareNode={setCompareNodeId}
+          remoteCursors={collab.remoteCursors}
+          onCursorMove={collab.broadcastCursor}
         />
         {analysis && <FindingsPanel findings={analysis.findings} aiEnabled={analysis.aiEnabled} summary={sim.result?.summary} onFocusNode={(nodeId) => setFocusRequest({ nodeId, token: Date.now() })} onClose={() => setAnalysis(null)} />}
       </div>

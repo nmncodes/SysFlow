@@ -22,6 +22,7 @@ import ContextMenu, { type ContextMenuState } from './ContextMenu'
 import { COMPONENT_LIBRARY, deriveHealth } from './nodes'
 import type { InjectedFailure, Tick } from '../lib/api'
 import { makeEdgeFailure, makeNodeFailure } from '../lib/failures'
+import type { RemoteCursor } from '../lib/collab'
 
 const nodeTypes = { archNode: ArchNode }
 const edgeTypes = { archEdge: ArchEdge }
@@ -47,6 +48,8 @@ interface Props {
   onDirty?: () => void
   hideSidebar?: boolean
   onCompareNode?: (nodeId: string) => void
+  remoteCursors?: RemoteCursor[]
+  onCursorMove?: (x: number, y: number) => void
 }
 
 export default function Canvas({
@@ -66,6 +69,8 @@ export default function Canvas({
   onDirty,
   hideSidebar = false,
   onCompareNode,
+  remoteCursors = [],
+  onCursorMove,
 }: Props) {
   const [selectedNodeId, setSelectedNodeIdState] = useState<string | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
@@ -75,6 +80,7 @@ export default function Canvas({
   const [isDraggingNode, setIsDraggingNode] = useState(false)
   const [mobilePaletteOpen, setMobilePaletteOpen] = useState(false)
   const [spacePressed, setSpacePressed] = useState(false)
+  const [viewportVersion, setViewportVersion] = useState(0)
   const wrapperRef = useRef<HTMLDivElement>(null)
 
   const setSelectedNodeId = (id: string | null) => {
@@ -342,9 +348,16 @@ export default function Canvas({
       <div
         ref={wrapperRef}
         className={`editor-canvas relative min-w-0 flex-1 ${isDraggingNode ? 'editor-canvas-drop-active' : ''}`}
+        data-viewport-version={viewportVersion}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onDragLeave={() => setIsDraggingNode(false)}
+        onMouseMove={(e) => {
+          if (!onCursorMove || !rfInstance || !wrapperRef.current) return
+          const bounds = wrapperRef.current.getBoundingClientRect()
+          const flowPos = rfInstance.screenToFlowPosition({ x: e.clientX - bounds.left, y: e.clientY - bounds.top })
+          onCursorMove(flowPos.x, flowPos.y)
+        }}
       >
         <ReactFlow
           nodes={renderedNodes}
@@ -354,6 +367,7 @@ export default function Canvas({
           onConnect={onConnect}
           onConnectStart={onConnectStart}
           onConnectEnd={onConnectEnd}
+          onMove={() => setViewportVersion((v) => v + 1)}
           isValidConnection={(connection) =>
             !!connection.source && !!connection.target && connection.source !== connection.target &&
             !edges.some((edge) => edge.source === connection.source && edge.target === connection.target)
@@ -391,6 +405,26 @@ export default function Canvas({
           <Controls className="sysflow-controls !shadow-md [&>button]:!border-zinc-200 [&>button]:!bg-white" />
           <ArchitectureOverview nodes={nodes} edges={edges} />
         </ReactFlow>
+
+        {/* viewportVersion isn't read directly — bumping it on pan/zoom (via onMove above) forces this
+            component to re-render, which is what makes flowToScreenPosition below stay correct. */}
+        {rfInstance && remoteCursors.map((cursor) => {
+          const screenPos = rfInstance.flowToScreenPosition({ x: cursor.x, y: cursor.y })
+          return (
+            <div
+              key={cursor.clientId}
+              className="pointer-events-none absolute z-30 -translate-x-1 -translate-y-1 transition-[left,top] duration-100"
+              style={{ left: screenPos.x, top: screenPos.y }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill={cursor.color} stroke="white" strokeWidth="1.5">
+                <path d="M5 3l14 8-6 2-2 6-6-16z" />
+              </svg>
+              <span className="ml-3 -mt-1 inline-block rounded-full px-1.5 py-0.5 text-[9px] font-semibold text-white shadow" style={{ background: cursor.color }}>
+                {cursor.name}
+              </span>
+            </div>
+          )
+        })}
 
         {nodes.length === 0 && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
