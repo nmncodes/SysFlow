@@ -12,7 +12,20 @@ import { createProject, getProject, listVersions, restoreVersion, updateProject,
 import { TEMPLATES } from '../lib/templates'
 import { useHistory } from '../lib/useHistory'
 import { stashPendingSave, takePendingSave } from '../lib/pendingSave'
+import { estimateTotalMonthlyCost } from '../lib/cost'
+import type { ComponentType } from '../components/nodes'
 import logo from '../assets/logo.png'
+
+function replicasOf(node: Node<ArchNodeData>): number {
+  const config = node.data.config
+  if (node.data.componentType === 'autoScalingGroup' || node.data.componentType === 'containerOrchestrator') {
+    return node.data.replicas ?? Number(config?.minReplicas ?? 1)
+  }
+  if (node.data.componentType === 'database' || node.data.componentType === 'searchIndex' || node.data.componentType === 'dataWarehouse') {
+    return 1 + Number(config?.replicaCount ?? 0)
+  }
+  return 1
+}
 
 const SPEED_OPTIONS = [0.5, 1, 2, 4]
 const TRAFFIC_OPTIONS = [0.5, 1, 2.5, 5]
@@ -155,6 +168,9 @@ export default function EditorPage() {
   const hasClient = nodes.some((n) => n.data.componentType === 'client')
   const canRun = nodes.length > 0 && hasClient && !sim.isRunning
   const global = sim.currentTick?.global
+  const estimatedMonthlyCost = estimateTotalMonthlyCost(
+    nodes.map((n) => ({ type: n.data.componentType as ComponentType, replicas: replicasOf(n) })),
+  )
   const simulationState = sim.isRunning ? 'Starting' : sim.isPlaying ? 'Running' : sim.result ? 'Paused' : 'Ready'
 
   const markDirty = () => setIsDirty(true)
@@ -407,6 +423,11 @@ export default function EditorPage() {
           <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${isDirty ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
             <span className="h-1.5 w-1.5 rounded-full bg-current" /> {isSaving ? 'Saving…' : isDirty ? 'Unsaved changes' : 'Saved'}
           </span>
+          {nodes.length > 0 && (
+            <span title="Rough, illustrative cloud cost estimate — not real pricing" className="flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-[10px] font-semibold text-zinc-600">
+              ~${estimatedMonthlyCost.toLocaleString()}/mo
+            </span>
+          )}
           {isLoadingProject && <span className="text-[10px] text-zinc-400">Loading project…</span>}
         </div>
 
