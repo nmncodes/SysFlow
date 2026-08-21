@@ -93,6 +93,27 @@ export interface AnalyzeResult {
   aiEnabled: boolean
 }
 
+export interface SrsImportResult {
+  graphJson: {
+    nodes: { id: string; type: string; label: string; config: Record<string, unknown>; position: { x: number; y: number } }[]
+    edges: { id: string; source: string; target: string }[]
+  }
+  findings: Finding[]
+  aiEnabled: boolean
+  unrecognizedTerms: string[]
+}
+
+export async function importSrs(file: File): Promise<SrsImportResult> {
+  const formData = new FormData()
+  formData.append('file', file)
+  const res = await fetch(`${API_BASE}/srs/import`, { method: 'POST', body: formData })
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    throw new Error(body?.error ?? `SRS import failed: ${res.status}`)
+  }
+  return res.json()
+}
+
 export async function analyzeGraph(
   nodes: { id: string; type: string; config: Record<string, unknown> }[],
   edges: { id: string; source: string; target: string }[],

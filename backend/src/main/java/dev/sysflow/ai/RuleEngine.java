@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Deterministic static analysis over the graph structure — the "facts"
@@ -19,22 +20,31 @@ import java.util.List;
 @Component
 public class RuleEngine {
 
+    // Types with an explicit replicaCount config — flagged as a SPOF only when that count is 0.
+    // Caches/queues/brokers are deliberately excluded: running unreplicated is common for them
+    // and isn't inherently a SPOF the way an unreplicated database is.
+    private static final Set<String> REPLICATED_DATA_STORES = Set.of("database", "searchIndex");
+    private static final Set<String> DATA_STORE_TYPES = Set.of(
+            "database", "dataWarehouse", "searchIndex", "dataLake", "objectStorage", "messageBroker");
+    private static final Set<String> CLIENT_TYPES = Set.of("client", "mobile", "webBrowser", "iotDevice");
+    private static final Set<String> COMPUTE_TYPES = Set.of("service", "worker", "containerOrchestrator");
+
     public List<Finding> analyze(SimulationGraph graph) {
         List<Finding> findings = new ArrayList<>();
         findings.addAll(findUnreplicatedDataStores(graph));
         findings.addAll(findMissingCache(graph));
-        findings.addAll(findDirectClientToDatabase(graph));
+        findings.addAll(findDirectClientToDataStore(graph));
         findings.addAll(findMissingGateway(graph));
         findings.addAll(findMissingLoadBalancer(graph));
+        findings.addAll(findExposedPaymentGateway(graph));
+        findings.addAll(findNoObservability(graph));
         return findings;
     }
 
     private List<Finding> findUnreplicatedDataStores(SimulationGraph graph) {
         List<Finding> out = new ArrayList<>();
         for (GraphNode node : graph.nodes()) {
-            // Restricted to databases: caches/queues without an explicit replica count
-            // are common and not inherently a SPOF the way an unreplicated DB is.
-            if (!"database".equals(node.type()) || graph.incoming(node.id()).isEmpty()) continue;
+            if (!REPLICATED_DATA_STORES.contains(node.type()) || graph.incoming(node.id()).isEmpty()) continue;
 
             double replicas = node.getNumber("replicaCount", 0);
             if (replicas > 0) continue;
@@ -65,19 +75,19 @@ public class RuleEngine {
         ));
     }
 
-    private List<Finding> findDirectClientToDatabase(SimulationGraph graph) {
+    private List<Finding> findDirectClientToDataStore(SimulationGraph graph) {
         List<Finding> out = new ArrayList<>();
         for (GraphEdge edge : allEdges(graph)) {
             GraphNode source = graph.node(edge.source());
             GraphNode target = graph.node(edge.target());
             if (source == null || target == null) continue;
-            if ("client".equals(source.type()) && "database".equals(target.type())) {
+            if (CLIENT_TYPES.contains(source.type()) && DATA_STORE_TYPES.contains(target.type())) {
                 out.add(new Finding(
                         "critical",
-                        "Client connects directly to the database",
+                        "Client connects directly to a data store",
                         List.of(source.id(), target.id()),
-                        "\"" + source.id() + "\" bypasses the service layer entirely, so there's no place to enforce business logic, auth, or rate limiting before a query hits the database.",
-                        "Route this traffic through a Service (or API Gateway) instead of hitting the database directly."
+                        "\"" + source.id() + "\" bypasses the service layer entirely, so there's no place to enforce business logic, auth, or rate limiting before a query hits \"" + target.id() + "\".",
+                        "Route this traffic through a Service (or API Gateway) instead of hitting the data store directly."
                 ));
             }
         }
@@ -85,9 +95,9 @@ public class RuleEngine {
     }
 
     private List<Finding> findMissingGateway(SimulationGraph graph) {
-        boolean hasService = graph.nodes().stream().anyMatch(n -> "service".equals(n.type()));
+        boolean hasCompute = graph.nodes().stream().anyMatch(n -> COMPUTE_TYPES.contains(n.type()));
         boolean hasGateway = graph.nodes().stream().anyMatch(n -> "apiGateway".equals(n.type()));
-        if (!hasService || hasGateway) return List.of();
+        if (!hasCompute || hasGateway) return List.of();
 
         return List.of(new Finding(
                 "info",
@@ -99,17 +109,55 @@ public class RuleEngine {
     }
 
     private List<Finding> findMissingLoadBalancer(SimulationGraph graph) {
-        long serviceCount = graph.nodes().stream().filter(n -> "service".equals(n.type())).count();
+        long computeCount = graph.nodes().stream().filter(n -> COMPUTE_TYPES.contains(n.type())).count();
         boolean hasLoadBalancer = graph.nodes().stream().anyMatch(n -> "loadBalancer".equals(n.type()));
-        if (serviceCount <= 1 || hasLoadBalancer) return List.of();
+        if (computeCount <= 1 || hasLoadBalancer) return List.of();
 
-        List<String> serviceIds = graph.nodes().stream().filter(n -> "service".equals(n.type())).map(GraphNode::id).toList();
+        List<String> computeIds = graph.nodes().stream().filter(n -> COMPUTE_TYPES.contains(n.type())).map(GraphNode::id).toList();
         return List.of(new Finding(
                 "warning",
-                "Multiple services with no load balancer",
-                serviceIds,
-                "Traffic has no defined path for distributing load across these service instances.",
-                "Add a Load Balancer in front of these services to distribute traffic and support horizontal scaling."
+                "Multiple compute instances with no load balancer",
+                computeIds,
+                "Traffic has no defined path for distributing load across these instances.",
+                "Add a Load Balancer in front of these components to distribute traffic and support horizontal scaling."
+        ));
+    }
+
+    private List<Finding> findExposedPaymentGateway(SimulationGraph graph) {
+        List<Finding> out = new ArrayList<>();
+        for (GraphNode node : graph.nodes()) {
+            if (!"paymentGateway".equals(node.type())) continue;
+            boolean directlyExposed = graph.incoming(node.id()).stream()
+                    .map(GraphEdge::source)
+                    .map(graph::node)
+                    .anyMatch(source -> source != null && CLIENT_TYPES.contains(source.type()));
+            if (!directlyExposed) continue;
+
+            out.add(new Finding(
+                    "critical",
+                    "Payment Gateway is directly reachable from a client",
+                    List.of(node.id()),
+                    "\"" + node.id() + "\" accepts traffic straight from a client with nothing enforcing auth, validation, or rate limiting in front of it.",
+                    "Put a Service (and ideally a WAF/API Gateway) between the client and the Payment Gateway — never call payment providers directly from client code."
+            ));
+        }
+        return out;
+    }
+
+    private List<Finding> findNoObservability(SimulationGraph graph) {
+        long meaningfulNodes = graph.nodes().stream()
+                .filter(n -> !CLIENT_TYPES.contains(n.type()))
+                .count();
+        boolean hasObservability = graph.nodes().stream()
+                .anyMatch(n -> "monitoring".equals(n.type()) || "logging".equals(n.type()));
+        if (meaningfulNodes < 4 || hasObservability) return List.of();
+
+        return List.of(new Finding(
+                "info",
+                "No monitoring or logging in this design",
+                List.of(),
+                "A design this size has no visibility into request failures, latency, or errors once it's running.",
+                "Add a Monitoring and/or Logging component so failures surface before users report them."
         ));
     }
 

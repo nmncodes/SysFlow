@@ -177,10 +177,11 @@ public class SimulationEngine {
     }
 
     private boolean isUnreplicated(GraphNode node) {
-        if ("database".equals(node.type())) {
+        if ("database".equals(node.type()) || "searchIndex".equals(node.type())) {
             return node.getNumber("replicaCount", 0) <= 0;
         }
-        return "service".equals(node.type()) || "cache".equals(node.type()) || "queue".equals(node.type());
+        return "service".equals(node.type()) || "cache".equals(node.type()) || "queue".equals(node.type())
+                || "messageBroker".equals(node.type()) || "dataWarehouse".equals(node.type());
     }
 
     private boolean hasMultipleDependents(SimulationGraph graph, GraphNode node) {
@@ -207,7 +208,7 @@ public class SimulationEngine {
 
     private double capacityOf(GraphNode node) {
         return switch (node.type()) {
-            case "client", "mobile", "webBrowser" -> Double.MAX_VALUE;
+            case "client", "mobile", "webBrowser", "iotDevice" -> Double.MAX_VALUE;
             case "dns" -> Double.MAX_VALUE;
             case "cdn" -> node.getNumber("maxThroughput", 5000);
             case "loadBalancer" -> node.getNumber("maxThroughput", 1000);
@@ -217,11 +218,21 @@ public class SimulationEngine {
             case "service" -> node.getNumber("maxConcurrency", 500);
             case "worker" -> node.getNumber("maxConcurrency", 300);
             case "serverless" -> node.getNumber("maxConcurrency", 1000);
-            case "autoScalingGroup" -> node.getNumber("baseCapacityPerReplica", 500);
+            case "autoScalingGroup", "containerOrchestrator" -> node.getNumber("baseCapacityPerReplica", 500);
+            case "cronJob" -> node.getNumber("maxConcurrency", 50);
             case "cache" -> Double.MAX_VALUE;
             case "database" -> node.getNumber("maxConnections", 200);
             case "dataWarehouse" -> node.getNumber("maxConnections", 100);
             case "queue" -> node.getNumber("maxThroughput", 1000);
+            case "objectStorage" -> node.getNumber("maxThroughput", 3000);
+            case "searchIndex" -> node.getNumber("maxConnections", 300);
+            case "dataLake" -> node.getNumber("maxConnections", 100);
+            case "messageBroker" -> node.getNumber("maxThroughput", 2000);
+            case "eventBus" -> node.getNumber("maxThroughput", 3000);
+            case "webhook" -> node.getNumber("maxThroughput", 300);
+            case "monitoring", "logging" -> node.getNumber("maxThroughput", 5000);
+            case "thirdPartyApi" -> node.getNumber("maxThroughput", 200);
+            case "paymentGateway" -> node.getNumber("maxThroughput", 150);
             default -> 1000;
         };
     }
@@ -239,7 +250,7 @@ public class SimulationEngine {
             case "apiGateway" -> 2 + random.nextDouble() * 3;
             case "waf" -> node.getNumber("extraLatencyMs", 2) + random.nextDouble() * 2;
             case "ingress" -> 1 + random.nextDouble() * 2;
-            case "service", "worker", "serverless", "autoScalingGroup" -> {
+            case "service", "worker", "serverless", "autoScalingGroup", "containerOrchestrator", "cronJob" -> {
                 double min = node.getNumber("minLatencyMs", 20);
                 double max = node.getNumber("maxLatencyMs", 80);
                 yield min + random.nextDouble() * Math.max(0, max - min);
@@ -252,7 +263,15 @@ public class SimulationEngine {
             }
             case "database" -> node.getNumber("readLatencyMs", 15) + random.nextDouble() * 5;
             case "dataWarehouse" -> node.getNumber("readLatencyMs", 60) + random.nextDouble() * 15;
-            case "queue" -> 5 + random.nextDouble() * 10;
+            case "objectStorage" -> node.getNumber("readLatencyMs", 25) + random.nextDouble() * 10;
+            case "searchIndex" -> node.getNumber("readLatencyMs", 20) + random.nextDouble() * 8;
+            case "dataLake" -> node.getNumber("readLatencyMs", 80) + random.nextDouble() * 20;
+            case "queue", "messageBroker" -> 5 + random.nextDouble() * 10;
+            case "eventBus" -> 2 + random.nextDouble() * 5;
+            case "webhook" -> node.getNumber("extraLatencyMs", 20) + random.nextDouble() * 30;
+            case "monitoring", "logging" -> 1 + random.nextDouble() * 2;
+            case "thirdPartyApi" -> node.getNumber("minLatencyMs", 50) + random.nextDouble() * Math.max(0, node.getNumber("maxLatencyMs", 400) - node.getNumber("minLatencyMs", 50));
+            case "paymentGateway" -> node.getNumber("minLatencyMs", 100) + random.nextDouble() * Math.max(0, node.getNumber("maxLatencyMs", 600) - node.getNumber("minLatencyMs", 100));
             default -> 5;
         };
     }

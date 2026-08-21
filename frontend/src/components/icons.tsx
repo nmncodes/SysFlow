@@ -212,6 +212,137 @@ export function PacketDropIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function IotIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="8" y="8" width="8" height="8" rx="1.5" />
+      <path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 5l-2 2M5 19l2-2M17 19l-2-2" />
+    </svg>
+  )
+}
+
+export function ContainerOrchestratorIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 3 5 6.5v6.5l7 3.5 7-3.5V6.5L12 3Z" />
+      <path d="M12 3v10M5 6.5l7 3.5 7-3.5" />
+      <path d="M12 13v8" />
+    </svg>
+  )
+}
+
+export function CronJobIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="13" r="7.5" />
+      <path d="M12 9v4l2.5 1.5" />
+      <path d="M9 3h6" />
+    </svg>
+  )
+}
+
+export function ObjectStorageIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="4" y="4" width="7" height="7" rx="1" />
+      <rect x="13" y="4" width="7" height="7" rx="1" />
+      <rect x="4" y="13" width="7" height="7" rx="1" />
+      <rect x="13" y="13" width="7" height="7" rx="1" />
+    </svg>
+  )
+}
+
+export function SearchIndexIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="M19.5 19.5 15 15" />
+    </svg>
+  )
+}
+
+export function DataLakeIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 15c1.8 2 4 3 9 3s7.2-1 9-3" />
+      <path d="M3 10c1.8 2 4 3 9 3s7.2-1 9-3" />
+      <path d="M4.5 6.5 12 3l7.5 3.5-7.5 3.5-7.5-3.5Z" />
+    </svg>
+  )
+}
+
+export function MessageBrokerIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="6" cy="6" r="2.3" />
+      <circle cx="18" cy="6" r="2.3" />
+      <circle cx="12" cy="18" r="2.3" />
+      <path d="M7.7 7.3 10.5 16M16.3 7.3 13.5 16M8.3 6h7.4" />
+    </svg>
+  )
+}
+
+export function EventBusIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 12h18" />
+      <circle cx="7" cy="12" r="2" fill="currentColor" stroke="none" />
+      <circle cx="13" cy="12" r="2" fill="currentColor" stroke="none" />
+      <circle cx="19" cy="12" r="2" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+export function WebhookIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M7 17.5a4 4 0 1 1 2.3-7.3" />
+      <path d="M12 4.5a4 4 0 0 1 3.6 5.7" />
+      <path d="M18 12.5a4 4 0 1 1-3.6 6.9" />
+      <circle cx="9" cy="10.5" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="8" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="16" cy="18" r="1.1" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+export function MonitoringIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 17h3l3-9 4 13 3-9h5" />
+    </svg>
+  )
+}
+
+export function LoggingIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="4" y="3" width="16" height="18" rx="1.5" />
+      <path d="M7.5 8h9M7.5 12h9M7.5 16h5" />
+    </svg>
+  )
+}
+
+export function ThirdPartyApiIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3" y="7" width="18" height="12" rx="2" />
+      <path d="M3 11h18" />
+      <path d="M7 15h.01M11 15h.01" />
+    </svg>
+  )
+}
+
+export function PaymentGatewayIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3" y="5.5" width="18" height="13" rx="2" />
+      <path d="M3 9.5h18" />
+      <path d="M6.5 14.5h4" />
+    </svg>
+  )
+}
+
 export const COMPONENT_ICONS = {
   client: ClientIcon,
   mobile: MobileIcon,
@@ -230,4 +361,17 @@ export const COMPONENT_ICONS = {
   cache: CacheIcon,
   database: DatabaseIcon,
   dataWarehouse: DataWarehouseIcon,
+  iotDevice: IotIcon,
+  containerOrchestrator: ContainerOrchestratorIcon,
+  cronJob: CronJobIcon,
+  objectStorage: ObjectStorageIcon,
+  searchIndex: SearchIndexIcon,
+  dataLake: DataLakeIcon,
+  messageBroker: MessageBrokerIcon,
+  eventBus: EventBusIcon,
+  webhook: WebhookIcon,
+  monitoring: MonitoringIcon,
+  logging: LoggingIcon,
+  thirdPartyApi: ThirdPartyApiIcon,
+  paymentGateway: PaymentGatewayIcon,
 } as const

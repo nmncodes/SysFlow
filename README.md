@@ -62,7 +62,10 @@ Actively in development. Phases below track [`docs/05-ROADMAP.md`](docs/05-ROADM
 | 4 — Failure Injection | ✅ Done | Right-click kill/throttle/latency on nodes, packet-drop on edges |
 | 5 — AI Advisory | ✅ Done | Rule-based analysis + optional Gemini-generated recommendations |
 | 6 — Auth + Persistence | ✅ Done | JWT auth, project CRUD scoped per user (PostgreSQL) |
-| 7 — Polish | ⏳ Next | Onboarding, starter templates, responsive pass |
+| 7 — Polish | ✅ Done | Onboarding, starter templates, responsive layout pass, error/loading states |
+| 8 — Deployment & Hardening | ✅ Done | Dockerfiles, CI (build+test on PR), health check, AI/SRS rate limiting |
+| 9 — Collaboration & Sharing | ✅ Done | Read-only share links, PNG/JSON export, version history (last 10 saves, restorable) |
+| 10 — SRS Import & Trade-off Advisor | ✅ Done | Upload an SRS, get an auto-generated diagram + tailored trade-off findings |
 
 ## How It Works
 

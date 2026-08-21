@@ -44,6 +44,34 @@ Phased so there's a demoable product early and often. Each phase ends in somethi
 - Empty-state onboarding, starter templates, responsive layout pass, error states, loading states.
 - Write up the project report using these docs as source material.
 
+## Phase 8 — Deployment & Hardening
+- Containerize frontend + backend; deploy (e.g. Render/Railway for backend, Vercel/Netlify for frontend, Neon for Postgres).
+- CI pipeline: build + lint + `mvn test` on every PR, block merge on failure.
+- Harden the AI proxy endpoint: rate-limiting, request size caps, timeout/fallback to rule-based-only on Gemini failure (already partially in place — verify).
+- Basic observability: structured backend logs, a health-check endpoint, minimal frontend error reporting.
+- **Demo checkpoint:** a public URL that survives a cold start and a burst of concurrent simulations.
+
+## Phase 9 — Collaboration & Sharing ✅ Done
+- Public read-only share links for a saved project (no login required to view/replay a simulation).
+- Export diagram as PNG/JSON (PDF optional stretch).
+- Versioning: every save snapshots the prior graph (`project_versions` table); last 10 kept per project,
+  oldest pruned automatically. "History" button in the editor toolbar lists snapshots by timestamp and
+  restores one in place — restoring itself snapshots the pre-restore state, so a restore is undoable too.
+- Multi-user live co-editing is out of scope here — too large for this timeline; revisit only if Phase 8-9 land early.
+- **Demo checkpoint:** share a link, a logged-out visitor watches the same simulation replay. Save a
+  project a few times, open History, restore an older version, confirm it round-trips.
+
+## Phase 10 — SRS Import & Trade-off Advisor
+Turn a written spec into a starting diagram, then critique it — closing the loop from "requirements doc" to "simulated architecture" to "here's what to change and why."
+
+- **Upload & parse:** accept PDF/DOCX/plain-text SRS upload; backend extracts raw text (Apache PDFBox / POI or similar — no OCR needed for typed docs).
+- **Structured extraction:** send extracted text to Gemini with a schema-constrained prompt to pull out: named components/actors, stated tech choices (e.g. "MySQL", "Redis", "S3"), and described data flows between them.
+- **Map to the component palette:** resolve free-text tech mentions to the existing 17-component set (e.g. "MySQL"/"Postgres" → Database, "Redis" → Cache) with a confidence score; anything unmapped surfaces as an "unrecognized — placed as generic Service" node rather than silently dropped.
+- **Auto-layout:** lay the extracted graph onto the canvas (reuse React Flow's existing node/edge model — no new rendering path) using a simple layered/dagre-style layout.
+- **Trade-off advisory:** run the Phase 5 rule engine against the generated graph as-is, then have Gemini rewrite each finding in terms of the user's *actual stated choice* — "You specified a single MySQL instance for writes; under load this is a single point of failure — a read replica or managed HA setup would remove it" — same findings-panel + canvas-highlight UX already built in Phase 5, extended to reference the source tech name.
+- **Review/edit before simulating:** user can drag/fix the auto-generated graph before hitting Run, since extraction won't be perfect.
+- **Demo checkpoint:** upload a sample SRS, watch it become an editable diagram with tech-specific trade-off callouts, then simulate it.
+
 ## Suggested Team Split (5 members, adjust as needed)
 - 2 on frontend canvas/editor (Phase 1, 3, 4 UI)
 - 1 on backend simulation engine (Phase 2)

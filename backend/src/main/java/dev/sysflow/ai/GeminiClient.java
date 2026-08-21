@@ -34,7 +34,7 @@ public class GeminiClient {
     public GeminiClient(
             ObjectMapper objectMapper,
             @Value("${gemini.api-key:}") String apiKey,
-            @Value("${gemini.model:gemini-2.0-flash}") String model
+            @Value("${gemini.model:gemini-3.6-flash}") String model
     ) {
         this.objectMapper = objectMapper;
         this.apiKey = apiKey;

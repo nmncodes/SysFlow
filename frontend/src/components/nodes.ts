@@ -2,6 +2,7 @@ export type ComponentType =
   | 'client'
   | 'mobile'
   | 'webBrowser'
+  | 'iotDevice'
   | 'dns'
   | 'cdn'
   | 'loadBalancer'
@@ -11,13 +12,25 @@ export type ComponentType =
   | 'service'
   | 'worker'
   | 'serverless'
+  | 'queue'
+  | 'autoScalingGroup'
+  | 'containerOrchestrator'
+  | 'cronJob'
   | 'cache'
   | 'database'
-  | 'queue'
   | 'dataWarehouse'
-  | 'autoScalingGroup'
+  | 'objectStorage'
+  | 'searchIndex'
+  | 'dataLake'
+  | 'messageBroker'
+  | 'eventBus'
+  | 'webhook'
+  | 'monitoring'
+  | 'logging'
+  | 'thirdPartyApi'
+  | 'paymentGateway'
 
-export type ComponentCategory = 'Client' | 'Traffic & Edge' | 'Compute' | 'Data'
+export type ComponentCategory = 'Client' | 'Traffic & Edge' | 'Compute' | 'Data' | 'Messaging' | 'Observability' | 'External'
 
 export interface ComponentDef {
   type: ComponentType
@@ -31,6 +44,7 @@ export const COMPONENT_LIBRARY: ComponentDef[] = [
   { type: 'client', label: 'Client', category: 'Client', defaultConfig: { targetRps: 100 } },
   { type: 'mobile', label: 'Mobile', category: 'Client', defaultConfig: { targetRps: 100 } },
   { type: 'webBrowser', label: 'Web Browser', category: 'Client', defaultConfig: { targetRps: 100 } },
+  { type: 'iotDevice', label: 'IoT Device', category: 'Client', defaultConfig: { targetRps: 20 } },
 
   // Traffic & Edge
   { type: 'dns', label: 'DNS', category: 'Traffic & Edge', defaultConfig: { resolutionLatencyMs: 5 } },
@@ -71,6 +85,18 @@ export const COMPONENT_LIBRARY: ComponentDef[] = [
     category: 'Compute',
     defaultConfig: { minReplicas: 1, maxReplicas: 10, targetLoadPct: 70, baseCapacityPerReplica: 500, minLatencyMs: 20, maxLatencyMs: 80 },
   },
+  {
+    type: 'containerOrchestrator',
+    label: 'Container Orchestrator',
+    category: 'Compute',
+    defaultConfig: { minReplicas: 2, maxReplicas: 20, targetLoadPct: 70, baseCapacityPerReplica: 600, minLatencyMs: 15, maxLatencyMs: 70 },
+  },
+  {
+    type: 'cronJob',
+    label: 'Cron Job',
+    category: 'Compute',
+    defaultConfig: { minLatencyMs: 50, maxLatencyMs: 400, maxConcurrency: 50, failureRateAtSaturation: 5 },
+  },
 
   // Data
   {
@@ -91,9 +117,40 @@ export const COMPONENT_LIBRARY: ComponentDef[] = [
     category: 'Data',
     defaultConfig: { readLatencyMs: 60, writeLatencyMs: 100, maxConnections: 100, replicaCount: 0 },
   },
+  {
+    type: 'objectStorage',
+    label: 'Object Storage',
+    category: 'Data',
+    defaultConfig: { readLatencyMs: 25, writeLatencyMs: 50, maxThroughput: 3000 },
+  },
+  {
+    type: 'searchIndex',
+    label: 'Search Index',
+    category: 'Data',
+    defaultConfig: { readLatencyMs: 20, writeLatencyMs: 40, maxConnections: 300, replicaCount: 0 },
+  },
+  {
+    type: 'dataLake',
+    label: 'Data Lake',
+    category: 'Data',
+    defaultConfig: { readLatencyMs: 80, writeLatencyMs: 120, maxConnections: 100 },
+  },
+
+  // Messaging
+  { type: 'messageBroker', label: 'Message Broker', category: 'Messaging', defaultConfig: { maxThroughput: 2000, consumers: 3 } },
+  { type: 'eventBus', label: 'Event Bus', category: 'Messaging', defaultConfig: { maxThroughput: 3000 } },
+  { type: 'webhook', label: 'Webhook', category: 'Messaging', defaultConfig: { maxThroughput: 300, extraLatencyMs: 20 } },
+
+  // Observability
+  { type: 'monitoring', label: 'Monitoring', category: 'Observability', defaultConfig: { maxThroughput: 5000 } },
+  { type: 'logging', label: 'Logging', category: 'Observability', defaultConfig: { maxThroughput: 5000 } },
+
+  // External
+  { type: 'thirdPartyApi', label: 'Third-Party API', category: 'External', defaultConfig: { maxThroughput: 200, minLatencyMs: 50, maxLatencyMs: 400 } },
+  { type: 'paymentGateway', label: 'Payment Gateway', category: 'External', defaultConfig: { maxThroughput: 150, minLatencyMs: 100, maxLatencyMs: 600 } },
 ]
 
-export const COMPONENT_CATEGORIES: ComponentCategory[] = ['Client', 'Traffic & Edge', 'Compute', 'Data']
+export const COMPONENT_CATEGORIES: ComponentCategory[] = ['Client', 'Traffic & Edge', 'Compute', 'Data', 'Messaging', 'Observability', 'External']
 
 export type HealthState = 'idle' | 'healthy' | 'underLoad' | 'critical' | 'down'
 

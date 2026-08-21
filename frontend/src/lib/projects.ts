@@ -19,6 +19,15 @@ export interface ProjectDetail extends ProjectSummary {
   graphJson: GraphJson
 }
 
+export interface ProjectVersionSummary {
+  id: string
+  createdAt: string
+}
+
+export interface ProjectVersionDetail extends ProjectVersionSummary {
+  graphJson: GraphJson
+}
+
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
     if (res.status === 401 || res.status === 403) throw new Error('You need to log in to do that.')
@@ -62,5 +71,18 @@ export async function deleteProject(id: string): Promise<void> {
 
 export async function getPublicProject(id: string): Promise<ProjectDetail> {
   const res = await fetch(`${API_BASE}/public/projects/${id}`)
+  return handle(res)
+}
+
+export async function listVersions(projectId: string): Promise<ProjectVersionSummary[]> {
+  const res = await fetch(`${API_BASE}/projects/${projectId}/versions`, { headers: { ...authHeaders() } })
+  return handle(res)
+}
+
+export async function restoreVersion(projectId: string, versionId: string): Promise<ProjectDetail> {
+  const res = await fetch(`${API_BASE}/projects/${projectId}/versions/${versionId}/restore`, {
+    method: 'POST',
+    headers: { ...authHeaders() },
+  })
   return handle(res)
 }

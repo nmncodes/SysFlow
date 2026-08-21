@@ -13,7 +13,6 @@ import { useInView } from '../lib/useInView'
 import logo from '../assets/logo.png'
 
 const BLUE = '#12b8d4'
-const BLUE_DARK = '#079fbb'
 
 const FEATURES = [
   {

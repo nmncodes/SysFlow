@@ -5,10 +5,10 @@ import Canvas from '../components/Canvas'
 import FindingsPanel from '../components/FindingsPanel'
 import type { ArchNodeData } from '../components/ArchNode'
 import { useSimulation } from '../lib/useSimulation'
-import { analyzeGraph, type AnalyzeResult, type InjectedFailure } from '../lib/api'
+import { analyzeGraph, importSrs, type AnalyzeResult, type InjectedFailure } from '../lib/api'
 import { ClockIcon, PacketDropIcon, SkullIcon, ThrottleIcon } from '../components/icons'
 import { useAuth } from '../lib/AuthContext'
-import { createProject, getProject, updateProject } from '../lib/projects'
+import { createProject, getProject, listVersions, restoreVersion, updateProject, type ProjectVersionSummary } from '../lib/projects'
 import { TEMPLATES } from '../lib/templates'
 import { useHistory } from '../lib/useHistory'
 import { stashPendingSave, takePendingSave } from '../lib/pendingSave'
@@ -69,6 +69,14 @@ export default function EditorPage() {
   const [isDirty, setIsDirty] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   const [templatesOpen, setTemplatesOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isImportingSrs, setIsImportingSrs] = useState(false)
+  const [srsUnrecognized, setSrsUnrecognized] = useState<string[]>([])
+  const srsFileInputRef = useRef<HTMLInputElement>(null)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [versions, setVersions] = useState<ProjectVersionSummary[]>([])
+  const [isLoadingVersions, setIsLoadingVersions] = useState(false)
+  const [restoringVersionId, setRestoringVersionId] = useState<string | null>(null)
   const [chaosOpen, setChaosOpen] = useState(false)
   const [chaosType, setChaosType] = useState<ChaosType>('kill')
   const [chaosTarget, setChaosTarget] = useState('')
@@ -240,6 +248,74 @@ export default function EditorPage() {
     setToast(`${template.name} loaded`)
   }
 
+  const openHistory = async () => {
+    if (!projectId) return
+    setHistoryOpen((v) => !v)
+    setExportOpen(false)
+    setTemplatesOpen(false)
+    setMobileMenuOpen(false)
+    setIsLoadingVersions(true)
+    try {
+      setVersions(await listVersions(projectId))
+    } catch {
+      setToast("Couldn't load version history")
+    } finally {
+      setIsLoadingVersions(false)
+    }
+  }
+
+  const handleRestoreVersion = async (versionId: string) => {
+    if (!projectId) return
+    setRestoringVersionId(versionId)
+    try {
+      const restored = await restoreVersion(projectId, versionId)
+      setNodes(restored.graphJson.nodes.map((n) => ({
+        id: n.id,
+        type: 'archNode',
+        position: n.position ?? { x: 0, y: 0 },
+        data: { componentType: n.type, label: n.label ?? n.type, config: n.config, health: 'idle' },
+      })))
+      setEdges(restored.graphJson.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: 'archEdge' })))
+      setIsDirty(false)
+      setHistoryOpen(false)
+      setToast('Restored previous version')
+    } catch (err) {
+      setToast(err instanceof Error ? err.message : 'Restore failed')
+    } finally {
+      setRestoringVersionId(null)
+    }
+  }
+
+  const handleSrsFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+
+    setIsImportingSrs(true)
+    setSrsUnrecognized([])
+    try {
+      const result = await importSrs(file)
+      setNodes(result.graphJson.nodes.map((n) => ({
+        id: n.id,
+        type: 'archNode',
+        position: n.position,
+        data: { componentType: n.type, label: n.label, config: n.config, health: 'idle' },
+      })))
+      setEdges(result.graphJson.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: 'archEdge' })))
+      setProjectId(null)
+      setProjectName(file.name.replace(/\.[^.]+$/, ''))
+      setSelectedNodeId(null)
+      setIsDirty(true)
+      setAnalysis({ findings: result.findings, aiEnabled: result.aiEnabled })
+      setSrsUnrecognized(result.unrecognizedTerms)
+      setToast(`Generated ${result.graphJson.nodes.length} components from "${file.name}"`)
+    } catch (err) {
+      setToast(err instanceof Error ? err.message : 'SRS import failed')
+    } finally {
+      setIsImportingSrs(false)
+    }
+  }
+
   const exportJson = () => {
     downloadText('sysflow-architecture.json', JSON.stringify({ projectName, nodes: toGraphNodes(nodes), edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target })) }, null, 2), 'application/json')
     setExportOpen(false)
@@ -299,6 +375,8 @@ export default function EditorPage() {
         setExportOpen(false)
         setTemplatesOpen(false)
         setChaosOpen(false)
+        setMobileMenuOpen(false)
+        setHistoryOpen(false)
       }
     }
     window.addEventListener('keydown', handler)
@@ -344,7 +422,7 @@ export default function EditorPage() {
           </div>
 
           <div className="relative">
-            <button onClick={() => { setExportOpen((v) => !v); setTemplatesOpen(false) }} className="toolbar-button">Export⌄</button>
+            <button onClick={() => { setExportOpen((v) => !v); setTemplatesOpen(false); setHistoryOpen(false) }} className="toolbar-button">Export⌄</button>
             {exportOpen && <div className="popover-menu right-0 top-12">
               <button onClick={() => { setExportRequest((v) => v + 1); setExportOpen(false) }}>PNG image</button>
               <button onClick={exportJson}>JSON graph</button>
@@ -354,8 +432,26 @@ export default function EditorPage() {
 
           <button onClick={() => { if (!projectId) { setToast('Save the project first to get a share link'); return }; navigator.clipboard.writeText(`${window.location.origin}/share/${projectId}`); setToast('Share link copied') }} className="toolbar-button hidden md:block">Share ↗</button>
 
+          {projectId && <div className="relative">
+            <button onClick={openHistory} className="toolbar-button hidden md:block">History</button>
+            {historyOpen && <div className="popover-menu right-0 top-12 w-72">
+              <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400">Version history</p>
+              {isLoadingVersions && <p className="px-3 py-2 text-xs text-zinc-400">Loading…</p>}
+              {!isLoadingVersions && versions.length === 0 && <p className="px-3 py-2 text-xs text-zinc-400">No previous versions yet — saves create one automatically.</p>}
+              {!isLoadingVersions && versions.map((v) => (
+                <button key={v.id} onClick={() => handleRestoreVersion(v.id)} disabled={restoringVersionId === v.id} className="flex w-full items-center justify-between disabled:opacity-50">
+                  <span className="text-zinc-700">{new Date(v.createdAt).toLocaleString()}</span>
+                  <span className="text-[10px] font-semibold text-violet-600">{restoringVersionId === v.id ? 'Restoring…' : 'Restore'}</span>
+                </button>
+              ))}
+            </div>}
+          </div>}
+
+          <input ref={srsFileInputRef} type="file" accept=".pdf,.docx,.txt,.md" className="hidden" onChange={handleSrsFileSelected} />
+          <button onClick={() => srsFileInputRef.current?.click()} disabled={isImportingSrs} className="toolbar-button hidden md:block disabled:opacity-50">{isImportingSrs ? 'Importing…' : 'Import SRS'}</button>
+
           <div className="relative">
-            <button onClick={() => { setTemplatesOpen((v) => !v); setExportOpen(false) }} className="toolbar-button hidden md:block">Templates</button>
+            <button onClick={() => { setTemplatesOpen((v) => !v); setExportOpen(false); setHistoryOpen(false) }} className="toolbar-button hidden md:block">Templates</button>
             {templatesOpen && <div className="popover-menu right-0 top-12 w-64">
               <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400">Start with a template</p>
               {TEMPLATES.map((template) => <button key={template.id} onClick={() => applyTemplate(template.id)}><span className="block font-semibold text-zinc-800">{template.name}</span><span className="mt-0.5 block text-[10px] leading-relaxed text-zinc-400">{template.description}</span></button>)}
@@ -364,8 +460,28 @@ export default function EditorPage() {
 
           {auth.user ? <Link to="/projects" className="toolbar-button hidden lg:block">Projects</Link> : <Link to="/login" className="toolbar-button hidden lg:block">Log in</Link>}
           <button onClick={handleSaveClick} disabled={isSaving} title="Save (Ctrl+S)" className="btn-dark rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-50">{isSaving ? 'Saving…' : 'Save'}</button>
+
+          <div className="relative lg:hidden">
+            <button onClick={() => setMobileMenuOpen((v) => !v)} className="toolbar-icon" aria-label="More options">⋯</button>
+            {mobileMenuOpen && <div className="popover-menu right-0 top-12 w-56">
+              <button onClick={() => { srsFileInputRef.current?.click(); setMobileMenuOpen(false) }} disabled={isImportingSrs}>{isImportingSrs ? 'Importing…' : 'Import SRS'}</button>
+              <div className="my-1 border-t border-zinc-100" />
+              <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400">Templates</p>
+              {TEMPLATES.map((template) => <button key={template.id} onClick={() => { applyTemplate(template.id); setMobileMenuOpen(false) }}><span className="block font-semibold text-zinc-800">{template.name}</span></button>)}
+              <div className="my-1 border-t border-zinc-100" />
+              <button onClick={() => { if (!projectId) { setToast('Save the project first to get a share link'); setMobileMenuOpen(false); return }; navigator.clipboard.writeText(`${window.location.origin}/share/${projectId}`); setToast('Share link copied'); setMobileMenuOpen(false) }}>Share ↗</button>
+              {auth.user ? <Link to="/projects" onClick={() => setMobileMenuOpen(false)}>Projects</Link> : <Link to="/login" onClick={() => setMobileMenuOpen(false)}>Log in</Link>}
+            </div>}
+          </div>
         </div>
       </header>
+
+      {srsUnrecognized.length > 0 && (
+        <div className="relative z-20 flex items-center justify-between gap-3 border-b border-amber-100 bg-amber-50 px-4 py-1.5 text-xs text-amber-700 sm:px-6">
+          <span>Couldn't confidently map: <b>{srsUnrecognized.join(', ')}</b> — placed as a generic Service. Review before running.</span>
+          <button onClick={() => setSrsUnrecognized([])} className="shrink-0 text-amber-500 hover:text-amber-800">✕</button>
+        </div>
+      )}
 
       <div className="flex min-h-0 flex-1">
         {isLoadingProject && <div className="absolute inset-0 z-40 flex items-center justify-center bg-white/60 backdrop-blur-sm"><div className="rounded-full bg-white px-4 py-2 text-sm text-zinc-500 shadow-lg">Loading project…</div></div>}

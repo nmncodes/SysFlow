@@ -10,6 +10,8 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<ProjectSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) {
@@ -24,8 +26,16 @@ export default function ProjectsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this project? This cannot be undone.')) return
-    await deleteProject(id)
-    setProjects((p) => p.filter((proj) => proj.id !== id))
+    setDeleteError(null)
+    setDeletingId(id)
+    try {
+      await deleteProject(id)
+      setProjects((p) => p.filter((proj) => proj.id !== id))
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : 'Failed to delete project')
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   if (!user) return null
@@ -77,6 +87,8 @@ export default function ProjectsPage() {
           <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">My Projects</h2>
         </div>
 
+        {deleteError && <p className="mt-4 text-sm text-red-500">{deleteError}</p>}
+
         {loading ? (
           <p className="mt-6 text-sm text-zinc-400">Loading…</p>
         ) : error ? (
@@ -97,9 +109,10 @@ export default function ProjectsPage() {
                 </button>
                 <button
                   onClick={() => handleDelete(p.id)}
-                  className="absolute right-3 top-3 hidden text-xs text-zinc-400 hover:text-red-500 group-hover:block"
+                  disabled={deletingId === p.id}
+                  className="absolute right-3 top-3 hidden text-xs text-zinc-400 hover:text-red-500 group-hover:block disabled:opacity-50"
                 >
-                  Delete
+                  {deletingId === p.id ? 'Deleting…' : 'Delete'}
                 </button>
               </div>
             ))}

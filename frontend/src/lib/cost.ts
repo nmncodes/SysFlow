@@ -19,6 +19,19 @@ export const MONTHLY_COST_USD: Record<ComponentType, number> = {
   dataWarehouse: 220,
   queue: 10,
   autoScalingGroup: 25, // × replicas, computed dynamically
+  iotDevice: 0,
+  containerOrchestrator: 70,
+  cronJob: 5,
+  objectStorage: 15,
+  searchIndex: 45,
+  dataLake: 180,
+  messageBroker: 30,
+  eventBus: 20,
+  webhook: 5,
+  monitoring: 25,
+  logging: 25,
+  thirdPartyApi: 0,
+  paymentGateway: 0,
 }
 
 export function estimateNodeMonthlyCost(type: ComponentType, replicas = 1): number {
