@@ -3,6 +3,7 @@ import LandingPage from './pages/LandingPage'
 import EditorPage from './pages/EditorPage'
 import AuthPage from './pages/AuthPage'
 import ProjectsPage from './pages/ProjectsPage'
+import GalleryPage from './pages/GalleryPage'
 import ShareViewPage from './pages/ShareViewPage'
 import { AuthProvider } from './lib/AuthContext'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -29,6 +30,7 @@ function App() {
           <Route path="/app" element={<EditorPage />} />
           <Route path="/login" element={<AuthPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/gallery" element={<GalleryPage />} />
           <Route path="/share/:id" element={<ShareViewPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

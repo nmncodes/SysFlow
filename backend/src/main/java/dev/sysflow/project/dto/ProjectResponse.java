@@ -11,6 +11,7 @@ public record ProjectResponse(
         String description,
         JsonNode graphJson,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        boolean isPublicTemplate
 ) {
 }

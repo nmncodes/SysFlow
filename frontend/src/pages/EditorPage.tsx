@@ -8,7 +8,7 @@ import { useSimulation } from '../lib/useSimulation'
 import { analyzeGraph, importSrs, type AnalyzeResult, type InjectedFailure, type SrsImportResult } from '../lib/api'
 import { ClockIcon, PacketDropIcon, SkullIcon, ThrottleIcon } from '../components/icons'
 import { useAuth } from '../lib/AuthContext'
-import { createProject, getProject, listVersions, restoreVersion, updateProject, type ProjectVersionSummary } from '../lib/projects'
+import { createProject, getProject, getPublicProject, listVersions, restoreVersion, updateProject, type ProjectVersionSummary } from '../lib/projects'
 import { TEMPLATES } from '../lib/templates'
 import { useHistory } from '../lib/useHistory'
 import { stashPendingSave, takePendingSave } from '../lib/pendingSave'
@@ -120,8 +120,28 @@ export default function EditorPage() {
 
     const templateId = params.get('template')
     const loadProjectId = params.get('projectId')
+    const galleryProjectId = params.get('galleryProjectId')
 
-    if (templateId) {
+    if (galleryProjectId) {
+      setIsLoadingProject(true)
+      getPublicProject(galleryProjectId)
+        .then((project) => {
+          // Loaded as a fresh, unowned copy — projectId stays null so Save creates a new
+          // project instead of overwriting the original author's.
+          setProjectName(project.name)
+          setNodes(project.graphJson.nodes.map((n) => ({
+            id: n.id,
+            type: 'archNode',
+            position: n.position ?? { x: 0, y: 0 },
+            data: { componentType: n.type, label: n.label ?? n.type, config: n.config, health: 'idle' },
+          })))
+          setEdges(project.graphJson.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: 'archEdge' })))
+          setIsDirty(true)
+          setToast(`Loaded "${project.name}" from the gallery — save to make your own copy`)
+        })
+        .catch(() => setToast("Couldn't load that gallery project"))
+        .finally(() => setIsLoadingProject(false))
+    } else if (templateId) {
       const template = TEMPLATES.find((t) => t.id === templateId)
       if (template) {
         setNodes(template.graph.nodes.map((n) => ({

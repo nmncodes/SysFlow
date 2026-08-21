@@ -7,4 +7,6 @@ import java.util.UUID;
 
 public interface ProjectRepository extends JpaRepository<Project, UUID> {
     List<Project> findByUserIdOrderByUpdatedAtDesc(UUID userId);
+
+    List<Project> findByIsPublicTemplateTrueOrderByUpdatedAtDesc();
 }

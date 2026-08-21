@@ -13,10 +13,20 @@ export interface ProjectSummary {
   description: string | null
   createdAt: string
   updatedAt: string
+  isPublicTemplate: boolean
 }
 
 export interface ProjectDetail extends ProjectSummary {
   graphJson: GraphJson
+}
+
+export interface GalleryItem {
+  id: string
+  name: string
+  description: string | null
+  authorName: string
+  nodeCount: number
+  updatedAt: string
 }
 
 export interface ProjectVersionSummary {
@@ -84,5 +94,19 @@ export async function restoreVersion(projectId: string, versionId: string): Prom
     method: 'POST',
     headers: { ...authHeaders() },
   })
+  return handle(res)
+}
+
+export async function setPublished(projectId: string, publish: boolean): Promise<ProjectDetail> {
+  const res = await fetch(`${API_BASE}/projects/${projectId}/publish`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ publish }),
+  })
+  return handle(res)
+}
+
+export async function listGallery(): Promise<GalleryItem[]> {
+  const res = await fetch(`${API_BASE}/gallery`)
   return handle(res)
 }

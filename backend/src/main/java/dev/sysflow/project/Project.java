@@ -38,6 +38,14 @@ public class Project {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
 
+    /**
+     * Opt-in only — the owner explicitly chooses to list this in the public gallery.
+     * columnDefinition sets an explicit DEFAULT so ddl-auto=update's ALTER TABLE ADD COLUMN
+     * backfills existing rows instead of violating the NOT NULL constraint on them.
+     */
+    @Column(name = "is_public_template", nullable = false, columnDefinition = "boolean default false")
+    private boolean isPublicTemplate = false;
+
     protected Project() {
     }
 
@@ -89,5 +97,14 @@ public class Project {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public boolean isPublicTemplate() {
+        return isPublicTemplate;
+    }
+
+    public void setPublicTemplate(boolean publicTemplate) {
+        this.isPublicTemplate = publicTemplate;
+        this.updatedAt = Instant.now();
     }
 }

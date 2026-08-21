@@ -41,7 +41,7 @@ public class ProjectController {
     public List<ProjectSummaryResponse> list(Authentication auth) {
         UUID userId = userId(auth);
         return projectRepository.findByUserIdOrderByUpdatedAtDesc(userId).stream()
-                .map(p -> new ProjectSummaryResponse(p.getId(), p.getName(), p.getDescription(), p.getCreatedAt(), p.getUpdatedAt()))
+                .map(p -> new ProjectSummaryResponse(p.getId(), p.getName(), p.getDescription(), p.getCreatedAt(), p.getUpdatedAt(), p.isPublicTemplate()))
                 .toList();
     }
 
@@ -49,6 +49,17 @@ public class ProjectController {
     public ProjectResponse get(@PathVariable UUID id, Authentication auth) {
         Project project = findOwned(id, userId(auth));
         return toResponse(project);
+    }
+
+    @PutMapping("/{id}/publish")
+    public ProjectResponse setPublished(@PathVariable UUID id, @RequestBody PublishRequest request, Authentication auth) {
+        Project project = findOwned(id, userId(auth));
+        project.setPublicTemplate(request.publish());
+        projectRepository.save(project);
+        return toResponse(project);
+    }
+
+    public record PublishRequest(boolean publish) {
     }
 
     @PostMapping
@@ -156,7 +167,7 @@ public class ProjectController {
     private ProjectResponse toResponse(Project project) {
         try {
             JsonNode graph = objectMapper.readTree(project.getGraphJson());
-            return new ProjectResponse(project.getId(), project.getName(), project.getDescription(), graph, project.getCreatedAt(), project.getUpdatedAt());
+            return new ProjectResponse(project.getId(), project.getName(), project.getDescription(), graph, project.getCreatedAt(), project.getUpdatedAt(), project.isPublicTemplate());
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Corrupt project data");
         }
