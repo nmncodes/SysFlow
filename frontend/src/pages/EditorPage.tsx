@@ -13,6 +13,7 @@ import { TEMPLATES } from '../lib/templates'
 import { useHistory } from '../lib/useHistory'
 import { stashPendingSave, takePendingSave } from '../lib/pendingSave'
 import { estimateTotalMonthlyCost, replicasOf } from '../lib/cost'
+import { generateDockerCompose } from '../lib/iac'
 import { COMPONENT_LIBRARY, type ComponentType } from '../components/nodes'
 import CompareModal from '../components/CompareModal'
 import SrsDiffModal from '../components/SrsDiffModal'
@@ -343,6 +344,15 @@ export default function EditorPage() {
     window.print()
   }
 
+  const exportDockerCompose = () => {
+    const compose = generateDockerCompose(
+      nodes.map((n) => ({ id: n.id, type: n.data.componentType, label: n.data.label, config: n.data.config })),
+      edges.map((e) => ({ source: e.source, target: e.target })),
+    )
+    downloadText('docker-compose.yml', compose, 'text/yaml')
+    setExportOpen(false)
+  }
+
   const nodeTargets = nodes
   const edgeTargets = edges
   const chaosTargetOptions = chaosType === 'dropPct' ? edgeTargets : nodeTargets
@@ -448,6 +458,7 @@ export default function EditorPage() {
             {exportOpen && <div className="popover-menu right-0 top-12">
               <button onClick={() => { setExportRequest((v) => v + 1); setExportOpen(false) }}>PNG image</button>
               <button onClick={exportJson}>JSON graph</button>
+              <button onClick={exportDockerCompose}>docker-compose.yml</button>
               <button onClick={exportPdf}>PDF / Print</button>
             </div>}
           </div>
