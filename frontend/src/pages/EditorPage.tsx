@@ -5,7 +5,7 @@ import Canvas from '../components/Canvas'
 import FindingsPanel from '../components/FindingsPanel'
 import type { ArchNodeData } from '../components/ArchNode'
 import { useSimulation } from '../lib/useSimulation'
-import { analyzeGraph, importSrs, type AnalyzeResult, type InjectedFailure, type SrsImportResult } from '../lib/api'
+import { analyzeGraph, estimateRealCost, importSrs, type AnalyzeResult, type InjectedFailure, type PricingEstimate, type SrsImportResult } from '../lib/api'
 import { ClockIcon, PacketDropIcon, SkullIcon, ThrottleIcon } from '../components/icons'
 import { useAuth } from '../lib/AuthContext'
 import { createProject, getProject, getPublicProject, listVersions, restoreVersion, updateProject, type ProjectVersionSummary } from '../lib/projects'
@@ -83,6 +83,10 @@ export default function EditorPage() {
   const [isLoadingVersions, setIsLoadingVersions] = useState(false)
   const [restoringVersionId, setRestoringVersionId] = useState<string | null>(null)
   const [compareNodeId, setCompareNodeId] = useState<string | null>(null)
+  const [realPricing, setRealPricing] = useState<PricingEstimate | null>(null)
+  const [isLoadingRealPricing, setIsLoadingRealPricing] = useState(false)
+  const [realPricingOpen, setRealPricingOpen] = useState(false)
+  const [realPricingError, setRealPricingError] = useState<string | null>(null)
   const [pendingSrsImport, setPendingSrsImport] = useState<{ result: SrsImportResult; fileName: string } | null>(null)
   const [chaosOpen, setChaosOpen] = useState(false)
   const [chaosType, setChaosType] = useState<ChaosType>('kill')
@@ -278,6 +282,25 @@ export default function EditorPage() {
     setToast(`${template.name} loaded`)
   }
 
+  const toggleRealPricing = async () => {
+    if (realPricingOpen) {
+      setRealPricingOpen(false)
+      return
+    }
+    setRealPricingOpen(true)
+    if (isLoadingRealPricing) return
+    setIsLoadingRealPricing(true)
+    setRealPricingError(null)
+    try {
+      const result = await estimateRealCost(nodes.map((n) => ({ id: n.id, type: n.data.componentType, config: n.data.config })))
+      setRealPricing(result)
+    } catch (err) {
+      setRealPricingError(err instanceof Error ? err.message : 'Pricing lookup failed')
+    } finally {
+      setIsLoadingRealPricing(false)
+    }
+  }
+
   const openHistory = async () => {
     if (!projectId) return
     setHistoryOpen((v) => !v)
@@ -424,6 +447,7 @@ export default function EditorPage() {
         setChaosOpen(false)
         setMobileMenuOpen(false)
         setHistoryOpen(false)
+        setRealPricingOpen(false)
       }
     }
     window.addEventListener('keydown', handler)
@@ -455,9 +479,41 @@ export default function EditorPage() {
             <span className="h-1.5 w-1.5 rounded-full bg-current" /> {isSaving ? 'Saving…' : isDirty ? 'Unsaved changes' : 'Saved'}
           </span>
           {nodes.length > 0 && (
-            <span title="Rough, illustrative cloud cost estimate — not real pricing" className="flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-[10px] font-semibold text-zinc-600">
-              ~${estimatedMonthlyCost.toLocaleString()}/mo
-            </span>
+            <div className="relative">
+              <button
+                onClick={toggleRealPricing}
+                title="Illustrative estimate — click for real Azure pricing where available"
+                className="flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-[10px] font-semibold text-zinc-600 hover:bg-zinc-200"
+              >
+                ~${estimatedMonthlyCost.toLocaleString()}/mo <span className="text-zinc-400">▾</span>
+              </button>
+              {realPricingOpen && (
+                <div className="popover-menu right-0 top-8 w-80">
+                  <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400">Cost breakdown</p>
+                  {isLoadingRealPricing && <p className="px-3 py-2 text-xs text-zinc-400">Fetching real Azure pricing…</p>}
+                  {realPricingError && <p className="px-3 py-2 text-xs text-red-500">{realPricingError} — showing illustrative only.</p>}
+                  {!isLoadingRealPricing && realPricing && (
+                    <>
+                      <div className="px-3 py-2">
+                        <p className="text-sm font-semibold text-zinc-900">${realPricing.totalMonthlyCostUsd.toFixed(2)}/mo</p>
+                        <p className="text-[10px] text-zinc-400">Mixing real Azure prices ({realPricing.region}) where verified, illustrative elsewhere</p>
+                      </div>
+                      <div className="max-h-56 overflow-y-auto">
+                        {realPricing.nodes.map((n) => (
+                          <div key={n.id} className="flex items-center justify-between px-3 py-1.5 text-xs">
+                            <span className="truncate text-zinc-600">{n.id}</span>
+                            <span className="flex items-center gap-1.5 shrink-0">
+                              <span className={`rounded-full px-1.5 py-0.5 text-[8px] font-semibold uppercase ${n.source === 'real' ? 'bg-emerald-50 text-emerald-600' : 'bg-zinc-100 text-zinc-400'}`}>{n.source}</span>
+                              <span className="font-medium text-zinc-700">${n.monthlyCostUsd.toFixed(2)}</span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           )}
           {isLoadingProject && <span className="text-[10px] text-zinc-400">Loading project…</span>}
         </div>

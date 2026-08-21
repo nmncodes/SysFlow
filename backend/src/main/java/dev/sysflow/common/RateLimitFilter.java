@@ -13,9 +13,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Simple fixed-window per-IP rate limit for the AI advisory and SRS-import
- * endpoints — both are unauthenticated per SecurityConfig, proxy to a paid
- * external API, and have no other abuse control in front of them.
+ * Simple fixed-window per-IP rate limit for the AI advisory, SRS-import, and
+ * real-pricing endpoints — all unauthenticated per SecurityConfig, and all
+ * proxy to an external API (paid for AI/SRS, free-but-still-abusable for
+ * pricing) with no other abuse control in front of them.
  *
  * In-memory and single-instance only; if this service is ever run behind
  * multiple replicas, replace with a shared store (e.g. Redis).
@@ -23,7 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    private static final Set<String> LIMITED_PATHS = Set.of("/api/ai/analyze", "/api/srs/import");
+    private static final Set<String> LIMITED_PATHS = Set.of("/api/ai/analyze", "/api/srs/import", "/api/pricing/estimate");
     private static final int MAX_REQUESTS_PER_WINDOW = 20;
     private static final long WINDOW_MILLIS = 60_000;
 

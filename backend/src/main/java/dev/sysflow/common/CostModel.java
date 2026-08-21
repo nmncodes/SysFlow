@@ -17,6 +17,17 @@ public class CostModel {
     private static final Set<String> REPLICATED_STORE_TYPES = Set.of("database", "searchIndex", "dataWarehouse");
     private static final Set<String> SCALING_GROUP_TYPES = Set.of("autoScalingGroup", "containerOrchestrator");
 
+    /** How many billable units (replicas/instances) a node represents — shared with real-pricing lookups. */
+    public int unitsOf(GraphNode node) {
+        if (SCALING_GROUP_TYPES.contains(node.type())) {
+            return (int) Math.max(1, node.getNumber("minReplicas", 1));
+        }
+        if (REPLICATED_STORE_TYPES.contains(node.type())) {
+            return 1 + (int) Math.max(0, node.getNumber("replicaCount", 0));
+        }
+        return 1;
+    }
+
     private static final Map<String, Double> MONTHLY_COST_USD = Map.ofEntries(
             Map.entry("client", 0.0), Map.entry("mobile", 0.0), Map.entry("webBrowser", 0.0), Map.entry("iotDevice", 0.0),
             Map.entry("dns", 1.0), Map.entry("cdn", 20.0), Map.entry("loadBalancer", 18.0), Map.entry("apiGateway", 15.0),
@@ -32,13 +43,6 @@ public class CostModel {
 
     /** Monthly cost for one node, accounting for replica/scaling config the same way the frontend badge does. */
     public double monthlyCostOf(GraphNode node) {
-        double base = MONTHLY_COST_USD.getOrDefault(node.type(), 10.0);
-        int units = 1;
-        if (SCALING_GROUP_TYPES.contains(node.type())) {
-            units = (int) Math.max(1, node.getNumber("minReplicas", 1));
-        } else if (REPLICATED_STORE_TYPES.contains(node.type())) {
-            units = 1 + (int) Math.max(0, node.getNumber("replicaCount", 0));
-        }
-        return base * units;
+        return MONTHLY_COST_USD.getOrDefault(node.type(), 10.0) * unitsOf(node);
     }
 }

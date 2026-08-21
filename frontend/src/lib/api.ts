@@ -114,6 +114,33 @@ export async function importSrs(file: File): Promise<SrsImportResult> {
   return res.json()
 }
 
+export interface PricingNodeCost {
+  id: string
+  type: string
+  monthlyCostUsd: number
+  source: 'real' | 'illustrative'
+  note: string
+}
+
+export interface PricingEstimate {
+  totalMonthlyCostUsd: number
+  provider: string
+  region: string
+  nodes: PricingNodeCost[]
+}
+
+export async function estimateRealCost(
+  nodes: { id: string; type: string; config: Record<string, unknown> }[],
+): Promise<PricingEstimate> {
+  const res = await fetch(`${API_BASE}/pricing/estimate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ graphJson: { nodes } }),
+  })
+  if (!res.ok) throw new Error(`Pricing estimate failed: ${res.status}`)
+  return res.json()
+}
+
 export async function analyzeGraph(
   nodes: { id: string; type: string; config: Record<string, unknown> }[],
   edges: { id: string; source: string; target: string }[],
