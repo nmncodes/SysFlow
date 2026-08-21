@@ -34,6 +34,17 @@ export const MONTHLY_COST_USD: Record<ComponentType, number> = {
   paymentGateway: 0,
 }
 
+/** Mirrors backend CostModel.monthlyCostOf's replica/scaling-config handling. */
+export function replicasOf(componentType: string, config: Record<string, unknown> | undefined, liveReplicas?: number): number {
+  if (componentType === 'autoScalingGroup' || componentType === 'containerOrchestrator') {
+    return liveReplicas ?? Number(config?.minReplicas ?? 1)
+  }
+  if (componentType === 'database' || componentType === 'searchIndex' || componentType === 'dataWarehouse') {
+    return 1 + Number(config?.replicaCount ?? 0)
+  }
+  return 1
+}
+
 export function estimateNodeMonthlyCost(type: ComponentType, replicas = 1): number {
   const base = MONTHLY_COST_USD[type] ?? 10
   return base * Math.max(1, replicas)

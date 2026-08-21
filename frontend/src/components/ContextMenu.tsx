@@ -17,12 +17,13 @@ interface Props {
   onDropPackets: () => void
   onClear: () => void
   onClose: () => void
+  onCompare?: () => void
 }
 
 const itemClass =
   'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-zinc-700 transition-colors hover:bg-zinc-50'
 
-export default function ContextMenu({ state, hasFailure, onKill, onLatency, onThrottle, onDropPackets, onClear, onClose }: Props) {
+export default function ContextMenu({ state, hasFailure, onKill, onLatency, onThrottle, onDropPackets, onClear, onClose, onCompare }: Props) {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -57,6 +58,15 @@ export default function ContextMenu({ state, hasFailure, onKill, onLatency, onTh
             <ThrottleIcon width={16} height={16} className="text-amber-500" />
             Throttle capacity (-60%)
           </button>
+          {onCompare && (
+            <>
+              <div className="my-1 h-px bg-zinc-100" />
+              <button onClick={onCompare} className={itemClass}>
+                <span className="w-4 text-center text-violet-500">⇄</span>
+                Compare alternative…
+              </button>
+            </>
+          )}
         </>
       ) : (
         <button onClick={onDropPackets} className={itemClass}>

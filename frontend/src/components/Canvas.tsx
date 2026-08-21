@@ -46,6 +46,7 @@ interface Props {
   onSelectionChange?: (nodeId: string | null) => void
   onDirty?: () => void
   hideSidebar?: boolean
+  onCompareNode?: (nodeId: string) => void
 }
 
 export default function Canvas({
@@ -64,6 +65,7 @@ export default function Canvas({
   onSelectionChange,
   onDirty,
   hideSidebar = false,
+  onCompareNode,
 }: Props) {
   const [selectedNodeId, setSelectedNodeIdState] = useState<string | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
@@ -433,6 +435,7 @@ export default function Canvas({
           onThrottle={() => applyNodeFailure(contextMenu.targetId, 'throttle')}
           onDropPackets={() => applyEdgeFailure(contextMenu.targetId)}
           onClear={clearFailure}
+          onCompare={contextMenu.targetType === 'node' && onCompareNode ? () => { onCompareNode(contextMenu.targetId); setContextMenu(null) } : undefined}
           onClose={() => setContextMenu(null)}
         />
       )}

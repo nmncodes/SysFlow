@@ -12,20 +12,10 @@ import { createProject, getProject, listVersions, restoreVersion, updateProject,
 import { TEMPLATES } from '../lib/templates'
 import { useHistory } from '../lib/useHistory'
 import { stashPendingSave, takePendingSave } from '../lib/pendingSave'
-import { estimateTotalMonthlyCost } from '../lib/cost'
-import type { ComponentType } from '../components/nodes'
+import { estimateTotalMonthlyCost, replicasOf } from '../lib/cost'
+import { COMPONENT_LIBRARY, type ComponentType } from '../components/nodes'
+import CompareModal from '../components/CompareModal'
 import logo from '../assets/logo.png'
-
-function replicasOf(node: Node<ArchNodeData>): number {
-  const config = node.data.config
-  if (node.data.componentType === 'autoScalingGroup' || node.data.componentType === 'containerOrchestrator') {
-    return node.data.replicas ?? Number(config?.minReplicas ?? 1)
-  }
-  if (node.data.componentType === 'database' || node.data.componentType === 'searchIndex' || node.data.componentType === 'dataWarehouse') {
-    return 1 + Number(config?.replicaCount ?? 0)
-  }
-  return 1
-}
 
 const SPEED_OPTIONS = [0.5, 1, 2, 4]
 const TRAFFIC_OPTIONS = [0.5, 1, 2.5, 5]
@@ -90,6 +80,7 @@ export default function EditorPage() {
   const [versions, setVersions] = useState<ProjectVersionSummary[]>([])
   const [isLoadingVersions, setIsLoadingVersions] = useState(false)
   const [restoringVersionId, setRestoringVersionId] = useState<string | null>(null)
+  const [compareNodeId, setCompareNodeId] = useState<string | null>(null)
   const [chaosOpen, setChaosOpen] = useState(false)
   const [chaosType, setChaosType] = useState<ChaosType>('kill')
   const [chaosTarget, setChaosTarget] = useState('')
@@ -169,7 +160,7 @@ export default function EditorPage() {
   const canRun = nodes.length > 0 && hasClient && !sim.isRunning
   const global = sim.currentTick?.global
   const estimatedMonthlyCost = estimateTotalMonthlyCost(
-    nodes.map((n) => ({ type: n.data.componentType as ComponentType, replicas: replicasOf(n) })),
+    nodes.map((n) => ({ type: n.data.componentType as ComponentType, replicas: replicasOf(n.data.componentType, n.data.config, n.data.replicas) })),
   )
   const simulationState = sim.isRunning ? 'Starting' : sim.isPlaying ? 'Running' : sim.result ? 'Paused' : 'Ready'
 
@@ -522,9 +513,36 @@ export default function EditorPage() {
           onSelectionChange={setSelectedNodeId}
           onDirty={markDirty}
           hideSidebar={!!analysis}
+          onCompareNode={setCompareNodeId}
         />
         {analysis && <FindingsPanel findings={analysis.findings} aiEnabled={analysis.aiEnabled} summary={sim.result?.summary} onFocusNode={(nodeId) => setFocusRequest({ nodeId, token: Date.now() })} onClose={() => setAnalysis(null)} />}
       </div>
+
+      {compareNodeId && (() => {
+        const compareTarget = nodes.find((n) => n.id === compareNodeId)
+        if (!compareTarget) return null
+        return (
+          <CompareModal
+            node={compareTarget}
+            nodes={nodes}
+            edges={edges}
+            targetRps={baseRps * traffic}
+            failures={failures}
+            onClose={() => setCompareNodeId(null)}
+            onApply={(newType) => {
+              const def = COMPONENT_LIBRARY.find((c) => c.type === newType)
+              setNodes((nds) => nds.map((n) =>
+                n.id === compareNodeId
+                  ? { ...n, data: { ...n.data, componentType: newType, label: def?.label ?? newType, config: { ...(def?.defaultConfig ?? {}) }, replicas: undefined, metrics: undefined, hasFailure: false, health: 'idle' } }
+                  : n,
+              ))
+              setIsDirty(true)
+              setCompareNodeId(null)
+              setToast(`Swapped to ${def?.label ?? newType}`)
+            }}
+          />
+        )
+      })()}
 
       <footer className="simulation-footer relative z-30 border-t border-zinc-200 bg-white px-4 py-2.5 shadow-[0_-4px_20px_rgba(0,0,0,0.04)] sm:px-5">
         <div className="flex min-w-0 flex-wrap items-center gap-3 xl:flex-nowrap">
