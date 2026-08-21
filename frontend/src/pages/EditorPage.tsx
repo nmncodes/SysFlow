@@ -413,19 +413,19 @@ export default function EditorPage() {
 
   return (
     <div className="editor-shell flex h-screen min-h-0 flex-col bg-[#f8fcfd] text-zinc-900">
-      <header className="editor-header relative z-30 flex min-h-[76px] items-center justify-between gap-3 border-b border-zinc-200 bg-white px-4 py-2 shadow-[0_1px_0_rgba(0,0,0,0.02)] sm:px-6">
-        <div className="flex min-w-[220px] items-center gap-3">
-          <Link to="/" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
-            <img src={logo} alt="SysFlow" className="h-11 w-11 object-contain" />
+      <header className="editor-header relative z-30 flex min-h-[76px] items-center justify-between gap-2 border-b border-zinc-200 bg-white px-3 py-2 shadow-[0_1px_0_rgba(0,0,0,0.02)] sm:gap-3 sm:px-6">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3 sm:min-w-[220px]">
+          <Link to="/" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm sm:h-12 sm:w-12">
+            <img src={logo} alt="SysFlow" className="h-9 w-9 object-contain sm:h-11 sm:w-11" />
           </Link>
           <div className="min-w-0">
-            <div className="flex items-center gap-2"><span className="text-base font-semibold tracking-tight text-zinc-900">SysFlow</span><span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[8px] font-semibold uppercase text-zinc-400">Editor</span></div>
+            <div className="flex items-center gap-2"><span className="text-sm font-semibold tracking-tight text-zinc-900 sm:text-base">SysFlow</span><span className="hidden rounded-full bg-zinc-100 px-1.5 py-0.5 text-[8px] font-semibold uppercase text-zinc-400 sm:inline">Editor</span></div>
             <input
               value={projectName}
               onChange={(e) => { setProjectName(e.target.value); markDirty() }}
               onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
               title="Edit project name"
-              className="mt-0.5 w-44 border-0 bg-transparent p-0 text-xs text-zinc-400 outline-none hover:text-zinc-600 focus:text-zinc-800"
+              className="mt-0.5 w-24 border-0 bg-transparent p-0 text-xs text-zinc-400 outline-none hover:text-zinc-600 focus:text-zinc-800 sm:w-44"
             />
           </div>
         </div>
@@ -453,7 +453,7 @@ export default function EditorPage() {
             </div>
           </div>
 
-          <div className="relative">
+          <div className="relative hidden md:block">
             <button onClick={() => { setExportOpen((v) => !v); setTemplatesOpen(false); setHistoryOpen(false) }} className="toolbar-button">Export⌄</button>
             {exportOpen && <div className="popover-menu right-0 top-12">
               <button onClick={() => { setExportRequest((v) => v + 1); setExportOpen(false) }}>PNG image</button>
@@ -465,20 +465,7 @@ export default function EditorPage() {
 
           <button onClick={() => { if (!projectId) { setToast('Save the project first to get a share link'); return }; navigator.clipboard.writeText(`${window.location.origin}/share/${projectId}`); setToast('Share link copied') }} className="toolbar-button hidden md:block">Share ↗</button>
 
-          {projectId && <div className="relative">
-            <button onClick={openHistory} className="toolbar-button hidden md:block">History</button>
-            {historyOpen && <div className="popover-menu right-0 top-12 w-72">
-              <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400">Version history</p>
-              {isLoadingVersions && <p className="px-3 py-2 text-xs text-zinc-400">Loading…</p>}
-              {!isLoadingVersions && versions.length === 0 && <p className="px-3 py-2 text-xs text-zinc-400">No previous versions yet — saves create one automatically.</p>}
-              {!isLoadingVersions && versions.map((v) => (
-                <button key={v.id} onClick={() => handleRestoreVersion(v.id)} disabled={restoringVersionId === v.id} className="flex w-full items-center justify-between disabled:opacity-50">
-                  <span className="text-zinc-700">{new Date(v.createdAt).toLocaleString()}</span>
-                  <span className="text-[10px] font-semibold text-violet-600">{restoringVersionId === v.id ? 'Restoring…' : 'Restore'}</span>
-                </button>
-              ))}
-            </div>}
-          </div>}
+          {projectId && <button onClick={openHistory} className="toolbar-button hidden md:block">History</button>}
 
           <input ref={srsFileInputRef} type="file" accept=".pdf,.docx,.txt,.md" className="hidden" onChange={handleSrsFileSelected} />
           <button onClick={() => srsFileInputRef.current?.click()} disabled={isImportingSrs} className="toolbar-button hidden md:block disabled:opacity-50">{isImportingSrs ? 'Importing…' : 'Import SRS'}</button>
@@ -496,8 +483,14 @@ export default function EditorPage() {
 
           <div className="relative lg:hidden">
             <button onClick={() => setMobileMenuOpen((v) => !v)} className="toolbar-icon" aria-label="More options">⋯</button>
-            {mobileMenuOpen && <div className="popover-menu right-0 top-12 w-56">
+            {mobileMenuOpen && <div className="popover-menu right-0 top-12 w-56 max-h-[70vh] overflow-y-auto">
+              <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400">Export</p>
+              <button onClick={() => { setExportRequest((v) => v + 1); setMobileMenuOpen(false) }}>PNG image</button>
+              <button onClick={() => { exportJson(); setMobileMenuOpen(false) }}>JSON graph</button>
+              <button onClick={() => { exportDockerCompose(); setMobileMenuOpen(false) }}>docker-compose.yml</button>
+              <div className="my-1 border-t border-zinc-100" />
               <button onClick={() => { srsFileInputRef.current?.click(); setMobileMenuOpen(false) }} disabled={isImportingSrs}>{isImportingSrs ? 'Importing…' : 'Import SRS'}</button>
+              {projectId && <button onClick={() => { openHistory(); setMobileMenuOpen(false) }}>History</button>}
               <div className="my-1 border-t border-zinc-100" />
               <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400">Templates</p>
               {TEMPLATES.map((template) => <button key={template.id} onClick={() => { applyTemplate(template.id); setMobileMenuOpen(false) }}><span className="block font-semibold text-zinc-800">{template.name}</span></button>)}
@@ -538,6 +531,28 @@ export default function EditorPage() {
         />
         {analysis && <FindingsPanel findings={analysis.findings} aiEnabled={analysis.aiEnabled} summary={sim.result?.summary} onFocusNode={(nodeId) => setFocusRequest({ nodeId, token: Date.now() })} onClose={() => setAnalysis(null)} />}
       </div>
+
+      {historyOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 p-4 backdrop-blur-sm" onClick={() => setHistoryOpen(false)}>
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold text-zinc-900">Version history</h3>
+              <button onClick={() => setHistoryOpen(false)} className="text-zinc-400 hover:text-zinc-700">✕</button>
+            </div>
+            <p className="mt-1 text-xs text-zinc-400">Every save keeps the last 10 versions. Restoring one is itself undoable.</p>
+            <div className="mt-4 max-h-72 space-y-1 overflow-y-auto">
+              {isLoadingVersions && <p className="py-2 text-xs text-zinc-400">Loading…</p>}
+              {!isLoadingVersions && versions.length === 0 && <p className="py-2 text-xs text-zinc-400">No previous versions yet — saves create one automatically.</p>}
+              {!isLoadingVersions && versions.map((v) => (
+                <button key={v.id} onClick={() => handleRestoreVersion(v.id)} disabled={restoringVersionId === v.id} className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-sm hover:bg-zinc-50 disabled:opacity-50">
+                  <span className="text-zinc-700">{new Date(v.createdAt).toLocaleString()}</span>
+                  <span className="text-[10px] font-semibold text-violet-600">{restoringVersionId === v.id ? 'Restoring…' : 'Restore'}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {pendingSrsImport && (
         <SrsDiffModal

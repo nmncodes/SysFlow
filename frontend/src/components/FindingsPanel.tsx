@@ -20,7 +20,9 @@ export default function FindingsPanel({ findings, aiEnabled, summary, onFocusNod
   const overallHealth = summary ? Math.max(0, Math.min(100, Math.round(100 - summary.avgErrorRatePct * 4 - Math.max(0, summary.bottleneckLoadPct - 70) * 0.5))) : findings.length === 0 ? 100 : Math.max(55, 100 - findings.length * 8)
 
   return (
-    <aside className="analysis-sidebar panel-slide-in flex w-[330px] shrink-0 flex-col border-l border-zinc-200 bg-white">
+    <>
+      <div className="fixed inset-0 z-30 bg-zinc-900/20 md:hidden" onClick={onClose} />
+      <aside className="analysis-sidebar panel-slide-in fixed inset-x-0 bottom-0 z-40 flex h-[75vh] flex-col rounded-t-2xl border-t border-zinc-200 bg-white shadow-2xl md:static md:z-auto md:h-full md:w-[330px] md:shrink-0 md:rounded-none md:border-t-0 md:border-l md:shadow-none">
       <div className="border-b border-zinc-100 p-4">
         <div className="flex items-start justify-between">
           <div>
@@ -76,6 +78,7 @@ export default function FindingsPanel({ findings, aiEnabled, summary, onFocusNod
           </div>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   )
 }

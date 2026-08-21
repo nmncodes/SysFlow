@@ -12,7 +12,15 @@ const SEARCH_ALIASES: Record<string, string[]> = {
   cdn: ['edge', 'content delivery'],
 }
 
-export default function Palette() {
+interface Props {
+  /** Tap-to-add fallback for touch devices, where HTML5 drag-and-drop doesn't work. Desktop keeps drag as primary. */
+  onAdd?: (componentType: string) => void
+  /** Mobile-only: whether this renders as an open bottom sheet. Always visible on md+ regardless. */
+  mobileOpen?: boolean
+  onCloseMobile?: () => void
+}
+
+export default function Palette({ onAdd, mobileOpen = false, onCloseMobile }: Props) {
   const [query, setQuery] = useState('')
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [recent, setRecent] = useState<string[]>([])
@@ -39,12 +47,25 @@ export default function Palette() {
     setRecent((items) => [componentType, ...items.filter((item) => item !== componentType)].slice(0, 6))
   }
 
+  const onTap = (componentType: string) => {
+    if (!onAdd) return
+    setRecent((items) => [componentType, ...items.filter((item) => item !== componentType)].slice(0, 6))
+    onAdd(componentType)
+  }
+
   return (
-    <aside className="component-sidebar flex w-[276px] shrink-0 flex-col border-l border-zinc-200 bg-white">
+    <>
+      {mobileOpen && <div className="fixed inset-0 z-30 bg-zinc-900/20 md:hidden" onClick={onCloseMobile} />}
+      <aside
+        className={`component-sidebar fixed inset-x-0 bottom-0 z-40 flex h-[70vh] flex-col rounded-t-2xl border-t border-zinc-200 bg-white shadow-2xl transition-transform md:static md:z-auto md:h-full md:w-[276px] md:shrink-0 md:translate-y-0 md:rounded-none md:border-t-0 md:border-l md:shadow-none ${mobileOpen ? 'translate-y-0' : 'translate-y-full'}`}
+      >
       <div className="border-b border-zinc-100 p-4">
         <div className="flex items-center justify-between">
           <h2 className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">Components</h2>
-          <span className="text-[10px] text-zinc-300">{COMPONENT_LIBRARY.length}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-zinc-300">{COMPONENT_LIBRARY.length}</span>
+            <button onClick={onCloseMobile} className="rounded-lg px-2 py-1 text-zinc-400 hover:bg-zinc-50 hover:text-zinc-700 md:hidden">✕</button>
+          </div>
         </div>
         <div className="relative mt-3">
           <input
@@ -69,7 +90,7 @@ export default function Palette() {
               {recentlyUsed.map((component) => {
                 if (!component) return null
                 const Icon = COMPONENT_ICONS[component.type]
-                return <div key={component.type} draggable onDragStart={(e) => onDragStart(e, component.type)} onDragEnd={() => setDragging(null)} title={component.label} className={`component-card group ${dragging === component.type ? 'component-dragging' : ''}`}><span className="component-icon"><Icon width={15} height={15} /></span><span className="line-clamp-1 text-[9px] font-semibold">{component.label}</span></div>
+                return <div key={component.type} draggable onDragStart={(e) => onDragStart(e, component.type)} onDragEnd={() => setDragging(null)} onClick={() => onTap(component.type)} title={component.label} className={`component-card group ${dragging === component.type ? 'component-dragging' : ''}`}><span className="component-icon"><Icon width={15} height={15} /></span><span className="line-clamp-1 text-[9px] font-semibold">{component.label}</span></div>
               })}
             </div>
           </div>
@@ -95,7 +116,8 @@ export default function Palette() {
                         draggable
                         onDragStart={(e) => onDragStart(e, component.type)}
                         onDragEnd={() => setDragging(null)}
-                        title={`${component.label} — drag to canvas`}
+                        onClick={() => onTap(component.type)}
+                        title={`${component.label} — drag to canvas, or tap to add`}
                         className={`component-card group ${dragging === component.type ? 'component-dragging' : ''}`}
                       >
                         <span className="component-icon"><Icon width={16} height={16} /></span>
@@ -111,6 +133,7 @@ export default function Palette() {
 
         {filtered.length === 0 && <p className="rounded-xl bg-zinc-50 p-4 text-xs text-zinc-400">No components match “{query}”. Try DB, storage, cache, API or queue.</p>}
       </div>
-    </aside>
+      </aside>
+    </>
   )
 }

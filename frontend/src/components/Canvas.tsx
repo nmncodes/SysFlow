@@ -73,6 +73,7 @@ export default function Canvas({
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   const [connectingFromId, setConnectingFromId] = useState<string | null>(null)
   const [isDraggingNode, setIsDraggingNode] = useState(false)
+  const [mobilePaletteOpen, setMobilePaletteOpen] = useState(false)
   const [spacePressed, setSpacePressed] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
 
@@ -119,20 +120,8 @@ export default function Canvas({
 
   const onConnectEnd = useCallback(() => setConnectingFromId(null), [])
 
-  const onDrop = useCallback(
-    (event: React.DragEvent) => {
-      event.preventDefault()
-      const componentType = event.dataTransfer.getData('application/archflow-node')
-      if (!componentType || !rfInstance || !wrapperRef.current) return
-      const bounds = wrapperRef.current.getBoundingClientRect()
-      const raw = rfInstance.screenToFlowPosition({
-        x: event.clientX - bounds.left,
-        y: event.clientY - bounds.top,
-      })
-      const position = {
-        x: Math.round(raw.x / SNAP_GRID[0]) * SNAP_GRID[0],
-        y: Math.round(raw.y / SNAP_GRID[1]) * SNAP_GRID[1],
-      }
+  const addNodeAt = useCallback(
+    (componentType: string, position: { x: number; y: number }) => {
       const def = COMPONENT_LIBRARY.find((c) => c.type === componentType)
       const id = nextId()
       const newNode: Node<ArchNodeData> = {
@@ -149,9 +138,46 @@ export default function Canvas({
       setNodes((nds) => nds.concat(newNode))
       onDirty?.()
       setSelectedNodeId(id)
+      return id
+    },
+    [setNodes, onDirty],
+  )
+
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault()
+      const componentType = event.dataTransfer.getData('application/archflow-node')
+      if (!componentType || !rfInstance || !wrapperRef.current) return
+      const bounds = wrapperRef.current.getBoundingClientRect()
+      const raw = rfInstance.screenToFlowPosition({
+        x: event.clientX - bounds.left,
+        y: event.clientY - bounds.top,
+      })
+      const position = {
+        x: Math.round(raw.x / SNAP_GRID[0]) * SNAP_GRID[0],
+        y: Math.round(raw.y / SNAP_GRID[1]) * SNAP_GRID[1],
+      }
+      addNodeAt(componentType, position)
       setIsDraggingNode(false)
     },
-    [rfInstance, setNodes, onDirty],
+    [rfInstance, addNodeAt],
+  )
+
+  /** Tap-to-add fallback for touch devices — HTML5 drag-and-drop doesn't fire on most mobile browsers. */
+  const onTapAdd = useCallback(
+    (componentType: string) => {
+      if (!rfInstance || !wrapperRef.current) return
+      const bounds = wrapperRef.current.getBoundingClientRect()
+      const raw = rfInstance.screenToFlowPosition({ x: bounds.width / 2, y: bounds.height / 2 })
+      const jitter = nodes.length * 24
+      const position = {
+        x: Math.round((raw.x + jitter) / SNAP_GRID[0]) * SNAP_GRID[0],
+        y: Math.round((raw.y + jitter) / SNAP_GRID[1]) * SNAP_GRID[1],
+      }
+      addNodeAt(componentType, position)
+      setMobilePaletteOpen(false)
+    },
+    [rfInstance, addNodeAt, nodes.length],
   )
 
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -421,7 +447,16 @@ export default function Canvas({
           onClose={() => setSelectedNodeId(null)}
         />
       ) : !hideSidebar ? (
-        <Palette />
+        <>
+          <button
+            onClick={() => setMobilePaletteOpen(true)}
+            aria-label="Add component"
+            className="fixed bottom-24 right-4 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-900 text-2xl text-white shadow-xl md:hidden"
+          >
+            +
+          </button>
+          <Palette onAdd={onTapAdd} mobileOpen={mobilePaletteOpen} onCloseMobile={() => setMobilePaletteOpen(false)} />
+        </>
       ) : null}
 
       {contextMenu && (

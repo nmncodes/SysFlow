@@ -61,7 +61,9 @@ export default function ConfigPanel({ node, onChange, onDelete, onClose }: Props
   ]
 
   return (
-    <aside className="config-sidebar panel-slide-in flex w-[300px] shrink-0 flex-col border-l border-zinc-200 bg-white">
+    <>
+      <div className="fixed inset-0 z-30 bg-zinc-900/20 md:hidden" onClick={onClose} />
+      <aside className="config-sidebar panel-slide-in fixed inset-x-0 bottom-0 z-40 flex h-[70vh] flex-col rounded-t-2xl border-t border-zinc-200 bg-white shadow-2xl md:static md:z-auto md:h-full md:w-[300px] md:shrink-0 md:rounded-none md:border-t-0 md:border-l md:shadow-none">
       <div className="border-b border-zinc-100 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -147,6 +149,7 @@ export default function ConfigPanel({ node, onChange, onDelete, onClose }: Props
           </div>
         </div>
       )}
-    </aside>
+      </aside>
+    </>
   )
 }
