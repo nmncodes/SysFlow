@@ -44,12 +44,14 @@ Phased so there's a demoable product early and often. Each phase ends in somethi
 - Empty-state onboarding, starter templates, responsive layout pass, error states, loading states.
 - Write up the project report using these docs as source material.
 
-## Phase 8 — Deployment & Hardening
-- Containerize frontend + backend; deploy (e.g. Render/Railway for backend, Vercel/Netlify for frontend, Neon for Postgres).
-- CI pipeline: build + lint + `mvn test` on every PR, block merge on failure.
-- Harden the AI proxy endpoint: rate-limiting, request size caps, timeout/fallback to rule-based-only on Gemini failure (already partially in place — verify).
-- Basic observability: structured backend logs, a health-check endpoint, minimal frontend error reporting.
-- **Demo checkpoint:** a public URL that survives a cold start and a burst of concurrent simulations.
+## Phase 8 — Deployment & Hardening ✅ Done
+- Live at `sys-flow-green.vercel.app` (frontend) + `sysflow-backend.onrender.com` (backend) + Neon Postgres.
+- `render.yaml` Blueprint for one-click backend deploys; CI (`.github/workflows/ci.yml`) runs `mvn test` +
+  frontend build/lint on every push.
+- Rate-limited AI/SRS/pricing/interview endpoints, 10MB upload cap, Gemini fallback to rule-based findings
+  on failure, health endpoint, `CORS_ALLOWED_ORIGINS` configurable per environment.
+- **Demo checkpoint:** open the live Vercel URL cold, build something, hit Analyze — round-trips through
+  Render + Neon + Gemini for real.
 
 ## Phase 9 — Collaboration & Sharing ✅ Done
 - Public read-only share links for a saved project (no login required to view/replay a simulation).
@@ -61,16 +63,49 @@ Phased so there's a demoable product early and often. Each phase ends in somethi
 - **Demo checkpoint:** share a link, a logged-out visitor watches the same simulation replay. Save a
   project a few times, open History, restore an older version, confirm it round-trips.
 
-## Phase 10 — SRS Import & Trade-off Advisor
+## Phase 10 — SRS Import & Trade-off Advisor ✅ Done
 Turn a written spec into a starting diagram, then critique it — closing the loop from "requirements doc" to "simulated architecture" to "here's what to change and why."
 
-- **Upload & parse:** accept PDF/DOCX/plain-text SRS upload; backend extracts raw text (Apache PDFBox / POI or similar — no OCR needed for typed docs).
-- **Structured extraction:** send extracted text to Gemini with a schema-constrained prompt to pull out: named components/actors, stated tech choices (e.g. "MySQL", "Redis", "S3"), and described data flows between them.
-- **Map to the component palette:** resolve free-text tech mentions to the existing 17-component set (e.g. "MySQL"/"Postgres" → Database, "Redis" → Cache) with a confidence score; anything unmapped surfaces as an "unrecognized — placed as generic Service" node rather than silently dropped.
-- **Auto-layout:** lay the extracted graph onto the canvas (reuse React Flow's existing node/edge model — no new rendering path) using a simple layered/dagre-style layout.
-- **Trade-off advisory:** run the Phase 5 rule engine against the generated graph as-is, then have Gemini rewrite each finding in terms of the user's *actual stated choice* — "You specified a single MySQL instance for writes; under load this is a single point of failure — a read replica or managed HA setup would remove it" — same findings-panel + canvas-highlight UX already built in Phase 5, extended to reference the source tech name.
-- **Review/edit before simulating:** user can drag/fix the auto-generated graph before hitting Run, since extraction won't be perfect.
-- **Demo checkpoint:** upload a sample SRS, watch it become an editable diagram with tech-specific trade-off callouts, then simulate it.
+- Upload a PDF/DOCX/TXT SRS (`dev.sysflow.srs`, PDFBox/POI text extraction); Gemini extracts nodes/edges
+  constrained to the full 30-type component set, plus stated `replicaCount`/capacity/cache-hit-rate
+  requirements where the document explicitly ties them to a named component.
+- Auto-layout (layered, left-to-right by dependency depth) onto the canvas.
+- Unmapped tech terms surface in an amber banner instead of being silently dropped.
+- Runs through the same RuleEngine + Gemini trade-off pipeline as the Analyze button.
+- Importing into a non-empty canvas shows a diff (components added/removed) before replacing anything.
+- **Demo checkpoint:** upload a sample SRS, get a diagram + tech-specific trade-off callouts, then simulate it.
+
+## Phase 11 — Trade-off Depth, Community, and Market Features ✅ Done
+Extends the Phase 5/10 advisory loop from "what's wrong" to "what to do instead," and adds features aimed
+at broader adoption beyond the core simulate-and-critique loop.
+
+- **Swap-and-compare:** right-click any node → "Compare alternative…" → pick a different component type →
+  runs two real simulations (current vs. swap, same target load/failures held constant) and shows p95
+  latency, error rate, throughput, bottleneck load, SPOF count, and cost side by side, with an Apply button.
+- **Cost-aware findings:** Gemini's recommendations cite a rough monthly cost figure where informative
+  (e.g. "add a replica for roughly $60/mo"), backed by a shared `CostModel`.
+- **Real cloud pricing:** `/api/pricing/estimate` uses Azure's public Retail Prices API for a verified
+  subset of component types (generic compute, managed databases, cache, object storage — each mapped to a
+  real, live-discovered SKU); everything else stays on the illustrative model, explicitly tagged
+  `source: "real"` vs `"illustrative"` per node so a guess is never presented as verified pricing.
+- **Infrastructure-as-Code export:** Export → `docker-compose.yml` generates a starter compose file — real
+  images for infra components, `build:` stubs for your own app code, `depends_on` from the actual edges,
+  and honest comments for anything that isn't a single container (CDN, DNS, third-party APIs, etc.).
+- **Public template gallery:** opt-in publish/unpublish per project (`My Projects` → Publish); `/gallery`
+  lists published architectures with author and component count; opening one loads a fresh, unowned copy.
+- **System-design interview practice mode:** 6 well-known prompts (URL shortener, distributed rate
+  limiter, news feed, chat app, video streaming, e-commerce checkout) at `/interview`; submit a design for
+  AI grading against a 4-part rubric (Scalability, Reliability, Component Appropriateness, Trade-off
+  Awareness), grounded in the same RuleEngine facts and specific to the actual submitted graph.
+- **Mobile editor fixes:** touch drag-and-drop didn't work at all (HTML5 DnD doesn't fire on most mobile
+  browsers) — added tap-to-add; the Palette/ConfigPanel/FindingsPanel sidebars squeezed the canvas to a
+  sliver below 768px — now full-width bottom sheets with a backdrop.
+- **Not built — deliberately deferred:** real-time multiplayer co-editing. Needs dedicated WebSocket +
+  conflict-resolution infrastructure that doesn't fit safely into an incremental pass; revisit as its own
+  scoped effort if there's a real need for it.
+- **Demo checkpoint:** compare two alternatives for a node and see the diff; publish a project and find it
+  in the gallery from a logged-out session; grade a design against an interview prompt and get specific
+  feedback tied to the actual graph.
 
 ## Suggested Team Split (5 members, adjust as needed)
 - 2 on frontend canvas/editor (Phase 1, 3, 4 UI)
