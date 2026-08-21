@@ -5,7 +5,7 @@ import Canvas from '../components/Canvas'
 import FindingsPanel from '../components/FindingsPanel'
 import type { ArchNodeData } from '../components/ArchNode'
 import { useSimulation } from '../lib/useSimulation'
-import { analyzeGraph, importSrs, type AnalyzeResult, type InjectedFailure } from '../lib/api'
+import { analyzeGraph, importSrs, type AnalyzeResult, type InjectedFailure, type SrsImportResult } from '../lib/api'
 import { ClockIcon, PacketDropIcon, SkullIcon, ThrottleIcon } from '../components/icons'
 import { useAuth } from '../lib/AuthContext'
 import { createProject, getProject, listVersions, restoreVersion, updateProject, type ProjectVersionSummary } from '../lib/projects'
@@ -15,6 +15,7 @@ import { stashPendingSave, takePendingSave } from '../lib/pendingSave'
 import { estimateTotalMonthlyCost, replicasOf } from '../lib/cost'
 import { COMPONENT_LIBRARY, type ComponentType } from '../components/nodes'
 import CompareModal from '../components/CompareModal'
+import SrsDiffModal from '../components/SrsDiffModal'
 import logo from '../assets/logo.png'
 
 const SPEED_OPTIONS = [0.5, 1, 2, 4]
@@ -81,6 +82,7 @@ export default function EditorPage() {
   const [isLoadingVersions, setIsLoadingVersions] = useState(false)
   const [restoringVersionId, setRestoringVersionId] = useState<string | null>(null)
   const [compareNodeId, setCompareNodeId] = useState<string | null>(null)
+  const [pendingSrsImport, setPendingSrsImport] = useState<{ result: SrsImportResult; fileName: string } | null>(null)
   const [chaosOpen, setChaosOpen] = useState(false)
   const [chaosType, setChaosType] = useState<ChaosType>('kill')
   const [chaosTarget, setChaosTarget] = useState('')
@@ -293,6 +295,23 @@ export default function EditorPage() {
     }
   }
 
+  const applyImportedGraph = (result: SrsImportResult, fileName: string) => {
+    setNodes(result.graphJson.nodes.map((n) => ({
+      id: n.id,
+      type: 'archNode',
+      position: n.position,
+      data: { componentType: n.type, label: n.label, config: n.config, health: 'idle' },
+    })))
+    setEdges(result.graphJson.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: 'archEdge' })))
+    setProjectId(null)
+    setProjectName(fileName.replace(/\.[^.]+$/, ''))
+    setSelectedNodeId(null)
+    setIsDirty(true)
+    setAnalysis({ findings: result.findings, aiEnabled: result.aiEnabled })
+    setSrsUnrecognized(result.unrecognizedTerms)
+    setToast(`Generated ${result.graphJson.nodes.length} components from "${fileName}"`)
+  }
+
   const handleSrsFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     e.target.value = ''
@@ -302,20 +321,11 @@ export default function EditorPage() {
     setSrsUnrecognized([])
     try {
       const result = await importSrs(file)
-      setNodes(result.graphJson.nodes.map((n) => ({
-        id: n.id,
-        type: 'archNode',
-        position: n.position,
-        data: { componentType: n.type, label: n.label, config: n.config, health: 'idle' },
-      })))
-      setEdges(result.graphJson.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: 'archEdge' })))
-      setProjectId(null)
-      setProjectName(file.name.replace(/\.[^.]+$/, ''))
-      setSelectedNodeId(null)
-      setIsDirty(true)
-      setAnalysis({ findings: result.findings, aiEnabled: result.aiEnabled })
-      setSrsUnrecognized(result.unrecognizedTerms)
-      setToast(`Generated ${result.graphJson.nodes.length} components from "${file.name}"`)
+      if (nodes.length > 0) {
+        setPendingSrsImport({ result, fileName: file.name })
+      } else {
+        applyImportedGraph(result, file.name)
+      }
     } catch (err) {
       setToast(err instanceof Error ? err.message : 'SRS import failed')
     } finally {
@@ -517,6 +527,20 @@ export default function EditorPage() {
         />
         {analysis && <FindingsPanel findings={analysis.findings} aiEnabled={analysis.aiEnabled} summary={sim.result?.summary} onFocusNode={(nodeId) => setFocusRequest({ nodeId, token: Date.now() })} onClose={() => setAnalysis(null)} />}
       </div>
+
+      {pendingSrsImport && (
+        <SrsDiffModal
+          currentNodes={nodes}
+          currentEdges={edges}
+          imported={pendingSrsImport.result}
+          fileName={pendingSrsImport.fileName}
+          onCancel={() => setPendingSrsImport(null)}
+          onConfirm={() => {
+            applyImportedGraph(pendingSrsImport.result, pendingSrsImport.fileName)
+            setPendingSrsImport(null)
+          }}
+        />
+      )}
 
       {compareNodeId && (() => {
         const compareTarget = nodes.find((n) => n.id === compareNodeId)
