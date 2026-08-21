@@ -159,3 +159,42 @@ export async function analyzeGraph(
   }
   return res.json()
 }
+
+export interface InterviewPrompt {
+  id: string
+  title: string
+  difficulty: string
+  brief: string
+  keyConsiderations: string[]
+}
+
+export interface InterviewGrade {
+  overallScore: number
+  categories: { name: string; score: number; maxScore: number; feedback: string }[]
+  summary: string
+  improvements: string[]
+  aiEnabled: boolean
+}
+
+export async function listInterviewPrompts(): Promise<InterviewPrompt[]> {
+  const res = await fetch(`${API_BASE}/interview/prompts`)
+  if (!res.ok) throw new Error(`Failed to load prompts: ${res.status}`)
+  return res.json()
+}
+
+export async function gradeInterview(
+  promptId: string,
+  nodes: { id: string; type: string; config: Record<string, unknown> }[],
+  edges: { id: string; source: string; target: string }[],
+): Promise<InterviewGrade> {
+  const res = await fetch(`${API_BASE}/interview/grade`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ promptId, graphJson: { nodes, edges } }),
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    throw new Error(body?.message ?? `Grading failed: ${res.status}`)
+  }
+  return res.json()
+}

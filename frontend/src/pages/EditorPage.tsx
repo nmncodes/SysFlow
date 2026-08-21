@@ -5,7 +5,7 @@ import Canvas from '../components/Canvas'
 import FindingsPanel from '../components/FindingsPanel'
 import type { ArchNodeData } from '../components/ArchNode'
 import { useSimulation } from '../lib/useSimulation'
-import { analyzeGraph, estimateRealCost, importSrs, type AnalyzeResult, type InjectedFailure, type PricingEstimate, type SrsImportResult } from '../lib/api'
+import { analyzeGraph, estimateRealCost, gradeInterview, importSrs, listInterviewPrompts, type AnalyzeResult, type InjectedFailure, type InterviewGrade, type InterviewPrompt, type PricingEstimate, type SrsImportResult } from '../lib/api'
 import { ClockIcon, PacketDropIcon, SkullIcon, ThrottleIcon } from '../components/icons'
 import { useAuth } from '../lib/AuthContext'
 import { createProject, getProject, getPublicProject, listVersions, restoreVersion, updateProject, type ProjectVersionSummary } from '../lib/projects'
@@ -87,6 +87,10 @@ export default function EditorPage() {
   const [isLoadingRealPricing, setIsLoadingRealPricing] = useState(false)
   const [realPricingOpen, setRealPricingOpen] = useState(false)
   const [realPricingError, setRealPricingError] = useState<string | null>(null)
+  const [interviewPrompt, setInterviewPrompt] = useState<InterviewPrompt | null>(null)
+  const [interviewGrade, setInterviewGrade] = useState<InterviewGrade | null>(null)
+  const [isGrading, setIsGrading] = useState(false)
+  const [gradingError, setGradingError] = useState<string | null>(null)
   const [pendingSrsImport, setPendingSrsImport] = useState<{ result: SrsImportResult; fileName: string } | null>(null)
   const [chaosOpen, setChaosOpen] = useState(false)
   const [chaosType, setChaosType] = useState<ChaosType>('kill')
@@ -125,6 +129,22 @@ export default function EditorPage() {
     const templateId = params.get('template')
     const loadProjectId = params.get('projectId')
     const galleryProjectId = params.get('galleryProjectId')
+    const interviewPromptId = params.get('interviewPromptId')
+
+    if (interviewPromptId) {
+      setProjectName('Interview practice')
+      listInterviewPrompts()
+        .then((prompts) => {
+          const found = prompts.find((p) => p.id === interviewPromptId)
+          if (found) {
+            setInterviewPrompt(found)
+            setProjectName(found.title)
+          } else {
+            setToast("Couldn't find that interview prompt")
+          }
+        })
+        .catch(() => setToast("Couldn't load that interview prompt"))
+    }
 
     if (galleryProjectId) {
       setIsLoadingProject(true)
@@ -448,6 +468,7 @@ export default function EditorPage() {
         setMobileMenuOpen(false)
         setHistoryOpen(false)
         setRealPricingOpen(false)
+        setInterviewGrade(null)
       }
     }
     window.addEventListener('keydown', handler)
@@ -585,6 +606,43 @@ export default function EditorPage() {
         </div>
       )}
 
+      {interviewPrompt && (
+        <div className="relative z-20 flex flex-wrap items-center justify-between gap-3 border-b border-violet-100 bg-violet-50 px-4 py-2 text-xs text-violet-800 sm:px-6">
+          <div className="min-w-0">
+            <span className="font-semibold">{interviewPrompt.title}</span>
+            <span className="ml-2 text-violet-500">{interviewPrompt.brief}</span>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              onClick={async () => {
+                setIsGrading(true)
+                setGradingError(null)
+                try {
+                  const grade = await gradeInterview(
+                    interviewPrompt.id,
+                    nodes.map((n) => ({ id: n.id, type: n.data.componentType, config: n.data.config })),
+                    edges.map((e) => ({ id: e.id, source: e.source, target: e.target })),
+                  )
+                  setInterviewGrade(grade)
+                } catch (err) {
+                  setGradingError(err instanceof Error ? err.message : 'Grading failed')
+                } finally {
+                  setIsGrading(false)
+                }
+              }}
+              disabled={nodes.length === 0 || isGrading}
+              className="rounded-lg bg-violet-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-violet-700 disabled:opacity-50"
+            >
+              {isGrading ? 'Grading…' : 'Submit for grading'}
+            </button>
+            <button onClick={() => setInterviewPrompt(null)} className="text-violet-400 hover:text-violet-700">✕</button>
+          </div>
+        </div>
+      )}
+      {gradingError && (
+        <div className="relative z-20 border-b border-red-100 bg-red-50 px-4 py-1.5 text-xs text-red-600 sm:px-6">{gradingError}</div>
+      )}
+
       <div className="flex min-h-0 flex-1">
         {isLoadingProject && <div className="absolute inset-0 z-40 flex items-center justify-center bg-white/60 backdrop-blur-sm"><div className="rounded-full bg-white px-4 py-2 text-sm text-zinc-500 shadow-lg">Loading project…</div></div>}
         <Canvas
@@ -607,6 +665,50 @@ export default function EditorPage() {
         />
         {analysis && <FindingsPanel findings={analysis.findings} aiEnabled={analysis.aiEnabled} summary={sim.result?.summary} onFocusNode={(nodeId) => setFocusRequest({ nodeId, token: Date.now() })} onClose={() => setAnalysis(null)} />}
       </div>
+
+      {interviewGrade && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 p-4 backdrop-blur-sm" onClick={() => setInterviewGrade(null)}>
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-violet-500">Grading result</p>
+                <h3 className="mt-0.5 text-2xl font-bold text-zinc-900">{interviewGrade.overallScore}<span className="text-sm font-medium text-zinc-400">/100</span></h3>
+              </div>
+              <button onClick={() => setInterviewGrade(null)} className="text-zinc-400 hover:text-zinc-700">✕</button>
+            </div>
+            {!interviewGrade.aiEnabled && (
+              <p className="mt-2 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-700">Rule-based estimate only — AI grading wasn't available for this run.</p>
+            )}
+            <p className="mt-3 text-sm text-zinc-600">{interviewGrade.summary}</p>
+
+            <div className="mt-4 space-y-2">
+              {interviewGrade.categories.map((c) => (
+                <div key={c.name}>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium text-zinc-700">{c.name}</span>
+                    <span className="text-zinc-500">{c.score}/{c.maxScore}</span>
+                  </div>
+                  <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
+                    <div className="h-full rounded-full bg-violet-500" style={{ width: `${(c.score / c.maxScore) * 100}%` }} />
+                  </div>
+                  <p className="mt-1 text-[11px] text-zinc-400">{c.feedback}</p>
+                </div>
+              ))}
+            </div>
+
+            {interviewGrade.improvements.length > 0 && (
+              <div className="mt-4 rounded-xl bg-zinc-50 p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Next steps</p>
+                <ul className="mt-1.5 space-y-1">
+                  {interviewGrade.improvements.map((imp) => (
+                    <li key={imp} className="text-xs text-zinc-600">· {imp}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {historyOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 p-4 backdrop-blur-sm" onClick={() => setHistoryOpen(false)}>

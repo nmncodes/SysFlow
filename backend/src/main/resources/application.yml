@@ -19,6 +19,12 @@ spring:
 
 server:
   port: 8080
+  error:
+    # Spring's default suppresses the exception message from error responses entirely -
+    # every ResponseStatusException(..., "some useful reason") across the app was silently
+    # losing that reason before reaching the client. This is a read-only JSON API with no
+    # server-rendered error pages, so there's no stack-trace/HTML leakage risk in exposing it.
+    include-message: always
 
 jwt:
   secret: ${JWT_SECRET:change-me-in-env-this-is-a-dev-only-default-secret-value}

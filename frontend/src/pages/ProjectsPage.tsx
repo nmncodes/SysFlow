@@ -65,6 +65,7 @@ export default function ProjectsPage() {
           </Link>
           <div className="flex items-center gap-4 text-sm text-zinc-500">
             <Link to="/gallery" className="font-medium text-zinc-700 hover:text-zinc-900">Gallery</Link>
+            <Link to="/interview" className="font-medium text-zinc-700 hover:text-zinc-900">Interview Practice</Link>
             <span>{user.displayName ?? user.email}</span>
             <button onClick={logout} className="font-medium text-zinc-700 hover:text-zinc-900">
               Log out

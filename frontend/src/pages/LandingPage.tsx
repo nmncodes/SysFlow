@@ -239,6 +239,11 @@ export default function LandingPage() {
               Gallery
               <span className="absolute -bottom-2 left-0 h-[2px] w-0 rounded-full bg-[#12b8d4] transition-all duration-200 group-hover:w-full" />
             </Link>
+
+            <Link to="/interview" className={NAV_LINK}>
+              Interview Practice
+              <span className="absolute -bottom-2 left-0 h-[2px] w-0 rounded-full bg-[#12b8d4] transition-all duration-200 group-hover:w-full" />
+            </Link>
           </nav>
 
           <Link
