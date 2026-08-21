@@ -3,6 +3,7 @@ package dev.sysflow.srs;
 import dev.sysflow.ai.GeminiClient;
 import dev.sysflow.ai.RuleEngine;
 import dev.sysflow.ai.dto.Finding;
+import dev.sysflow.common.CostModel;
 import dev.sysflow.simulation.model.GraphEdge;
 import dev.sysflow.simulation.model.GraphNode;
 import dev.sysflow.simulation.model.SimulationGraph;
@@ -37,19 +38,22 @@ public class SrsController {
     private final GraphLayout graphLayout;
     private final RuleEngine ruleEngine;
     private final GeminiClient geminiClient;
+    private final CostModel costModel;
 
     public SrsController(
             TextExtractor textExtractor,
             SrsGraphExtractor graphExtractor,
             GraphLayout graphLayout,
             RuleEngine ruleEngine,
-            GeminiClient geminiClient
+            GeminiClient geminiClient,
+            CostModel costModel
     ) {
         this.textExtractor = textExtractor;
         this.graphExtractor = graphExtractor;
         this.graphLayout = graphLayout;
         this.ruleEngine = ruleEngine;
         this.geminiClient = geminiClient;
+        this.costModel = costModel;
     }
 
     @PostMapping("/import")
@@ -94,13 +98,17 @@ public class SrsController {
                 .toList();
 
         List<Finding> ruleFindings = ruleEngine.analyze(graph);
-        List<Finding> findings = geminiClient.synthesize(ruleFindings);
+        Map<String, Double> nodeCostsById = nodes.stream()
+                .collect(Collectors.toMap(GraphNode::id, costModel::monthlyCostOf));
+        List<Finding> findings = geminiClient.synthesize(ruleFindings, nodeCostsById);
+        double totalMonthlyCost = nodes.stream().mapToDouble(costModel::monthlyCostOf).sum();
 
         return new SrsImportResponse(
                 new SrsImportResponse.GraphJson(nodeJsons, edgeJsons),
                 findings,
                 geminiClient.isEnabled(),
-                unrecognized.stream().sorted().toList()
+                unrecognized.stream().sorted().toList(),
+                totalMonthlyCost
         );
     }
 

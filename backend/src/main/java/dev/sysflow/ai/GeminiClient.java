@@ -49,11 +49,16 @@ public class GeminiClient {
     }
 
     public List<Finding> synthesize(List<Finding> ruleFindings) {
+        return synthesize(ruleFindings, Map.of());
+    }
+
+    /** nodeCostsById: rough monthly USD cost per node (see CostModel) — lets Gemini reference cost in its recommendations. */
+    public List<Finding> synthesize(List<Finding> ruleFindings, Map<String, Double> nodeCostsById) {
         if (!isEnabled() || ruleFindings.isEmpty()) {
             return ruleFindings;
         }
         try {
-            String prompt = buildPrompt(ruleFindings);
+            String prompt = buildPrompt(ruleFindings, nodeCostsById);
             Map<String, Object> body = Map.of(
                     "contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))),
                     "generationConfig", Map.of("temperature", 0.2, "responseMimeType", "application/json")
@@ -79,8 +84,11 @@ public class GeminiClient {
         }
     }
 
-    private String buildPrompt(List<Finding> ruleFindings) throws Exception {
+    private String buildPrompt(List<Finding> ruleFindings, Map<String, Double> nodeCostsById) throws Exception {
         String factsJson = objectMapper.writeValueAsString(ruleFindings);
+        String costSection = nodeCostsById.isEmpty()
+                ? "(no cost data available)"
+                : objectMapper.writeValueAsString(nodeCostsById);
         return """
                 You are a system design reviewer. Below is a JSON array of DETECTED FACTS about a
                 user's architecture diagram, found by deterministic static analysis. Each fact has:
@@ -91,11 +99,20 @@ public class GeminiClient {
                 - Do NOT invent new facts, nodes, or findings not present in the input.
                 - Do NOT change severity or affectedNodeIds.
                 - You MAY rewrite "explanation" and "recommendation" text to be clearer and more specific.
+                - MONTHLY_COST_USD below gives a rough illustrative monthly cost per node id (not real cloud
+                  pricing). Where a recommendation suggests adding, replacing, or removing a component and a
+                  cost figure is available for the relevant node(s), weave in an approximate cost trade-off
+                  in one short clause (e.g. "for roughly $15/mo" or "at a small added cost"). Do not fabricate
+                  a number for a component that isn't in MONTHLY_COST_USD, and do not force a cost mention
+                  into every finding — only where it's actually informative.
                 - Order the array with the most severe/important finding first.
                 - Return ONLY a JSON array with the exact same shape as the input — no prose, no markdown.
 
+                MONTHLY_COST_USD:
+                %s
+
                 FACTS:
                 %s
-                """.formatted(factsJson);
+                """.formatted(costSection, factsJson);
     }
 }

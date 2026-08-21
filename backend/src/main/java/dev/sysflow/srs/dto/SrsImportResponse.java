@@ -15,7 +15,8 @@ public record SrsImportResponse(
         GraphJson graphJson,
         List<Finding> findings,
         boolean aiEnabled,
-        List<String> unrecognizedTerms
+        List<String> unrecognizedTerms,
+        double estimatedMonthlyCostUsd
 ) {
     public record GraphJson(List<NodeJson> nodes, List<EdgeJson> edges) {
     }

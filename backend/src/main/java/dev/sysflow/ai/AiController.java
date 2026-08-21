@@ -2,6 +2,7 @@ package dev.sysflow.ai;
 
 import dev.sysflow.ai.dto.AnalyzeRequest;
 import dev.sysflow.ai.dto.Finding;
+import dev.sysflow.common.CostModel;
 import dev.sysflow.simulation.model.GraphEdge;
 import dev.sysflow.simulation.model.GraphNode;
 import dev.sysflow.simulation.model.SimulationGraph;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Implements the /api/ai/analyze contract from docs/04-DATA-MODEL-AND-API.md
@@ -25,10 +27,12 @@ public class AiController {
 
     private final RuleEngine ruleEngine;
     private final GeminiClient geminiClient;
+    private final CostModel costModel;
 
-    public AiController(RuleEngine ruleEngine, GeminiClient geminiClient) {
+    public AiController(RuleEngine ruleEngine, GeminiClient geminiClient, CostModel costModel) {
         this.ruleEngine = ruleEngine;
         this.geminiClient = geminiClient;
+        this.costModel = costModel;
     }
 
     @PostMapping("/analyze")
@@ -42,8 +46,12 @@ public class AiController {
         SimulationGraph graph = new SimulationGraph(nodes, edges);
 
         List<Finding> ruleFindings = ruleEngine.analyze(graph);
-        List<Finding> findings = geminiClient.synthesize(ruleFindings);
+        Map<String, Double> nodeCostsById = nodes.stream()
+                .collect(Collectors.toMap(GraphNode::id, costModel::monthlyCostOf));
+        List<Finding> findings = geminiClient.synthesize(ruleFindings, nodeCostsById);
 
-        return Map.of("findings", findings, "aiEnabled", geminiClient.isEnabled());
+        double totalMonthlyCost = nodes.stream().mapToDouble(costModel::monthlyCostOf).sum();
+
+        return Map.of("findings", findings, "aiEnabled", geminiClient.isEnabled(), "estimatedMonthlyCostUsd", totalMonthlyCost);
     }
 }
