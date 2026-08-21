@@ -29,5 +29,6 @@ gemini:
   model: ${GEMINI_MODEL:gemini-3.6-flash}
 
 cors:
-  # Comma-separated list — add your deployed frontend's origin alongside localhost when deploying.
-  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  # Comma-separated list. Defaults cover local dev + the deployed Vercel frontend so the app
+  # works out of the box; override via env var if the Vercel URL ever changes.
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,https://sys-flow-green.vercel.app}

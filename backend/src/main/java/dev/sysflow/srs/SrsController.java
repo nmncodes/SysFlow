@@ -104,11 +104,36 @@ public class SrsController {
         );
     }
 
+    private static final Set<String> REPLICA_TYPES = Set.of("database", "searchIndex");
+
     /** Only carries config the document actually stated — see RawExtraction.RawNode's javadoc. */
     private Map<String, Object> toConfig(RawExtraction.RawNode node) {
-        boolean appliesToType = "database".equals(node.type()) || "searchIndex".equals(node.type());
-        if (!appliesToType || node.replicaCount() == null) return Map.of();
-        return Map.of("replicaCount", node.replicaCount());
+        Map<String, Object> config = new java.util.HashMap<>();
+        if (REPLICA_TYPES.contains(node.type()) && node.replicaCount() != null) {
+            config.put("replicaCount", node.replicaCount());
+        }
+        if ("cache".equals(node.type()) && node.cacheHitRatePct() != null) {
+            config.put("hitRatePct", node.cacheHitRatePct());
+        }
+        String capacityKey = capacityConfigKey(node.type());
+        if (capacityKey != null && node.capacityHint() != null) {
+            config.put(capacityKey, node.capacityHint());
+        }
+        return config;
+    }
+
+    /** Mirrors SimulationEngine.capacityOf's per-type config key — null means this type isn't capacity-configurable via a single field. */
+    private String capacityConfigKey(String type) {
+        return switch (type) {
+            case "cdn", "loadBalancer", "waf", "ingress", "queue", "objectStorage",
+                 "messageBroker", "eventBus", "webhook", "monitoring", "logging",
+                 "thirdPartyApi", "paymentGateway" -> "maxThroughput";
+            case "apiGateway" -> "rateLimit";
+            case "service", "worker", "serverless", "cronJob" -> "maxConcurrency";
+            case "autoScalingGroup", "containerOrchestrator" -> "baseCapacityPerReplica";
+            case "database", "dataWarehouse", "searchIndex", "dataLake" -> "maxConnections";
+            default -> null;
+        };
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

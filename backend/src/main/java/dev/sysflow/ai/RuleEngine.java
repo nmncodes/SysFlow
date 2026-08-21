@@ -38,6 +38,9 @@ public class RuleEngine {
         findings.addAll(findMissingLoadBalancer(graph));
         findings.addAll(findExposedPaymentGateway(graph));
         findings.addAll(findNoObservability(graph));
+        findings.addAll(findObjectStorageWithoutCdn(graph));
+        findings.addAll(findCronJobWithMultipleDirectWrites(graph));
+        findings.addAll(findUnbufferedWebhook(graph));
         return findings;
     }
 
@@ -159,6 +162,73 @@ public class RuleEngine {
                 "A design this size has no visibility into request failures, latency, or errors once it's running.",
                 "Add a Monitoring and/or Logging component so failures surface before users report them."
         ));
+    }
+
+    private List<Finding> findObjectStorageWithoutCdn(SimulationGraph graph) {
+        boolean hasUsedObjectStorage = graph.nodes().stream()
+                .anyMatch(n -> "objectStorage".equals(n.type()) && !graph.incoming(n.id()).isEmpty());
+        boolean hasCdn = graph.nodes().stream().anyMatch(n -> "cdn".equals(n.type()));
+        if (!hasUsedObjectStorage || hasCdn) return List.of();
+
+        List<String> storageIds = graph.nodes().stream()
+                .filter(n -> "objectStorage".equals(n.type()))
+                .map(GraphNode::id)
+                .toList();
+        return List.of(new Finding(
+                "info",
+                "Object storage with no CDN in front of it",
+                storageIds,
+                "Every request for a stored object round-trips all the way to object storage — no edge caching for static assets like images, videos, or downloads.",
+                "Put a CDN in front of your object storage to cut latency and egress cost for frequently-requested objects."
+        ));
+    }
+
+    private List<Finding> findCronJobWithMultipleDirectWrites(SimulationGraph graph) {
+        List<Finding> out = new ArrayList<>();
+        for (GraphNode node : graph.nodes()) {
+            if (!"cronJob".equals(node.type())) continue;
+
+            List<String> directStoreTargets = graph.outgoing(node.id()).stream()
+                    .map(GraphEdge::target)
+                    .map(graph::node)
+                    .filter(target -> target != null && DATA_STORE_TYPES.contains(target.type()))
+                    .map(GraphNode::id)
+                    .toList();
+            if (directStoreTargets.size() < 2) continue;
+
+            out.add(new Finding(
+                    "warning",
+                    "Cron job writes directly to multiple data stores",
+                    directStoreTargets,
+                    "\"" + node.id() + "\" writes to " + directStoreTargets.size() + " data stores directly. If a scheduled run fails partway through, some stores get updated and others don't, and cron retries typically re-run the whole job rather than resuming from where it failed.",
+                    "Make the writes idempotent, or route them through a queue so a retry doesn't double-apply the writes that already succeeded."
+            ));
+        }
+        return out;
+    }
+
+    private List<Finding> findUnbufferedWebhook(SimulationGraph graph) {
+        List<Finding> out = new ArrayList<>();
+        for (GraphNode node : graph.nodes()) {
+            if (!"webhook".equals(node.type())) continue;
+
+            List<String> unbufferedTargets = graph.outgoing(node.id()).stream()
+                    .map(GraphEdge::target)
+                    .map(graph::node)
+                    .filter(target -> target != null && COMPUTE_TYPES.contains(target.type()))
+                    .map(GraphNode::id)
+                    .toList();
+            if (unbufferedTargets.isEmpty()) continue;
+
+            out.add(new Finding(
+                    "warning",
+                    "Webhook has no buffer before its consumer",
+                    unbufferedTargets,
+                    "\"" + node.id() + "\" delivers directly into " + String.join(", ", unbufferedTargets) + " with nothing to absorb a burst or a slow/unavailable consumer. Incoming webhook deliveries can arrive faster than you can process them, and most providers only retry a handful of times before giving up.",
+                    "Put a queue or message broker between the webhook receiver and its consumer so bursts and slow processing don't drop deliveries."
+            ));
+        }
+        return out;
     }
 
     private List<GraphEdge> allEdges(SimulationGraph graph) {

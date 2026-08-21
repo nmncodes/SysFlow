@@ -119,4 +119,82 @@ class RuleEngineTest {
 
         assertTrue(findings.stream().noneMatch(f -> f.severity().equals("critical")));
     }
+
+    @Test
+    void flagsObjectStorageWithoutCdn() {
+        SimulationGraph graph = new SimulationGraph(
+                List.of(
+                        new GraphNode("svc", "service", Map.of()),
+                        new GraphNode("storage", "objectStorage", Map.of())
+                ),
+                List.of(new GraphEdge("e1", "svc", "storage"))
+        );
+
+        List<Finding> findings = engine.analyze(graph);
+
+        assertTrue(findings.stream().anyMatch(f -> f.title().toLowerCase().contains("cdn") && f.affectedNodeIds().contains("storage")));
+    }
+
+    @Test
+    void doesNotFlagObjectStorageWhenCdnPresent() {
+        SimulationGraph graph = new SimulationGraph(
+                List.of(
+                        new GraphNode("svc", "service", Map.of()),
+                        new GraphNode("storage", "objectStorage", Map.of()),
+                        new GraphNode("cdn", "cdn", Map.of())
+                ),
+                List.of(new GraphEdge("e1", "svc", "storage"), new GraphEdge("e2", "cdn", "storage"))
+        );
+
+        List<Finding> findings = engine.analyze(graph);
+
+        assertTrue(findings.stream().noneMatch(f -> f.title().toLowerCase().contains("cdn")));
+    }
+
+    @Test
+    void flagsCronJobWritingDirectlyToMultipleDataStores() {
+        SimulationGraph graph = new SimulationGraph(
+                List.of(
+                        new GraphNode("cron", "cronJob", Map.of()),
+                        new GraphNode("db1", "database", Map.of("replicaCount", 1.0)),
+                        new GraphNode("db2", "database", Map.of("replicaCount", 1.0))
+                ),
+                List.of(new GraphEdge("e1", "cron", "db1"), new GraphEdge("e2", "cron", "db2"))
+        );
+
+        List<Finding> findings = engine.analyze(graph);
+
+        assertTrue(findings.stream().anyMatch(f -> f.title().toLowerCase().contains("cron job writes directly")));
+    }
+
+    @Test
+    void flagsWebhookWithNoBufferBeforeConsumer() {
+        SimulationGraph graph = new SimulationGraph(
+                List.of(
+                        new GraphNode("hook", "webhook", Map.of()),
+                        new GraphNode("svc", "service", Map.of())
+                ),
+                List.of(new GraphEdge("e1", "hook", "svc"))
+        );
+
+        List<Finding> findings = engine.analyze(graph);
+
+        assertTrue(findings.stream().anyMatch(f -> f.title().toLowerCase().contains("no buffer") && f.affectedNodeIds().contains("svc")));
+    }
+
+    @Test
+    void doesNotFlagWebhookWithQueueBeforeConsumer() {
+        SimulationGraph graph = new SimulationGraph(
+                List.of(
+                        new GraphNode("hook", "webhook", Map.of()),
+                        new GraphNode("q", "queue", Map.of()),
+                        new GraphNode("svc", "service", Map.of())
+                ),
+                List.of(new GraphEdge("e1", "hook", "q"), new GraphEdge("e2", "q", "svc"))
+        );
+
+        List<Finding> findings = engine.analyze(graph);
+
+        assertTrue(findings.stream().noneMatch(f -> f.title().toLowerCase().contains("no buffer")));
+    }
 }

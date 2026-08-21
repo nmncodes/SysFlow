@@ -121,8 +121,15 @@ public class SrsGraphExtractor {
                   when the document explicitly states a replica, failover, or high-availability requirement
                   for that specific store (e.g. "must have at least one replica" -> 1, "3 read replicas" -> 3).
                   Leave it null for every other case — do not guess or assume replication that isn't stated.
+                - "capacityHint" is a requests-per-second or throughput number ONLY when the document ties a
+                  specific numeric capacity/throughput/RPS requirement to THIS EXACT component by name (e.g.
+                  "the API gateway must handle 5,000 requests per second" -> capacityHint 5000 on that gateway
+                  node). A system-wide NFR that doesn't name a specific component does not count — leave null
+                  rather than guessing which component it meant.
+                - "cacheHitRatePct" applies ONLY to "cache" nodes, and ONLY when the document explicitly states
+                  a target cache hit rate (e.g. "cache should serve 90% of reads" -> 90). Leave null otherwise.
                 - Return ONLY JSON matching this exact shape, no prose, no markdown:
-                  {"nodes": [{"id": "...", "type": "...", "label": "...", "sourceTerm": "...", "replicaCount": null}], "edges": [{"source": "...", "target": "..."}]}
+                  {"nodes": [{"id": "...", "type": "...", "label": "...", "sourceTerm": "...", "replicaCount": null, "capacityHint": null, "cacheHitRatePct": null}], "edges": [{"source": "...", "target": "..."}]}
 
                 DOCUMENT:
                 %s

@@ -6,11 +6,14 @@ import java.util.List;
 public record RawExtraction(List<RawNode> nodes, List<RawEdge> edges) {
 
     /**
-     * replicaCount is only populated when the document explicitly states a replica/failover
-     * requirement for a database-like node — left null otherwise so we don't fabricate an HA
-     * guarantee the spec never made (see SrsController.toConfig).
+     * replicaCount, capacityHint, and cacheHitRatePct are only populated when the document
+     * explicitly ties that specific numeric requirement to this specific component — left null
+     * otherwise so we don't fabricate a guarantee the spec never made (see SrsController.toConfig).
      */
-    public record RawNode(String id, String type, String label, String sourceTerm, Integer replicaCount) {
+    public record RawNode(
+            String id, String type, String label, String sourceTerm,
+            Integer replicaCount, Double capacityHint, Integer cacheHitRatePct
+    ) {
     }
 
     public record RawEdge(String source, String target) {
