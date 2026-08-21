@@ -117,8 +117,12 @@ public class SrsGraphExtractor {
                 - "edges" describe request/data flow direction: {"source": id, "target": id}.
                 - Do not invent components not implied by the document. Keep it to the components that are
                   clearly named or clearly required (e.g. a described login flow implies a database).
+                - "replicaCount" applies ONLY to "database" or "searchIndex" nodes. Set it to a number ONLY
+                  when the document explicitly states a replica, failover, or high-availability requirement
+                  for that specific store (e.g. "must have at least one replica" -> 1, "3 read replicas" -> 3).
+                  Leave it null for every other case — do not guess or assume replication that isn't stated.
                 - Return ONLY JSON matching this exact shape, no prose, no markdown:
-                  {"nodes": [{"id": "...", "type": "...", "label": "...", "sourceTerm": "..."}], "edges": [{"source": "...", "target": "..."}]}
+                  {"nodes": [{"id": "...", "type": "...", "label": "...", "sourceTerm": "...", "replicaCount": null}], "edges": [{"source": "...", "target": "..."}]}
 
                 DOCUMENT:
                 %s

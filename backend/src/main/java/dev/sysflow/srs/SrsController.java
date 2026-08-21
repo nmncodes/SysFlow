@@ -66,11 +66,14 @@ public class SrsController {
         RawExtraction extraction = graphExtractor.extract(text);
         Set<String> unrecognized = graphExtractor.unrecognizedTerms(extraction);
 
+        Map<String, Map<String, Object>> configsById = extraction.nodes().stream()
+                .collect(Collectors.toMap(RawExtraction.RawNode::id, this::toConfig, (a, b) -> a));
+
         List<GraphNode> nodes = extraction.nodes().stream()
                 .map(n -> new GraphNode(
                         n.id(),
                         ComponentTypes.VALID_TYPES.contains(n.type()) ? n.type() : ComponentTypes.FALLBACK_TYPE,
-                        Map.of()))
+                        configsById.getOrDefault(n.id(), Map.of())))
                 .toList();
         List<GraphEdge> edges = extraction.edges().stream()
                 .map(e -> new GraphEdge(e.source() + "__" + e.target(), e.source(), e.target()))
@@ -83,7 +86,7 @@ public class SrsController {
 
         List<SrsImportResponse.NodeJson> nodeJsons = nodes.stream()
                 .map(n -> new SrsImportResponse.NodeJson(
-                        n.id(), n.type(), labelsById.getOrDefault(n.id(), n.id()), Map.of(),
+                        n.id(), n.type(), labelsById.getOrDefault(n.id(), n.id()), n.config(),
                         positions.getOrDefault(n.id(), new SrsImportResponse.Position(40, 40))))
                 .toList();
         List<SrsImportResponse.EdgeJson> edgeJsons = edges.stream()
@@ -99,6 +102,13 @@ public class SrsController {
                 geminiClient.isEnabled(),
                 unrecognized.stream().sorted().toList()
         );
+    }
+
+    /** Only carries config the document actually stated — see RawExtraction.RawNode's javadoc. */
+    private Map<String, Object> toConfig(RawExtraction.RawNode node) {
+        boolean appliesToType = "database".equals(node.type()) || "searchIndex".equals(node.type());
+        if (!appliesToType || node.replicaCount() == null) return Map.of();
+        return Map.of("replicaCount", node.replicaCount());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
