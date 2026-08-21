@@ -77,9 +77,15 @@ public class SrsGraphExtractor {
                 throw new IllegalStateException("Gemini returned no extraction.");
             }
 
-            return objectMapper.readValue(text, RawExtraction.class);
+            try {
+                return objectMapper.readValue(text, RawExtraction.class);
+            } catch (Exception parseError) {
+                log.warn("SRS extraction: Gemini response failed to parse as RawExtraction. Raw text (first 2000 chars): {}",
+                        text.length() > 2000 ? text.substring(0, 2000) : text);
+                throw parseError;
+            }
         } catch (Exception e) {
-            log.warn("SRS extraction failed: {}", e.getMessage());
+            log.warn("SRS extraction failed", e);
             throw new IllegalStateException("Couldn't extract an architecture from this document. Try a shorter or clearer SRS.", e);
         }
     }
@@ -127,7 +133,7 @@ public class SrsGraphExtractor {
                   node). A system-wide NFR that doesn't name a specific component does not count — leave null
                   rather than guessing which component it meant.
                 - "cacheHitRatePct" applies ONLY to "cache" nodes, and ONLY when the document explicitly states
-                  a target cache hit rate (e.g. "cache should serve 90% of reads" -> 90). Leave null otherwise.
+                  a target cache hit rate (e.g. "cache should serve 90%% of reads" -> 90). Leave null otherwise.
                 - Return ONLY JSON matching this exact shape, no prose, no markdown:
                   {"nodes": [{"id": "...", "type": "...", "label": "...", "sourceTerm": "...", "replicaCount": null, "capacityHint": null, "cacheHitRatePct": null}], "edges": [{"source": "...", "target": "..."}]}
 
