@@ -23,6 +23,7 @@ import { COMPONENT_LIBRARY, deriveHealth } from './nodes'
 import type { InjectedFailure, Tick } from '../lib/api'
 import { makeEdgeFailure, makeNodeFailure } from '../lib/failures'
 import type { RemoteCursor } from '../lib/collab'
+import { exportBrandedImage } from '../lib/brandedExport'
 
 const nodeTypes = { archNode: ArchNode }
 const edgeTypes = { archEdge: ArchEdge }
@@ -55,6 +56,9 @@ interface Props {
   onLoadSample?: () => void
   onBrowseTemplates?: () => void
   onImportSrs?: () => void
+  brandedExportRequest?: number
+  projectName?: string
+  estimatedMonthlyCost?: number
 }
 
 export default function Canvas({
@@ -81,6 +85,9 @@ export default function Canvas({
   onLoadSample,
   onBrowseTemplates,
   onImportSrs,
+  brandedExportRequest,
+  projectName = 'Untitled Project',
+  estimatedMonthlyCost,
 }: Props) {
   const [selectedNodeId, setSelectedNodeIdState] = useState<string | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
@@ -320,6 +327,17 @@ export default function Canvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exportRequest])
 
+  useEffect(() => {
+    if (!brandedExportRequest || !wrapperRef.current) return
+    const el = wrapperRef.current
+    import('html-to-image').then(({ toPng }) => {
+      toPng(el, { backgroundColor: '#f8fcfd', pixelRatio: 2 }).then((dataUrl) => {
+        exportBrandedImage(dataUrl, { projectName, nodeCount: nodes.length, edgeCount: edges.length, estimatedMonthlyCost })
+      })
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brandedExportRequest])
+
   const applyNodeFailure = (nodeId: string, type: 'kill' | 'latency' | 'throttle') => {
     setFailures((fs) => [...fs.filter((f) => f.nodeId !== nodeId), makeNodeFailure(nodeId, type)])
     setContextMenu(null)
@@ -418,8 +436,8 @@ export default function Canvas({
           maxZoom={2}
           proOptions={{ hideAttribution: true }}
         >
-          <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} color="#d9edf1" />
-          <Controls className="sysflow-controls !shadow-md [&>button]:!border-zinc-200 [&>button]:!bg-white" />
+          <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} color="#d9edf1" className="dark:opacity-40" />
+          <Controls className="sysflow-controls !shadow-md [&>button]:!border-zinc-200 [&>button]:!bg-white dark:[&>button]:!border-zinc-700 dark:[&>button]:!bg-zinc-800" />
           <ArchitectureOverview nodes={nodes} edges={edges} />
         </ReactFlow>
 
@@ -445,18 +463,18 @@ export default function Canvas({
 
         {nodes.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center p-6">
-            <div className="empty-state-card pointer-events-auto w-full max-w-md rounded-2xl border border-zinc-200 bg-white/95 p-6 text-center shadow-xl backdrop-blur-sm">
-              <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600">
+            <div className="empty-state-card pointer-events-auto w-full max-w-md rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white/95 dark:bg-zinc-900/95 p-6 text-center shadow-xl backdrop-blur-sm">
+              <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-50 dark:bg-cyan-950/50 text-cyan-600 dark:text-cyan-400">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12h14M12 5v14" />
                 </svg>
               </div>
-              <p className="text-base font-semibold text-zinc-900">Start building your architecture</p>
-              <p className="mt-1 text-xs text-zinc-500">Drag components from the library and connect them to model request flow.</p>
-              <div className="mt-5 flex items-center justify-center gap-2 text-[10px] font-semibold text-zinc-600">
+              <p className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Start building your architecture</p>
+              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Drag components from the library and connect them to model request flow.</p>
+              <div className="mt-5 flex items-center justify-center gap-2 text-[10px] font-semibold text-zinc-600 dark:text-zinc-300">
                 {['Client', 'Load Balancer', 'Service', 'Database'].map((label, index) => (
                   <div key={label} className="flex items-center gap-2">
-                    <span className="rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-2">{label}</span>
+                    <span className="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-2.5 py-2">{label}</span>
                     {index < 3 && <span className="text-cyan-400">→</span>}
                   </div>
                 ))}
@@ -469,37 +487,37 @@ export default function Canvas({
                   >
                     Load a sample architecture
                   </button>
-                  <div className="mt-3 flex items-center justify-center gap-3 text-xs text-zinc-400">
-                    {onBrowseTemplates && <button onClick={onBrowseTemplates} className="font-medium text-violet-600 hover:text-violet-800">Browse templates</button>}
-                    {onBrowseTemplates && onImportSrs && <span className="text-zinc-300">·</span>}
-                    {onImportSrs && <button onClick={onImportSrs} className="font-medium text-violet-600 hover:text-violet-800">Import an SRS doc</button>}
+                  <div className="mt-3 flex items-center justify-center gap-3 text-xs text-zinc-400 dark:text-zinc-500">
+                    {onBrowseTemplates && <button onClick={onBrowseTemplates} className="font-medium text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300">Browse templates</button>}
+                    {onBrowseTemplates && onImportSrs && <span className="text-zinc-300 dark:text-zinc-600">·</span>}
+                    {onImportSrs && <button onClick={onImportSrs} className="font-medium text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300">Import an SRS doc</button>}
                   </div>
                 </>
               )}
-              <p className="mt-4 text-[10px] text-zinc-400">Tip: drag or scroll to pan · nodes snap to grid automatically</p>
+              <p className="mt-4 text-[10px] text-zinc-400 dark:text-zinc-500">Tip: drag or scroll to pan · nodes snap to grid automatically</p>
             </div>
           </div>
         )}
 
         {connectingFromId && (
-          <div className="connection-guide pointer-events-none absolute left-1/2 top-5 z-20 -translate-x-1/2 rounded-xl border border-cyan-100 bg-white/95 px-4 py-2 text-xs font-medium text-cyan-700 shadow-lg backdrop-blur-sm">
+          <div className="connection-guide pointer-events-none absolute left-1/2 top-5 z-20 -translate-x-1/2 rounded-xl border border-cyan-100 dark:border-cyan-900 bg-white/95 dark:bg-zinc-900/95 px-4 py-2 text-xs font-medium text-cyan-700 dark:text-cyan-400 shadow-lg backdrop-blur-sm">
             Connect to a highlighted node · Esc to cancel
           </div>
         )}
 
         {selectedEdge && (
-          <div className="absolute bottom-5 left-5 z-20 w-72 rounded-2xl border border-zinc-200 bg-white/95 p-4 shadow-xl backdrop-blur-sm">
+          <div className="absolute bottom-5 left-5 z-20 w-72 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white/95 dark:bg-zinc-900/95 p-4 shadow-xl backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Connection metrics</p>
-                <p className="mt-1 text-sm font-semibold text-zinc-900">{selectedEdge.source} → {selectedEdge.target}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Connection metrics</p>
+                <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-50">{selectedEdge.source} → {selectedEdge.target}</p>
               </div>
-              <button onClick={() => setSelectedEdgeId(null)} className="text-zinc-400 hover:text-zinc-700">✕</button>
+              <button onClick={() => setSelectedEdgeId(null)} className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200">✕</button>
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-xl bg-zinc-50 p-2"><b className="block text-sm text-zinc-800">{Math.round((selectedEdge.data as ArchEdgeData | undefined)?.inFlight ?? 0)}</b><span className="text-[9px] text-zinc-400">Requests</span></div>
-              <div className="rounded-xl bg-zinc-50 p-2"><b className="block text-sm text-zinc-800">{Math.round((selectedEdge.data as ArchEdgeData | undefined)?.avgLatencyMs ?? 0)}ms</b><span className="text-[9px] text-zinc-400">Latency</span></div>
-              <div className="rounded-xl bg-zinc-50 p-2"><b className="block text-sm text-zinc-800">{Math.round(((selectedEdge.data as ArchEdgeData | undefined)?.inFlight ?? 0) * 10)}</b><span className="text-[9px] text-zinc-400">RPS</span></div>
+              <div className="rounded-xl bg-zinc-50 dark:bg-zinc-800 p-2"><b className="block text-sm text-zinc-800 dark:text-zinc-100">{Math.round((selectedEdge.data as ArchEdgeData | undefined)?.inFlight ?? 0)}</b><span className="text-[9px] text-zinc-400 dark:text-zinc-500">Requests</span></div>
+              <div className="rounded-xl bg-zinc-50 dark:bg-zinc-800 p-2"><b className="block text-sm text-zinc-800 dark:text-zinc-100">{Math.round((selectedEdge.data as ArchEdgeData | undefined)?.avgLatencyMs ?? 0)}ms</b><span className="text-[9px] text-zinc-400 dark:text-zinc-500">Latency</span></div>
+              <div className="rounded-xl bg-zinc-50 dark:bg-zinc-800 p-2"><b className="block text-sm text-zinc-800 dark:text-zinc-100">{Math.round(((selectedEdge.data as ArchEdgeData | undefined)?.inFlight ?? 0) * 10)}</b><span className="text-[9px] text-zinc-400 dark:text-zinc-500">RPS</span></div>
             </div>
           </div>
         )}
@@ -517,7 +535,7 @@ export default function Canvas({
           <button
             onClick={() => setMobilePaletteOpen(true)}
             aria-label="Add component"
-            className="fixed bottom-24 right-4 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-900 text-2xl text-white shadow-xl md:hidden"
+            className="fixed bottom-24 right-4 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-900 dark:bg-zinc-100 text-2xl text-white dark:text-zinc-900 shadow-xl md:hidden"
           >
             +
           </button>

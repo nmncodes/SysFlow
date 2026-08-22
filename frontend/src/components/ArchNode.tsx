@@ -48,7 +48,7 @@ export default function ArchNode({ data, selected }: NodeProps<ArchNodeData>) {
 
   return (
     <div
-      className={`sysflow-node node-pop-in group relative flex min-w-[150px] flex-col rounded-2xl border bg-white px-3 py-2.5 shadow-sm transition-all duration-200 ${
+      className={`sysflow-node node-pop-in group relative flex min-w-[150px] flex-col rounded-2xl border bg-white dark:bg-zinc-900 px-3 py-2.5 shadow-sm transition-all duration-200 ${
         selected ? 'z-20 shadow-[0_0_0_3px_rgba(124,58,237,0.13),0_12px_28px_rgba(24,24,27,0.12)]' : 'hover:-translate-y-0.5 hover:shadow-lg'
       } ${data.connectionTarget ? 'connection-target' : ''} ${data.connectionSource ? 'connection-source' : ''} ${pulsing ? 'node-health-pulse' : ''}`}
       style={{ borderColor }}
@@ -58,7 +58,7 @@ export default function ArchNode({ data, selected }: NodeProps<ArchNodeData>) {
 
       <div className="node-topline" />
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="node-icon-wrap flex h-7 w-7 items-center justify-center rounded-lg text-zinc-700" style={{ color: ringColor }}>
+        <span className="node-icon-wrap flex h-7 w-7 items-center justify-center rounded-lg text-zinc-700 dark:text-zinc-300" style={{ color: ringColor }}>
           {Icon && <Icon width={15} height={15} />}
         </span>
         <span className="node-health-badge rounded-full px-1.5 py-0.5 text-[8px] font-semibold" style={{ color: ringColor, backgroundColor: `${ringColor}15` }}>
@@ -66,32 +66,32 @@ export default function ArchNode({ data, selected }: NodeProps<ArchNodeData>) {
         </span>
       </div>
 
-      <div className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: ringColor }} /><span className="text-sm font-bold tracking-[-0.01em] text-zinc-900">{data.label}</span></div>
-      <span className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400">{def?.label}</span>
+      <div className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: ringColor }} /><span className="text-sm font-bold tracking-[-0.01em] text-zinc-900 dark:text-zinc-50">{data.label}</span></div>
+      <span className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{def?.label}</span>
 
       {capacity > 0 && (
         <div className="mt-3">
-          <div className="mb-1.5 flex items-center justify-between text-[8px] font-bold uppercase tracking-wider text-zinc-400"><span>Capacity</span><span style={{ color: capacityColor }}>{capacityPct}%</span></div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-zinc-100"><div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(3, capacityPct)}%`, backgroundColor: capacityColor }} /></div>
+          <div className="mb-1.5 flex items-center justify-between text-[8px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500"><span>Capacity</span><span style={{ color: capacityColor }}>{capacityPct}%</span></div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800"><div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(3, capacityPct)}%`, backgroundColor: capacityColor }} /></div>
         </div>
       )}
 
       {metrics && (metrics.cpu !== undefined || metrics.latency !== undefined || metrics.rps !== undefined) && (
-        <div className="mt-3 grid grid-cols-3 gap-1 border-t border-zinc-100 pt-2 text-[9px] text-zinc-500">
-          <span><b className="block text-zinc-700">{Math.round(metrics.cpu ?? 0)}%</b>CPU</span>
-          <span><b className="block text-zinc-700">{Math.round(metrics.latency ?? 0)}ms</b>Latency</span>
-          <span><b className="block text-zinc-700">{Math.round(metrics.rps ?? 0)}</b>RPS</span>
+        <div className="mt-3 grid grid-cols-3 gap-1 border-t border-zinc-100 dark:border-zinc-800 pt-2 text-[9px] text-zinc-500 dark:text-zinc-400">
+          <span><b className="block text-zinc-700 dark:text-zinc-200">{Math.round(metrics.cpu ?? 0)}%</b>CPU</span>
+          <span><b className="block text-zinc-700 dark:text-zinc-200">{Math.round(metrics.latency ?? 0)}ms</b>Latency</span>
+          <span><b className="block text-zinc-700 dark:text-zinc-200">{Math.round(metrics.rps ?? 0)}</b>RPS</span>
         </div>
       )}
 
       {data.replicas !== undefined && (data.replicas > 1 || data.componentType === 'autoScalingGroup') && (
-        <span className="absolute -left-2 -top-2 flex h-5 min-w-[22px] items-center justify-center rounded-full border-2 border-white bg-zinc-900 px-1 text-[9px] font-bold text-white shadow-sm">
+        <span className="absolute -left-2 -top-2 flex h-5 min-w-[22px] items-center justify-center rounded-full border-2 border-white dark:border-zinc-900 bg-zinc-900 dark:bg-zinc-100 px-1 text-[9px] font-bold text-white dark:text-zinc-900 shadow-sm">
           x{data.replicas}
         </span>
       )}
 
       {data.hasFailure && (
-        <span className="absolute -left-2 -bottom-2 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-red-500 text-white shadow-sm" title="Failure injected">
+        <span className="absolute -left-2 -bottom-2 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white dark:border-zinc-900 bg-red-500 text-white shadow-sm" title="Failure injected">
           <LightningIcon width={11} height={11} />
         </span>
       )}
@@ -102,17 +102,17 @@ export default function ArchNode({ data, selected }: NodeProps<ArchNodeData>) {
           onMouseDown={(e) => e.stopPropagation()}
           onClick={data.onComment}
           title={`${data.commentCount} comment${data.commentCount === 1 ? '' : 's'}`}
-          className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full border-2 border-white bg-violet-600 px-1 text-[9px] font-bold text-white shadow-sm"
+          className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full border-2 border-white dark:border-zinc-900 bg-violet-600 px-1 text-[9px] font-bold text-white shadow-sm"
         >
           {data.commentCount}
         </button>
       )}
 
-      <div className="node-actions absolute -right-1.5 -top-8 flex items-center gap-0.5 rounded-lg border border-zinc-200 bg-white p-0.5 shadow-md">
-        <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={data.onConfigure} title="Configure" className="rounded-md px-1.5 py-0.5 text-[9px] font-medium text-zinc-500 hover:bg-violet-50 hover:text-violet-600">Configure</button>
-        {data.onComment && <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={data.onComment} title="Comments" className="rounded-md px-1.5 py-0.5 text-[9px] font-medium text-zinc-500 hover:bg-violet-50 hover:text-violet-600">Comment</button>}
-        <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={data.onDuplicate} title="Duplicate" className="rounded-md px-1.5 py-0.5 text-[9px] font-medium text-zinc-500 hover:bg-zinc-50">Duplicate</button>
-        <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={data.onDelete} title="Delete" className="rounded-md px-1.5 py-0.5 text-[9px] font-medium text-red-500 hover:bg-red-50">Delete</button>
+      <div className="node-actions absolute -right-1.5 -top-8 flex items-center gap-0.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-0.5 shadow-md">
+        <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={data.onConfigure} title="Configure" className="rounded-md px-1.5 py-0.5 text-[9px] font-medium text-zinc-500 dark:text-zinc-400 hover:bg-violet-50 dark:hover:bg-violet-950/50 hover:text-violet-600 dark:hover:text-violet-400">Configure</button>
+        {data.onComment && <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={data.onComment} title="Comments" className="rounded-md px-1.5 py-0.5 text-[9px] font-medium text-zinc-500 dark:text-zinc-400 hover:bg-violet-50 dark:hover:bg-violet-950/50 hover:text-violet-600 dark:hover:text-violet-400">Comment</button>}
+        <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={data.onDuplicate} title="Duplicate" className="rounded-md px-1.5 py-0.5 text-[9px] font-medium text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700">Duplicate</button>
+        <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={data.onDelete} title="Delete" className="rounded-md px-1.5 py-0.5 text-[9px] font-medium text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50">Delete</button>
       </div>
     </div>
   )

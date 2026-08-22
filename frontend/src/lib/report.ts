@@ -29,6 +29,7 @@ export function generateReport(input: ReportInput): void {
   const doc = new jsPDF({ unit: 'pt', format: 'a4' })
   const margin = 48
   const pageWidth = doc.internal.pageSize.getWidth()
+  const contentWidth = pageWidth - margin * 2
   let y = margin
 
   doc.setFont('helvetica', 'bold')
@@ -122,7 +123,16 @@ export function generateReport(input: ReportInput): void {
       doc.text(node.source === 'real' ? 'Live Azure price' : 'Illustrative', margin + 260, y)
       doc.setTextColor(60, 60, 68)
       doc.text(`$${node.monthlyCostUsd.toFixed(2)}`, pageWidth - margin, y, { align: 'right' })
-      y += 14
+      y += 12
+      doc.setFontSize(8)
+      doc.setTextColor(160, 160, 168)
+      const noteLines = doc.splitTextToSize(node.note, contentWidth)
+      for (const line of noteLines) {
+        y = addPageIfNeeded(doc, y, margin)
+        doc.text(line, margin, y)
+        y += 11
+      }
+      y += 4
     }
   }
   y += 12
@@ -143,7 +153,6 @@ export function generateReport(input: ReportInput): void {
     y += 16
   }
 
-  const contentWidth = pageWidth - margin * 2
   for (const finding of input.findings) {
     y = addPageIfNeeded(doc, y, margin, 60)
     const [r, g, b] = SEVERITY_COLOR[finding.severity]

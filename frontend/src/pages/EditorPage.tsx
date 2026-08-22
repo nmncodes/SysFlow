@@ -20,6 +20,7 @@ import { useCollabSession } from '../lib/collab'
 import { COMPONENT_LIBRARY, type ComponentType } from '../components/nodes'
 import CompareModal from '../components/CompareModal'
 import SrsDiffModal from '../components/SrsDiffModal'
+import ThemeToggle from '../components/ThemeToggle'
 import logo from '../assets/logo.png'
 
 const SPEED_OPTIONS = [0.5, 1, 2, 4]
@@ -65,6 +66,7 @@ export default function EditorPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [focusRequest, setFocusRequest] = useState<{ nodeId: string; token: number } | null>(null)
   const [exportRequest, setExportRequest] = useState(0)
+  const [brandedExportRequest, setBrandedExportRequest] = useState(0)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [projectId, setProjectId] = useState<string | null>(null)
   const [projectName, setProjectName] = useState('Untitled Project')
@@ -565,38 +567,38 @@ export default function EditorPage() {
   }, [selectedNodeId, projectId, projectName, nodes, edges])
 
   return (
-    <div className="editor-shell flex h-screen min-h-0 flex-col bg-[#f8fcfd] text-zinc-900">
-      <header className="editor-header relative z-30 flex min-h-[76px] items-center justify-between gap-2 border-b border-zinc-200 bg-white px-3 py-2 shadow-[0_1px_0_rgba(0,0,0,0.02)] sm:gap-3 sm:px-6">
+    <div className="editor-shell flex h-screen min-h-0 flex-col bg-[#f8fcfd] dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
+      <header className="editor-header relative z-30 flex min-h-[76px] items-center justify-between gap-2 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2 shadow-[0_1px_0_rgba(0,0,0,0.02)] sm:gap-3 sm:px-6">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3 sm:min-w-[220px]">
-          <Link to="/" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm sm:h-12 sm:w-12">
+          <Link to="/" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white dark:bg-zinc-800 shadow-sm sm:h-12 sm:w-12">
             <img src={logo} alt="SysFlow" className="h-9 w-9 object-contain sm:h-11 sm:w-11" />
           </Link>
           <div className="min-w-0">
-            <div className="flex items-center gap-2"><span className="text-sm font-semibold tracking-tight text-zinc-900 sm:text-base">SysFlow</span><span className="hidden rounded-full bg-zinc-100 px-1.5 py-0.5 text-[8px] font-semibold uppercase text-zinc-400 sm:inline">Editor</span></div>
+            <div className="flex items-center gap-2"><span className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-base">SysFlow</span><span className="hidden rounded-full bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-[8px] font-semibold uppercase text-zinc-400 dark:text-zinc-500 sm:inline">Editor</span></div>
             <input
               value={projectName}
               onChange={(e) => { setProjectName(e.target.value); markDirty() }}
               onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
               title="Edit project name"
-              className="mt-0.5 w-24 border-0 bg-transparent p-0 text-xs text-zinc-400 outline-none hover:text-zinc-600 focus:text-zinc-800 sm:w-44"
+              className="mt-0.5 w-24 border-0 bg-transparent p-0 text-xs text-zinc-400 dark:text-zinc-500 outline-none hover:text-zinc-600 dark:hover:text-zinc-300 focus:text-zinc-800 dark:focus:text-zinc-100 sm:w-44"
             />
           </div>
         </div>
 
         <div className="hidden min-w-0 flex-1 items-center justify-center gap-2 xl:flex">
-          <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${isDirty ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
+          <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${isDirty ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400' : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400'}`}>
             <span className="h-1.5 w-1.5 rounded-full bg-current" /> {isSaving ? 'Saving…' : isDirty ? 'Unsaved changes' : 'Saved'}
           </span>
           {nodes.length > 0 && (
             <button
               onClick={toggleRealPricing}
               title="Illustrative estimate — click for real Azure pricing where available"
-              className="flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-[10px] font-semibold text-zinc-600 hover:bg-zinc-200"
+              className="flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 text-[10px] font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
             >
-              ~${estimatedMonthlyCost.toLocaleString()}/mo <span className="text-zinc-400">▾</span>
+              ~${estimatedMonthlyCost.toLocaleString()}/mo <span className="text-zinc-400 dark:text-zinc-500">▾</span>
             </button>
           )}
-          {isLoadingProject && <span className="text-[10px] text-zinc-400">Loading project…</span>}
+          {isLoadingProject && <span className="text-[10px] text-zinc-400 dark:text-zinc-500">Loading project…</span>}
           {projectId && collab.collaborators.length > 0 && (
             <span title={collab.collaborators.map((c) => c.name).join(', ') + ' also viewing this project'} className="flex items-center -space-x-1.5">
               {collab.collaborators.slice(0, 4).map((c) => (
@@ -612,8 +614,8 @@ export default function EditorPage() {
           <button onClick={history.undo} disabled={!history.canUndo} title="Undo (Ctrl+Z)" className="toolbar-icon" aria-label="Undo">↶</button>
           <button onClick={history.redo} disabled={!history.canRedo} title="Redo (Ctrl+Y)" className="toolbar-icon" aria-label="Redo">↷</button>
 
-          <div className="target-rps-box hidden items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2 xl:flex">
-            <div><p className="text-[10px] font-bold text-zinc-500">Target RPS <span className="text-zinc-300">ⓘ</span></p><input type="number" min={1} max={1000000} value={baseRps} onChange={(e) => { const value = Math.min(1000000, Math.max(1, Number(e.target.value) || 1)); setBaseRps(value); markDirty() }} className="w-20 border-0 bg-transparent p-0 text-sm font-bold text-zinc-900 outline-none" /></div>
+          <div className="target-rps-box hidden items-center gap-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 xl:flex">
+            <div><p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400">Target RPS <span className="text-zinc-300 dark:text-zinc-600">ⓘ</span></p><input type="number" min={1} max={1000000} value={baseRps} onChange={(e) => { const value = Math.min(1000000, Math.max(1, Number(e.target.value) || 1)); setBaseRps(value); markDirty() }} className="w-20 border-0 bg-transparent p-0 text-sm font-bold text-zinc-900 dark:text-zinc-50 outline-none" /></div>
             <div className="flex items-end gap-1">
               {RPS_PRESETS.map((value) => <button key={value} onClick={() => { setBaseRps(value); markDirty() }} className={`rps-preset ${baseRps === value ? 'active' : ''}`}>{value >= 1000 ? `${value / 1000}K` : value}</button>)}
             </div>
@@ -623,6 +625,7 @@ export default function EditorPage() {
             <button onClick={() => { setExportOpen((v) => !v); setTemplatesOpen(false); setHistoryOpen(false) }} className="toolbar-button">Export⌄</button>
             {exportOpen && <div className="popover-menu right-0 top-12">
               <button onClick={() => { setExportRequest((v) => v + 1); setExportOpen(false) }}>PNG image</button>
+              <button onClick={() => { setBrandedExportRequest((v) => v + 1); setExportOpen(false) }}>Branded PNG (for sharing)</button>
               <button onClick={exportJson}>JSON graph</button>
               <button onClick={exportDockerCompose}>docker-compose.yml</button>
               <button onClick={exportPdf}>PDF report</button>
@@ -639,10 +642,12 @@ export default function EditorPage() {
           <div className="relative">
             <button onClick={() => { setTemplatesOpen((v) => !v); setExportOpen(false); setHistoryOpen(false) }} className="toolbar-button hidden md:block">Templates</button>
             {templatesOpen && <div className="popover-menu right-0 top-12 w-64">
-              <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400">Start with a template</p>
-              {TEMPLATES.map((template) => <button key={template.id} onClick={() => applyTemplate(template.id)}><span className="block font-semibold text-zinc-800">{template.name}</span><span className="mt-0.5 block text-[10px] leading-relaxed text-zinc-400">{template.description}</span></button>)}
+              <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Start with a template</p>
+              {TEMPLATES.map((template) => <button key={template.id} onClick={() => applyTemplate(template.id)}><span className="block font-semibold text-zinc-800 dark:text-zinc-100">{template.name}</span><span className="mt-0.5 block text-[10px] leading-relaxed text-zinc-400 dark:text-zinc-500">{template.description}</span></button>)}
             </div>}
           </div>
+
+          <ThemeToggle className="hidden md:inline-flex" />
 
           {auth.user ? <Link to="/projects" className="toolbar-button hidden lg:block">Projects</Link> : <Link to="/login" className="toolbar-button hidden lg:block">Log in</Link>}
           <button onClick={handleSaveClick} disabled={isSaving} title="Save (Ctrl+S)" className="btn-dark rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-50">{isSaving ? 'Saving…' : 'Save'}</button>
@@ -650,38 +655,41 @@ export default function EditorPage() {
           <div className="relative lg:hidden">
             <button onClick={() => setMobileMenuOpen((v) => !v)} className="toolbar-icon" aria-label="More options">⋯</button>
             {mobileMenuOpen && <div className="popover-menu right-0 top-12 w-56 max-h-[70vh] overflow-y-auto">
-              <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400">Export</p>
+              <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Export</p>
               <button onClick={() => { setExportRequest((v) => v + 1); setMobileMenuOpen(false) }}>PNG image</button>
+              <button onClick={() => { setBrandedExportRequest((v) => v + 1); setMobileMenuOpen(false) }}>Branded PNG (for sharing)</button>
               <button onClick={() => { exportJson(); setMobileMenuOpen(false) }}>JSON graph</button>
               <button onClick={() => { exportDockerCompose(); setMobileMenuOpen(false) }}>docker-compose.yml</button>
               <button onClick={exportPdf}>PDF report</button>
-              <div className="my-1 border-t border-zinc-100" />
+              <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
               <button onClick={() => { srsFileInputRef.current?.click(); setMobileMenuOpen(false) }} disabled={isImportingSrs}>{isImportingSrs ? 'Importing…' : 'Import SRS'}</button>
               {projectId && <button onClick={() => { openHistory(); setMobileMenuOpen(false) }}>History</button>}
               {nodes.length > 0 && <button onClick={() => { setMobileMenuOpen(false); toggleRealPricing() }}>Cost estimate (~${estimatedMonthlyCost.toLocaleString()}/mo)</button>}
-              <div className="my-1 border-t border-zinc-100" />
-              <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400">Templates</p>
-              {TEMPLATES.map((template) => <button key={template.id} onClick={() => { applyTemplate(template.id); setMobileMenuOpen(false) }}><span className="block font-semibold text-zinc-800">{template.name}</span></button>)}
-              <div className="my-1 border-t border-zinc-100" />
+              <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
+              <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Templates</p>
+              {TEMPLATES.map((template) => <button key={template.id} onClick={() => { applyTemplate(template.id); setMobileMenuOpen(false) }}><span className="block font-semibold text-zinc-800 dark:text-zinc-100">{template.name}</span></button>)}
+              <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
               <button onClick={() => { if (!projectId) { setToast('Save the project first to get a share link'); setMobileMenuOpen(false); return }; navigator.clipboard.writeText(`${window.location.origin}/share/${projectId}`); setToast('Share link copied'); setMobileMenuOpen(false) }}>Share ↗</button>
               {auth.user ? <Link to="/projects" onClick={() => setMobileMenuOpen(false)}>Projects</Link> : <Link to="/login" onClick={() => setMobileMenuOpen(false)}>Log in</Link>}
+              <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
+              <div className="flex items-center justify-between px-3 py-1"><span className="text-xs text-zinc-500 dark:text-zinc-400">Appearance</span><ThemeToggle /></div>
             </div>}
           </div>
         </div>
       </header>
 
       {srsUnrecognized.length > 0 && (
-        <div className="relative z-20 flex items-center justify-between gap-3 border-b border-amber-100 bg-amber-50 px-4 py-1.5 text-xs text-amber-700 sm:px-6">
+        <div className="relative z-20 flex items-center justify-between gap-3 border-b border-amber-100 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 px-4 py-1.5 text-xs text-amber-700 dark:text-amber-400 sm:px-6">
           <span>Couldn't confidently map: <b>{srsUnrecognized.join(', ')}</b> — placed as a generic Service. Review before running.</span>
-          <button onClick={() => setSrsUnrecognized([])} className="shrink-0 text-amber-500 hover:text-amber-800">✕</button>
+          <button onClick={() => setSrsUnrecognized([])} className="shrink-0 text-amber-500 hover:text-amber-800 dark:hover:text-amber-300">✕</button>
         </div>
       )}
 
       {interviewPrompt && (
-        <div className="relative z-20 flex flex-wrap items-center justify-between gap-3 border-b border-violet-100 bg-violet-50 px-4 py-2 text-xs text-violet-800 sm:px-6">
+        <div className="relative z-20 flex flex-wrap items-center justify-between gap-3 border-b border-violet-100 dark:border-violet-900 bg-violet-50 dark:bg-violet-950/40 px-4 py-2 text-xs text-violet-800 dark:text-violet-300 sm:px-6">
           <div className="min-w-0">
             <span className="font-semibold">{interviewPrompt.title}</span>
-            <span className="ml-2 text-violet-500">{interviewPrompt.brief}</span>
+            <span className="ml-2 text-violet-500 dark:text-violet-400">{interviewPrompt.brief}</span>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <button
@@ -706,16 +714,16 @@ export default function EditorPage() {
             >
               {isGrading ? 'Grading…' : 'Submit for grading'}
             </button>
-            <button onClick={() => setInterviewPrompt(null)} className="text-violet-400 hover:text-violet-700">✕</button>
+            <button onClick={() => setInterviewPrompt(null)} className="text-violet-400 hover:text-violet-700 dark:hover:text-violet-200">✕</button>
           </div>
         </div>
       )}
       {gradingError && (
-        <div className="relative z-20 border-b border-red-100 bg-red-50 px-4 py-1.5 text-xs text-red-600 sm:px-6">{gradingError}</div>
+        <div className="relative z-20 border-b border-red-100 dark:border-red-900 bg-red-50 dark:bg-red-950/40 px-4 py-1.5 text-xs text-red-600 dark:text-red-400 sm:px-6">{gradingError}</div>
       )}
 
       <div className="flex min-h-0 flex-1">
-        {isLoadingProject && <div className="absolute inset-0 z-40 flex items-center justify-center bg-white/60 backdrop-blur-sm"><div className="rounded-full bg-white px-4 py-2 text-sm text-zinc-500 shadow-lg">Loading project…</div></div>}
+        {isLoadingProject && <div className="absolute inset-0 z-40 flex items-center justify-center bg-white/60 dark:bg-zinc-950/60 backdrop-blur-sm"><div className="rounded-full bg-white dark:bg-zinc-800 px-4 py-2 text-sm text-zinc-500 dark:text-zinc-400 shadow-lg">Loading project…</div></div>}
         <Canvas
           nodes={nodes}
           edges={edges}
@@ -729,6 +737,9 @@ export default function EditorPage() {
           setFailures={setFailures}
           focusRequest={focusRequest}
           exportRequest={exportRequest}
+          brandedExportRequest={brandedExportRequest}
+          projectName={projectName}
+          estimatedMonthlyCost={estimatedMonthlyCost}
           onSelectionChange={setSelectedNodeId}
           onDirty={markDirty}
           hideSidebar={!!analysis}
@@ -745,41 +756,41 @@ export default function EditorPage() {
       </div>
 
       {interviewGrade && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 p-4 backdrop-blur-sm" onClick={() => setInterviewGrade(null)}>
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 dark:bg-black/50 p-4 backdrop-blur-sm" onClick={() => setInterviewGrade(null)}>
+          <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-violet-500">Grading result</p>
-                <h3 className="mt-0.5 text-2xl font-bold text-zinc-900">{interviewGrade.overallScore}<span className="text-sm font-medium text-zinc-400">/100</span></h3>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-violet-500 dark:text-violet-400">Grading result</p>
+                <h3 className="mt-0.5 text-2xl font-bold text-zinc-900 dark:text-zinc-50">{interviewGrade.overallScore}<span className="text-sm font-medium text-zinc-400 dark:text-zinc-500">/100</span></h3>
               </div>
-              <button onClick={() => setInterviewGrade(null)} className="text-zinc-400 hover:text-zinc-700">✕</button>
+              <button onClick={() => setInterviewGrade(null)} className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200">✕</button>
             </div>
             {!interviewGrade.aiEnabled && (
-              <p className="mt-2 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-700">Rule-based estimate only — AI grading wasn't available for this run.</p>
+              <p className="mt-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1.5 text-[11px] text-amber-700 dark:text-amber-400">Rule-based estimate only — AI grading wasn't available for this run.</p>
             )}
-            <p className="mt-3 text-sm text-zinc-600">{interviewGrade.summary}</p>
+            <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">{interviewGrade.summary}</p>
 
             <div className="mt-4 space-y-2">
               {interviewGrade.categories.map((c) => (
                 <div key={c.name}>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-medium text-zinc-700">{c.name}</span>
-                    <span className="text-zinc-500">{c.score}/{c.maxScore}</span>
+                    <span className="font-medium text-zinc-700 dark:text-zinc-300">{c.name}</span>
+                    <span className="text-zinc-500 dark:text-zinc-400">{c.score}/{c.maxScore}</span>
                   </div>
-                  <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
+                  <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
                     <div className="h-full rounded-full bg-violet-500" style={{ width: `${(c.score / c.maxScore) * 100}%` }} />
                   </div>
-                  <p className="mt-1 text-[11px] text-zinc-400">{c.feedback}</p>
+                  <p className="mt-1 text-[11px] text-zinc-400 dark:text-zinc-500">{c.feedback}</p>
                 </div>
               ))}
             </div>
 
             {interviewGrade.improvements.length > 0 && (
-              <div className="mt-4 rounded-xl bg-zinc-50 p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Next steps</p>
+              <div className="mt-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Next steps</p>
                 <ul className="mt-1.5 space-y-1">
                   {interviewGrade.improvements.map((imp) => (
-                    <li key={imp} className="text-xs text-zinc-600">· {imp}</li>
+                    <li key={imp} className="text-xs text-zinc-600 dark:text-zinc-400">· {imp}</li>
                   ))}
                 </ul>
               </div>
@@ -789,28 +800,31 @@ export default function EditorPage() {
       )}
 
       {realPricingOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 p-4 backdrop-blur-sm" onClick={() => setRealPricingOpen(false)}>
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 dark:bg-black/50 p-4 backdrop-blur-sm" onClick={() => setRealPricingOpen(false)}>
+          <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-zinc-900">Cost breakdown</h3>
-              <button onClick={() => setRealPricingOpen(false)} className="text-zinc-400 hover:text-zinc-700">✕</button>
+              <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Cost breakdown</h3>
+              <button onClick={() => setRealPricingOpen(false)} className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200">✕</button>
             </div>
-            {isLoadingRealPricing && <p className="mt-3 text-xs text-zinc-400">Fetching real Azure pricing…</p>}
-            {realPricingError && <p className="mt-3 text-xs text-red-500">{realPricingError} — showing illustrative only.</p>}
+            {isLoadingRealPricing && <p className="mt-3 text-xs text-zinc-400 dark:text-zinc-500">Fetching real Azure pricing…</p>}
+            {realPricingError && <p className="mt-3 text-xs text-red-500 dark:text-red-400">{realPricingError} — showing illustrative only.</p>}
             {!isLoadingRealPricing && realPricing && (
               <>
                 <div className="mt-3">
-                  <p className="text-xl font-bold text-zinc-900">${realPricing.totalMonthlyCostUsd.toFixed(2)}<span className="text-sm font-medium text-zinc-400">/mo</span></p>
-                  <p className="mt-0.5 text-[11px] text-zinc-400">Mixing real Azure prices ({realPricing.region}) where verified, illustrative elsewhere</p>
+                  <p className="text-xl font-bold text-zinc-900 dark:text-zinc-50">${realPricing.totalMonthlyCostUsd.toFixed(2)}<span className="text-sm font-medium text-zinc-400 dark:text-zinc-500">/mo</span></p>
+                  <p className="mt-0.5 text-[11px] text-zinc-400 dark:text-zinc-500">Mixing real Azure prices ({realPricing.region}) where verified, illustrative elsewhere</p>
                 </div>
-                <div className="mt-3 max-h-56 space-y-0.5 overflow-y-auto rounded-xl border border-zinc-100 py-1">
+                <div className="mt-3 max-h-64 space-y-1 overflow-y-auto rounded-xl border border-zinc-100 dark:border-zinc-800 p-1">
                   {realPricing.nodes.map((n) => (
-                    <div key={n.id} className="flex items-center justify-between px-3 py-1.5 text-xs">
-                      <span className="truncate text-zinc-600">{n.id}</span>
-                      <span className="flex items-center gap-1.5 shrink-0">
-                        <span className={`rounded-full px-1.5 py-0.5 text-[8px] font-semibold uppercase ${n.source === 'real' ? 'bg-emerald-50 text-emerald-600' : 'bg-zinc-100 text-zinc-400'}`}>{n.source}</span>
-                        <span className="font-medium text-zinc-700">${n.monthlyCostUsd.toFixed(2)}</span>
-                      </span>
+                    <div key={n.id} className="rounded-lg px-2.5 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="truncate text-zinc-600 dark:text-zinc-300">{n.id}</span>
+                        <span className="flex items-center gap-1.5 shrink-0">
+                          <span className={`rounded-full px-1.5 py-0.5 text-[8px] font-semibold uppercase ${n.source === 'real' ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500'}`}>{n.source}</span>
+                          <span className="font-medium text-zinc-700 dark:text-zinc-300">${n.monthlyCostUsd.toFixed(2)}</span>
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-[10px] leading-snug text-zinc-400 dark:text-zinc-500">{n.note}</p>
                     </div>
                   ))}
                 </div>
@@ -821,20 +835,20 @@ export default function EditorPage() {
       )}
 
       {historyOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 p-4 backdrop-blur-sm" onClick={() => setHistoryOpen(false)}>
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 dark:bg-black/50 p-4 backdrop-blur-sm" onClick={() => setHistoryOpen(false)}>
+          <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-zinc-900">Version history</h3>
-              <button onClick={() => setHistoryOpen(false)} className="text-zinc-400 hover:text-zinc-700">✕</button>
+              <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Version history</h3>
+              <button onClick={() => setHistoryOpen(false)} className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200">✕</button>
             </div>
-            <p className="mt-1 text-xs text-zinc-400">Every save keeps the last 10 versions. Restoring one is itself undoable.</p>
+            <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">Every save keeps the last 10 versions. Restoring one is itself undoable.</p>
             <div className="mt-4 max-h-72 space-y-1 overflow-y-auto">
-              {isLoadingVersions && <p className="py-2 text-xs text-zinc-400">Loading…</p>}
-              {!isLoadingVersions && versions.length === 0 && <p className="py-2 text-xs text-zinc-400">No previous versions yet — saves create one automatically.</p>}
+              {isLoadingVersions && <p className="py-2 text-xs text-zinc-400 dark:text-zinc-500">Loading…</p>}
+              {!isLoadingVersions && versions.length === 0 && <p className="py-2 text-xs text-zinc-400 dark:text-zinc-500">No previous versions yet — saves create one automatically.</p>}
               {!isLoadingVersions && versions.map((v) => (
-                <button key={v.id} onClick={() => handleRestoreVersion(v.id)} disabled={restoringVersionId === v.id} className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-sm hover:bg-zinc-50 disabled:opacity-50">
-                  <span className="text-zinc-700">{new Date(v.createdAt).toLocaleString()}</span>
-                  <span className="text-[10px] font-semibold text-violet-600">{restoringVersionId === v.id ? 'Restoring…' : 'Restore'}</span>
+                <button key={v.id} onClick={() => handleRestoreVersion(v.id)} disabled={restoringVersionId === v.id} className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-50">
+                  <span className="text-zinc-700 dark:text-zinc-300">{new Date(v.createdAt).toLocaleString()}</span>
+                  <span className="text-[10px] font-semibold text-violet-600 dark:text-violet-400">{restoringVersionId === v.id ? 'Restoring…' : 'Restore'}</span>
                 </button>
               ))}
             </div>
@@ -846,33 +860,33 @@ export default function EditorPage() {
         const targetNode = nodes.find((n) => n.id === commentNodeId)
         const threadComments = comments.filter((c) => c.nodeId === commentNodeId)
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 p-4 backdrop-blur-sm" onClick={() => setCommentNodeId(null)}>
-            <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 dark:bg-black/50 p-4 backdrop-blur-sm" onClick={() => setCommentNodeId(null)}>
+            <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-base font-semibold text-zinc-900">Comments</h3>
-                  <p className="mt-0.5 text-xs text-zinc-400">{targetNode?.data.label ?? commentNodeId}</p>
+                  <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Comments</h3>
+                  <p className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">{targetNode?.data.label ?? commentNodeId}</p>
                 </div>
-                <button onClick={() => setCommentNodeId(null)} className="text-zinc-400 hover:text-zinc-700">✕</button>
+                <button onClick={() => setCommentNodeId(null)} className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200">✕</button>
               </div>
 
               <div className="mt-4 max-h-64 space-y-3 overflow-y-auto">
-                {threadComments.length === 0 && <p className="py-2 text-xs text-zinc-400">No comments yet — leave a note for later, or for anyone reviewing this design.</p>}
+                {threadComments.length === 0 && <p className="py-2 text-xs text-zinc-400 dark:text-zinc-500">No comments yet — leave a note for later, or for anyone reviewing this design.</p>}
                 {threadComments.map((c) => (
-                  <div key={c.id} className="group rounded-lg bg-zinc-50 px-3 py-2">
+                  <div key={c.id} className="group rounded-lg bg-zinc-50 dark:bg-zinc-800/60 px-3 py-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-zinc-700">{c.authorName}</span>
+                      <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">{c.authorName}</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-zinc-400">{new Date(c.createdAt).toLocaleString()}</span>
-                        <button onClick={() => removeComment(c.id)} className="text-[10px] text-red-400 opacity-0 hover:text-red-600 group-hover:opacity-100">Delete</button>
+                        <span className="text-[10px] text-zinc-400 dark:text-zinc-500">{new Date(c.createdAt).toLocaleString()}</span>
+                        <button onClick={() => removeComment(c.id)} className="text-[10px] text-red-400 opacity-0 hover:text-red-600 dark:hover:text-red-400 group-hover:opacity-100">Delete</button>
                       </div>
                     </div>
-                    <p className="mt-1 text-sm text-zinc-700">{c.text}</p>
+                    <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">{c.text}</p>
                   </div>
                 ))}
               </div>
 
-              {commentsError && <p className="mt-2 text-xs text-red-500">{commentsError}</p>}
+              {commentsError && <p className="mt-2 text-xs text-red-500 dark:text-red-400">{commentsError}</p>}
 
               <div className="mt-4 flex gap-2">
                 <input
@@ -882,7 +896,7 @@ export default function EditorPage() {
                   value={commentDraft}
                   onChange={(e) => setCommentDraft(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && submitComment()}
-                  className="flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800 outline-none focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
+                  className="flex-1 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-800 dark:text-zinc-100 outline-none focus:border-violet-400 focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-900/40"
                 />
                 <button onClick={submitComment} disabled={!commentDraft.trim() || isPostingComment} className="btn-dark rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-50">
                   {isPostingComment ? '…' : 'Post'}
@@ -933,8 +947,8 @@ export default function EditorPage() {
         )
       })()}
 
-      <footer className="simulation-footer relative z-30 border-t border-zinc-200 bg-white px-4 py-2.5 shadow-[0_-4px_20px_rgba(0,0,0,0.04)] sm:px-5">
-        <div className="flex min-w-0 flex-wrap items-center gap-3 xl:flex-nowrap">
+      <footer className="simulation-footer relative z-30 overflow-x-hidden border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-2.5 shadow-[0_-4px_20px_rgba(0,0,0,0.04)] sm:px-5">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <button onClick={handleRun} disabled={!canRun} className="run-button"><span>{sim.isPlaying ? '▶' : '▶'}</span> {sim.isPlaying ? 'Running' : sim.result ? 'Resume' : sim.isRunning ? 'Starting…' : 'Run'}<small>Ctrl + Enter</small></button>
             {sim.isPlaying && <button onClick={sim.pause} className="simulation-secondary">Pause</button>}
@@ -949,23 +963,23 @@ export default function EditorPage() {
           <div className="relative">
             <button onClick={() => setChaosOpen((v) => !v)} className={`chaos-button ${failures.length > 0 ? 'active' : ''}`}>⚡ Chaos {failures.length > 0 && <b>{failures.length}</b>}</button>
             {chaosOpen && <div className="chaos-popover">
-              <div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Chaos engineering</p><p className="mt-0.5 text-xs font-semibold text-zinc-900">Inject a controlled failure</p></div><button onClick={() => setChaosOpen(false)} className="text-zinc-400">✕</button></div>
+              <div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Chaos engineering</p><p className="mt-0.5 text-xs font-semibold text-zinc-900 dark:text-zinc-50">Inject a controlled failure</p></div><button onClick={() => setChaosOpen(false)} className="text-zinc-400 dark:text-zinc-500">✕</button></div>
               <div className="mt-3 grid grid-cols-2 gap-1.5">{CHAOS_TYPES.map(({ type, label, Icon }) => <button key={type} onClick={() => setChaosType(type)} className={`chaos-option ${chaosType === type ? 'active' : ''}`}><Icon width={14} height={14} />{label}</button>)}</div>
-              <label className="mt-3 block text-[10px] font-semibold uppercase tracking-wide text-zinc-400">{chaosType === 'dropPct' ? 'Select edge' : 'Select node'}
-                <select value={chaosTarget} onChange={(e) => setChaosTarget(e.target.value)} className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-2.5 py-2 text-xs text-zinc-700 outline-none focus:border-violet-400">
+              <label className="mt-3 block text-[10px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{chaosType === 'dropPct' ? 'Select edge' : 'Select node'}
+                <select value={chaosTarget} onChange={(e) => setChaosTarget(e.target.value)} className="mt-1.5 w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-2.5 py-2 text-xs text-zinc-700 dark:text-zinc-200 outline-none focus:border-violet-400">
                   {chaosTargetOptions.length === 0 && <option value="">No targets available</option>}
                   {chaosTargetOptions.map((item) => <option key={item.id} value={item.id}>{chaosType === 'dropPct' && 'source' in item ? `${item.source} → ${item.target}` : nodes.find((n) => n.id === item.id)?.data.label}</option>)}
                 </select>
               </label>
-              {chaosType === 'latency' && <label className="mt-2 block text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Latency (ms)<input type="number" min={1} value={chaosLatency} onChange={(e) => setChaosLatency(Number(e.target.value))} className="mt-1.5 w-full rounded-lg border border-zinc-200 px-2.5 py-2 text-xs" /></label>}
-              {chaosType === 'dropPct' && <label className="mt-2 block text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Drop packets (%)<input type="number" min={1} max={100} value={chaosDrop} onChange={(e) => setChaosDrop(Number(e.target.value))} className="mt-1.5 w-full rounded-lg border border-zinc-200 px-2.5 py-2 text-xs" /></label>}
-              {chaosType === 'throttle' && <label className="mt-2 block text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Reduce capacity (%)<input type="number" min={1} max={100} value={chaosThrottle} onChange={(e) => setChaosThrottle(Number(e.target.value))} className="mt-1.5 w-full rounded-lg border border-zinc-200 px-2.5 py-2 text-xs" /></label>}
-              <button onClick={injectChaos} disabled={!chaosTarget} className="mt-3 w-full rounded-lg bg-zinc-900 px-3 py-2 text-xs font-semibold text-white hover:bg-zinc-700 disabled:opacity-40">Inject Failure</button>
-              {failures.length > 0 && <button onClick={() => { setFailures([]); setIsDirty(true) }} className="mt-2 w-full text-[10px] font-semibold text-red-500">Clear all failures</button>}
+              {chaosType === 'latency' && <label className="mt-2 block text-[10px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Latency (ms)<input type="number" min={1} value={chaosLatency} onChange={(e) => setChaosLatency(Number(e.target.value))} className="mt-1.5 w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-2.5 py-2 text-xs text-zinc-800 dark:text-zinc-100" /></label>}
+              {chaosType === 'dropPct' && <label className="mt-2 block text-[10px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Drop packets (%)<input type="number" min={1} max={100} value={chaosDrop} onChange={(e) => setChaosDrop(Number(e.target.value))} className="mt-1.5 w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-2.5 py-2 text-xs text-zinc-800 dark:text-zinc-100" /></label>}
+              {chaosType === 'throttle' && <label className="mt-2 block text-[10px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Reduce capacity (%)<input type="number" min={1} max={100} value={chaosThrottle} onChange={(e) => setChaosThrottle(Number(e.target.value))} className="mt-1.5 w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-2.5 py-2 text-xs text-zinc-800 dark:text-zinc-100" /></label>}
+              <button onClick={injectChaos} disabled={!chaosTarget} className="mt-3 w-full rounded-lg bg-zinc-900 dark:bg-zinc-100 px-3 py-2 text-xs font-semibold text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-300 disabled:opacity-40">Inject Failure</button>
+              {failures.length > 0 && <button onClick={() => { setFailures([]); setIsDirty(true) }} className="mt-2 w-full text-[10px] font-semibold text-red-500 dark:text-red-400">Clear all failures</button>}
             </div>}
           </div>
 
-          <div className="live-metrics ml-auto flex min-w-[310px] items-center gap-5 rounded-xl border border-zinc-100 bg-zinc-50/70 px-4 py-2">
+          <div className="live-metrics ml-auto flex min-w-[310px] items-center gap-5 rounded-xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/40 px-4 py-2">
             <div><span>RPS</span><b>{Math.round(global?.rps ?? 0).toLocaleString()}</b></div>
             <div><span>p95 latency</span><b>{Math.round(global?.p95 ?? 0)}ms</b></div>
             <div><span>Error rate</span><b className={(global?.errorRatePct ?? 0) >= 5 ? 'bad' : ''}>{(global?.errorRatePct ?? 0).toFixed(1)}%</b></div>
@@ -974,26 +988,26 @@ export default function EditorPage() {
 
           <button onClick={handleAnalyze} disabled={nodes.length === 0 || isAnalyzing} className="analyze-button">✨ <span>{isAnalyzing ? 'Analyzing…' : 'Analyze'}</span><small>AI Analysis</small></button>
         </div>
-        {sim.error && <p className="mt-1 text-xs text-red-500">{sim.error}</p>}
+        {sim.error && <p className="mt-1 text-xs text-red-500 dark:text-red-400">{sim.error}</p>}
       </footer>
 
-      <div className="shortcut-strip hidden items-center justify-center gap-5 border-t border-zinc-100 bg-white px-4 py-1.5 text-[9px] text-zinc-400 lg:flex">
+      <div className="shortcut-strip hidden items-center justify-center gap-5 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-1.5 text-[9px] text-zinc-400 dark:text-zinc-500 lg:flex">
         <span><kbd>Delete</kbd> Delete node</span><span><kbd>Ctrl + Z</kbd> Undo</span><span><kbd>Ctrl + Y</kbd> Redo</span><span><kbd>Ctrl + S</kbd> Save</span><span><kbd>Ctrl + A</kbd> Select all</span><span><kbd>Drag</kbd> Pan · <kbd>Scroll</kbd> Pan · <kbd>Ctrl + Scroll</kbd> Zoom</span><span><kbd>Esc</kbd> Cancel connection</span>
       </div>
 
       {showSaveDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 p-4 backdrop-blur-sm" onClick={() => setShowSaveDialog(false)}>
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-base font-semibold text-zinc-900">Save project</h3>
-            <p className="mt-1 text-xs text-zinc-400">Give this architecture a name so you can return to it later.</p>
-            <input autoFocus type="text" placeholder="Project name" value={saveDraftName} onChange={(e) => setSaveDraftName(e.target.value)} className="mt-4 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-800 outline-none focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100" />
-            {saveError && <p className="mt-2 text-xs text-red-500">{saveError}</p>}
-            <div className="mt-4 flex justify-end gap-2"><button onClick={() => setShowSaveDialog(false)} className="rounded-xl px-3 py-2 text-sm text-zinc-500 hover:bg-zinc-50">Cancel</button><button onClick={() => saveDraftName.trim() && performSave(saveDraftName.trim())} disabled={!saveDraftName.trim() || isSaving} className="btn-dark rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-50">{isSaving ? 'Saving…' : 'Save'}</button></div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 dark:bg-black/50 p-4 backdrop-blur-sm" onClick={() => setShowSaveDialog(false)}>
+          <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Save project</h3>
+            <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">Give this architecture a name so you can return to it later.</p>
+            <input autoFocus type="text" placeholder="Project name" value={saveDraftName} onChange={(e) => setSaveDraftName(e.target.value)} className="mt-4 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2.5 text-sm text-zinc-800 dark:text-zinc-100 outline-none focus:border-violet-400 focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-900/40" />
+            {saveError && <p className="mt-2 text-xs text-red-500 dark:text-red-400">{saveError}</p>}
+            <div className="mt-4 flex justify-end gap-2"><button onClick={() => setShowSaveDialog(false)} className="rounded-xl px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800">Cancel</button><button onClick={() => saveDraftName.trim() && performSave(saveDraftName.trim())} disabled={!saveDraftName.trim() || isSaving} className="btn-dark rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-50">{isSaving ? 'Saving…' : 'Save'}</button></div>
           </div>
         </div>
       )}
 
-      {toast && <div className="fixed bottom-28 left-1/2 z-50 -translate-x-1/2 rounded-full bg-zinc-900 px-4 py-2 text-xs font-medium text-white shadow-xl">{toast}</div>}
+      {toast && <div className="fixed bottom-28 left-1/2 z-50 -translate-x-1/2 rounded-full bg-zinc-900 dark:bg-zinc-100 px-4 py-2 text-xs font-medium text-white dark:text-zinc-900 shadow-xl">{toast}</div>}
     </div>
   )
 }

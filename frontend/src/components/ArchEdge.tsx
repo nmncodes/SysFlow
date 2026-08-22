@@ -100,10 +100,10 @@ export default function ArchEdge({
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
             }}
-            className="pointer-events-none flex items-center gap-1 rounded-full border border-zinc-200 bg-white/95 px-2 py-1 text-[10px] font-semibold text-zinc-600 shadow-sm backdrop-blur-sm"
+            className="pointer-events-none flex items-center gap-1 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white/95 dark:bg-zinc-900/95 px-2 py-1 text-[10px] font-semibold text-zinc-600 dark:text-zinc-300 shadow-sm backdrop-blur-sm"
           >
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: strokeColor }} />
-            {hasFailure && <span className="text-red-500">Failed ·</span>}
+            {hasFailure && <span className="text-red-500 dark:text-red-400">Failed ·</span>}
             {formatRps(rps)} rps · {Math.round(latency)}ms
           </div>
         </EdgeLabelRenderer>

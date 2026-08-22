@@ -21,7 +21,7 @@ interface Props {
 }
 
 const itemClass =
-  'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-zinc-700 transition-colors hover:bg-zinc-50'
+  'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-zinc-700 dark:text-zinc-200 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800'
 
 export default function ContextMenu({ state, hasFailure, onKill, onLatency, onThrottle, onDropPackets, onClear, onClose, onCompare }: Props) {
   const ref = useRef<HTMLDivElement>(null)
@@ -42,7 +42,7 @@ export default function ContextMenu({ state, hasFailure, onKill, onLatency, onTh
     <div
       ref={ref}
       style={{ left: state.x, top: state.y }}
-      className="fixed z-50 w-56 rounded-xl border border-zinc-100 bg-white p-1.5 shadow-xl"
+      className="fixed z-50 w-56 rounded-xl border border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-1.5 shadow-xl"
     >
       {state.targetType === 'node' ? (
         <>
@@ -60,7 +60,7 @@ export default function ContextMenu({ state, hasFailure, onKill, onLatency, onTh
           </button>
           {onCompare && (
             <>
-              <div className="my-1 h-px bg-zinc-100" />
+              <div className="my-1 h-px bg-zinc-100 dark:bg-zinc-800" />
               <button onClick={onCompare} className={itemClass}>
                 <span className="w-4 text-center text-violet-500">⇄</span>
                 Compare alternative…

@@ -55,16 +55,16 @@ export default function Palette({ onAdd, mobileOpen = false, onCloseMobile }: Pr
 
   return (
     <>
-      {mobileOpen && <div className="fixed inset-0 z-30 bg-zinc-900/20 md:hidden" onClick={onCloseMobile} />}
+      {mobileOpen && <div className="fixed inset-0 z-30 bg-zinc-900/20 dark:bg-black/50 md:hidden" onClick={onCloseMobile} />}
       <aside
-        className={`component-sidebar fixed inset-x-0 bottom-0 z-40 flex h-[70vh] flex-col rounded-t-2xl border-t border-zinc-200 bg-white shadow-2xl transition-transform md:static md:z-auto md:h-full md:w-[276px] md:shrink-0 md:translate-y-0 md:rounded-none md:border-t-0 md:border-l md:shadow-none ${mobileOpen ? 'translate-y-0' : 'translate-y-full'}`}
+        className={`component-sidebar fixed inset-x-0 bottom-0 z-40 flex h-[70vh] flex-col rounded-t-2xl border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl transition-transform md:static md:z-auto md:h-full md:w-[276px] md:shrink-0 md:translate-y-0 md:rounded-none md:border-t-0 md:border-l md:shadow-none ${mobileOpen ? 'translate-y-0' : 'translate-y-full'}`}
       >
-      <div className="border-b border-zinc-100 p-4">
+      <div className="border-b border-zinc-100 dark:border-zinc-800 p-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">Components</h2>
+          <h2 className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Components</h2>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-zinc-300">{COMPONENT_LIBRARY.length}</span>
-            <button onClick={onCloseMobile} className="rounded-lg px-2 py-1 text-zinc-400 hover:bg-zinc-50 hover:text-zinc-700 md:hidden">✕</button>
+            <span className="text-[10px] text-zinc-300 dark:text-zinc-600">{COMPONENT_LIBRARY.length}</span>
+            <button onClick={onCloseMobile} className="rounded-lg px-2 py-1 text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-200 md:hidden">✕</button>
           </div>
         </div>
         <div className="relative mt-3">
@@ -73,9 +73,9 @@ export default function Palette({ onAdd, mobileOpen = false, onCloseMobile }: Pr
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search components..."
             title="Search by component name, DB, storage, API, etc."
-            className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 pr-16 text-xs text-zinc-700 outline-none transition focus:border-violet-300 focus:bg-white focus:ring-2 focus:ring-violet-100"
+            className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2.5 pr-16 text-xs text-zinc-700 dark:text-zinc-200 outline-none transition focus:border-violet-300 focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-900/40"
           />
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md bg-white px-1.5 py-1 text-[9px] text-zinc-400 shadow-sm">Ctrl K</span>
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md bg-white dark:bg-zinc-900 px-1.5 py-1 text-[9px] text-zinc-400 dark:text-zinc-500 shadow-sm">Ctrl K</span>
         </div>
       </div>
 
@@ -83,8 +83,8 @@ export default function Palette({ onAdd, mobileOpen = false, onCloseMobile }: Pr
         {!query && recentlyUsed.length > 0 && (
           <div className="mb-5">
             <div className="mb-2 flex items-center justify-between px-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-violet-500">Recently used</span>
-              <span className="text-[9px] text-zinc-300">{recentlyUsed.length}</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-violet-500 dark:text-violet-400">Recently used</span>
+              <span className="text-[9px] text-zinc-300 dark:text-zinc-600">{recentlyUsed.length}</span>
             </div>
             <div className="grid grid-cols-4 gap-1.5">
               {recentlyUsed.map((component) => {
@@ -103,8 +103,8 @@ export default function Palette({ onAdd, mobileOpen = false, onCloseMobile }: Pr
           return (
             <div key={category} className="mb-4">
               <button onClick={() => setCollapsed((current) => ({ ...current, [category]: !current[category] }))} className="mb-2 flex w-full items-center justify-between px-1 text-left">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{category}</span>
-                <span className="text-[10px] text-zinc-300">{isCollapsed ? '+' : '⌃'} {items.length}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{category}</span>
+                <span className="text-[10px] text-zinc-300 dark:text-zinc-600">{isCollapsed ? '+' : '⌃'} {items.length}</span>
               </button>
               {!isCollapsed && (
                 <div className="grid grid-cols-3 gap-1.5">
@@ -121,7 +121,7 @@ export default function Palette({ onAdd, mobileOpen = false, onCloseMobile }: Pr
                         className={`component-card group ${dragging === component.type ? 'component-dragging' : ''}`}
                       >
                         <span className="component-icon"><Icon width={16} height={16} /></span>
-                        <span className="line-clamp-2 text-[10px] font-semibold leading-tight text-zinc-600">{component.label}</span>
+                        <span className="line-clamp-2 text-[10px] font-semibold leading-tight text-zinc-600 dark:text-zinc-300">{component.label}</span>
                       </div>
                     )
                   })}
@@ -131,7 +131,7 @@ export default function Palette({ onAdd, mobileOpen = false, onCloseMobile }: Pr
           )
         })}
 
-        {filtered.length === 0 && <p className="rounded-xl bg-zinc-50 p-4 text-xs text-zinc-400">No components match “{query}”. Try DB, storage, cache, API or queue.</p>}
+        {filtered.length === 0 && <p className="rounded-xl bg-zinc-50 dark:bg-zinc-800 p-4 text-xs text-zinc-400 dark:text-zinc-500">No components match “{query}”. Try DB, storage, cache, API or queue.</p>}
       </div>
       </aside>
     </>

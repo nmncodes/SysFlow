@@ -11,6 +11,7 @@ import {
 } from '../components/icons'
 import { useInView } from '../lib/useInView'
 import logo from '../assets/logo.png'
+import ThemeToggle from '../components/ThemeToggle'
 
 const BLUE = '#12b8d4'
 
@@ -47,7 +48,7 @@ const TEMPLATES = [
 ]
 
 const NAV_LINK =
-  'group relative text-[16px] font-semibold text-zinc-500 transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.04] hover:text-[#079fbb]'
+  'group relative text-[16px] font-semibold text-zinc-500 dark:text-zinc-400 transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.04] hover:text-[#079fbb] dark:hover:text-[#5fd2e6]'
 
 function CircuitBackdrop({
   variant = 'grid',
@@ -162,12 +163,12 @@ function PreviewNode({
 }) {
   return (
     <div
-      className={`absolute z-10 w-[132px] -translate-x-1/2 rounded-2xl border bg-white/96 p-4 shadow-[0_14px_32px_-16px_rgba(15,23,42,0.35)] backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1 ${
+      className={`absolute z-10 w-[132px] -translate-x-1/2 rounded-2xl border bg-white/96 dark:bg-zinc-900/96 p-4 shadow-[0_14px_32px_-16px_rgba(15,23,42,0.35)] backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1 ${
         critical
-          ? 'border-red-200 shadow-[0_16px_36px_-16px_rgba(239,68,68,0.25)]'
+          ? 'border-red-200 dark:border-red-800 shadow-[0_16px_36px_-16px_rgba(239,68,68,0.25)]'
           : accent
-            ? 'border-[#8de3ee] shadow-[0_16px_36px_-18px_rgba(18,184,212,0.22)]'
-            : 'border-zinc-200'
+            ? 'border-[#8de3ee] dark:border-[#1f5b66] shadow-[0_16px_36px_-18px_rgba(18,184,212,0.22)]'
+            : 'border-zinc-200 dark:border-zinc-700'
       }`}
       style={{ left, top }}
     >
@@ -175,27 +176,27 @@ function PreviewNode({
         <span
           className={`flex h-11 w-11 items-center justify-center rounded-xl ${
             critical
-              ? 'bg-red-50 text-red-500'
+              ? 'bg-red-50 dark:bg-red-950/50 text-red-500'
               : accent
-                ? 'bg-[#e8faff] text-[#079fbb]'
-                : 'bg-zinc-50 text-zinc-700'
+                ? 'bg-[#e8faff] dark:bg-[#122f36] text-[#079fbb] dark:text-[#5fd2e6]'
+                : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
           }`}
         >
           <Icon width={22} height={22} />
         </span>
 
         <span
-          className={`h-3 w-3 rounded-full border-2 border-white ${
+          className={`h-3 w-3 rounded-full border-2 border-white dark:border-zinc-900 ${
             critical ? 'live-dot bg-red-500' : 'bg-emerald-500'
           }`}
         />
       </div>
 
-      <div className="mt-3 truncate text-[14px] font-bold text-zinc-800">
+      <div className="mt-3 truncate text-[14px] font-bold text-zinc-800 dark:text-zinc-100">
         {label}
       </div>
 
-      <div className={`mt-1 text-[11px] ${critical ? 'text-red-500' : 'text-zinc-400'}`}>
+      <div className={`mt-1 text-[11px] ${critical ? 'text-red-500' : 'text-zinc-400 dark:text-zinc-500'}`}>
         {meta}
       </div>
     </div>
@@ -209,12 +210,12 @@ export default function LandingPage() {
   const cta = useInView<HTMLDivElement>()
 
   return (
-    <div className="min-h-screen bg-[#fafdfe] text-zinc-900 antialiased">
-      <header className="sticky top-0 z-50 border-b border-zinc-200/70 bg-white/88 backdrop-blur-xl">
+    <div className="min-h-screen bg-[#fafdfe] dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 antialiased">
+      <header className="sticky top-0 z-50 border-b border-zinc-200/70 dark:border-zinc-800 bg-white/88 dark:bg-zinc-950/88 backdrop-blur-xl">
         <div className="mx-auto flex h-[76px] max-w-6xl items-center justify-between px-6">
           <Link to="/" className="flex items-center gap-3" aria-label="SysFlow home">
             <img src={logo} alt="SysFlow" className="h-12 w-12 object-contain" />
-            <span className="text-[23px] font-bold tracking-[-0.035em] text-[#0f172a]">
+            <span className="text-[23px] font-bold tracking-[-0.035em] text-[#0f172a] dark:text-zinc-50">
               SysFlow
             </span>
           </Link>
@@ -246,39 +247,42 @@ export default function LandingPage() {
             </Link>
           </nav>
 
-          <Link
-            to="/app"
-            className="btn-dark inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[14px] font-semibold transition-all hover:-translate-y-0.5"
-          >
-            Open Editor
-            <span aria-hidden>→</span>
-          </Link>
+          <div className="flex items-center gap-4">
+            <ThemeToggle />
+            <Link
+              to="/app"
+              className="btn-dark inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[14px] font-semibold transition-all hover:-translate-y-0.5"
+            >
+              Open Editor
+              <span aria-hidden>→</span>
+            </Link>
+          </div>
         </div>
       </header>
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-[#fbfeff] px-6 pb-20 pt-14 sm:pt-16">
+      <section className="relative overflow-hidden bg-[#fbfeff] dark:bg-zinc-950 px-6 pb-20 pt-14 sm:pt-16">
         <CircuitBackdrop variant="grid" className="opacity-75" />
 
         <div className="relative z-10 mx-auto max-w-6xl text-center">
-          <div className="hero-in inline-flex items-center gap-2 rounded-full border border-[#b8edf4] bg-white/85 px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.13em] text-[#079fbb] shadow-[0_8px_24px_-18px_rgba(18,184,212,0.8)] backdrop-blur-sm">
+          <div className="hero-in inline-flex items-center gap-2 rounded-full border border-[#b8edf4] dark:border-[#1f5b66] bg-white/85 dark:bg-zinc-900/85 px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.13em] text-[#079fbb] dark:text-[#5fd2e6] shadow-[0_8px_24px_-18px_rgba(18,184,212,0.8)] backdrop-blur-sm">
             <span className="h-2 w-2 rounded-full bg-[#12b8d4] shadow-[0_0_0_4px_rgba(18,184,212,0.12)]" />
             Interactive system design simulator
           </div>
 
-          <h1 className="hero-in hero-in-delay-1 mx-auto mt-7 max-w-4xl text-[44px] font-semibold leading-[1.02] tracking-[-0.045em] text-[#0f172a] sm:text-[64px]">
+          <h1 className="hero-in hero-in-delay-1 mx-auto mt-7 max-w-4xl text-[44px] font-semibold leading-[1.02] tracking-[-0.045em] text-[#0f172a] dark:text-zinc-50 sm:text-[64px]">
             Design your system.
             <br />
-            <span className="relative inline-block pb-3 text-[#079fbb]">
+            <span className="relative inline-block pb-3 text-[#079fbb] dark:text-[#5fd2e6]">
               Find what breaks.
               <span
                 aria-hidden
-                className="absolute -bottom-1 left-1/2 h-2.5 w-[92%] -translate-x-1/2 rounded-full bg-[#bff2f7] opacity-95"
+                className="absolute -bottom-1 left-1/2 h-2.5 w-[92%] -translate-x-1/2 rounded-full bg-[#bff2f7] dark:bg-[#1f5b66] opacity-95"
               />
             </span>
           </h1>
 
-          <p className="hero-in hero-in-delay-2 mx-auto mt-7 max-w-2xl text-[17px] leading-7 text-zinc-500 sm:text-[19px]">
+          <p className="hero-in hero-in-delay-2 mx-auto mt-7 max-w-2xl text-[17px] leading-7 text-zinc-500 dark:text-zinc-400 sm:text-[19px]">
             Build architectures visually, simulate real traffic, inject failures and understand bottlenecks before deployment.
           </p>
 
@@ -292,72 +296,72 @@ export default function LandingPage() {
 
             <a
               href="#how-it-works"
-              className="rounded-full border border-zinc-200 bg-white/85 px-6 py-3.5 text-[15px] font-semibold text-zinc-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#a7e8f1] hover:text-[#079fbb]"
+              className="rounded-full border border-zinc-200 dark:border-zinc-700 bg-white/85 dark:bg-zinc-900/85 px-6 py-3.5 text-[15px] font-semibold text-zinc-600 dark:text-zinc-300 shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#a7e8f1] hover:text-[#079fbb] dark:hover:border-[#1f5b66] dark:hover:text-[#5fd2e6]"
             >
               See how it works
             </a>
           </div>
 
           {/* Live system preview */}
-          <div className="hero-in hero-in-delay-4 relative mx-auto mt-14 max-w-[1080px] overflow-hidden rounded-[28px] border border-zinc-200/80 bg-white/96 text-left shadow-[0_30px_80px_-30px_rgba(15,23,42,0.28)] backdrop-blur-xl">
+          <div className="hero-in hero-in-delay-4 relative mx-auto mt-14 max-w-[1080px] overflow-hidden rounded-[28px] border border-zinc-200/80 dark:border-zinc-800 bg-white/96 dark:bg-zinc-900/96 text-left shadow-[0_30px_80px_-30px_rgba(15,23,42,0.28)] backdrop-blur-xl">
             <CircuitBackdrop variant="glow" className="opacity-35" />
 
-            <div className="relative z-10 flex items-center justify-between border-b border-zinc-100 px-5 py-3.5 sm:px-6">
+            <div className="relative z-10 flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 px-5 py-3.5 sm:px-6">
               <div className="flex items-center gap-3">
                 <div className="flex gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-200" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-200" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-200" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-200 dark:bg-zinc-700" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-200 dark:bg-zinc-700" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-200 dark:bg-zinc-700" />
                 </div>
 
-                <span className="hidden text-[12px] font-medium text-zinc-400 sm:inline">
+                <span className="hidden text-[12px] font-medium text-zinc-400 dark:text-zinc-500 sm:inline">
                   checkout · friday traffic surge
                 </span>
               </div>
 
-              <span className="flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1.5 text-[11px] font-semibold text-red-600 ring-1 ring-red-100">
+              <span className="flex items-center gap-1.5 rounded-full bg-red-50 dark:bg-red-950/50 px-3 py-1.5 text-[11px] font-semibold text-red-600 dark:text-red-400 ring-1 ring-red-100 dark:ring-red-900">
                 <span className="live-dot h-1.5 w-1.5 rounded-full bg-red-500" />
                 BOTTLENECK DETECTED
               </span>
             </div>
 
-            <div className="relative z-10 grid grid-cols-2 divide-x divide-y divide-zinc-100 sm:grid-cols-4 sm:divide-y-0">
+            <div className="relative z-10 grid grid-cols-2 divide-x divide-y divide-zinc-100 dark:divide-zinc-800 sm:grid-cols-4 sm:divide-y-0">
               {[
                 { label: 'Error rate', value: '8.6%', tone: 'text-red-500' },
-                { label: 'p95 latency', value: '418ms', tone: 'text-[#079fbb]' },
-                { label: 'Throughput', value: '4.2k rps', tone: 'text-[#079fbb]' },
+                { label: 'p95 latency', value: '418ms', tone: 'text-[#079fbb] dark:text-[#5fd2e6]' },
+                { label: 'Throughput', value: '4.2k rps', tone: 'text-[#079fbb] dark:text-[#5fd2e6]' },
                 { label: 'Open issues', value: '3', tone: 'text-red-500' },
               ].map((s) => (
                 <div key={s.label} className="px-4 py-4 text-center sm:py-4.5">
                   <div className={`text-[25px] font-semibold tracking-[-0.03em] ${s.tone}`}>
                     {s.value}
                   </div>
-                  <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-400">
+                  <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-400 dark:text-zinc-500">
                     {s.label}
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="relative z-10 border-t border-zinc-100 bg-white/75 px-4 py-5 sm:px-7 sm:py-5.5">
+            <div className="relative z-10 border-t border-zinc-100 dark:border-zinc-800 bg-white/75 dark:bg-zinc-900/75 px-4 py-5 sm:px-7 sm:py-5.5">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <div className="text-[14px] font-bold text-zinc-800">
+                  <div className="text-[14px] font-bold text-zinc-800 dark:text-zinc-100">
                     Live architecture
                   </div>
-                  <div className="mt-0.5 text-[11px] text-zinc-400">
+                  <div className="mt-0.5 text-[11px] text-zinc-400 dark:text-zinc-500">
                     Requests are flowing through the system
                   </div>
                 </div>
 
-                <div className="hidden items-center gap-2 rounded-full border border-zinc-200 bg-white/90 px-3 py-1.5 text-[11px] font-medium text-zinc-500 sm:flex">
+                <div className="hidden items-center gap-2 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white/90 dark:bg-zinc-800/90 px-3 py-1.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 sm:flex">
                   <span className="h-1.5 w-1.5 rounded-full bg-[#12b8d4]" />
                   Simulation running
                 </div>
               </div>
 
               {/* Diagram */}
-              <div className="relative mx-auto h-[390px] w-full overflow-hidden rounded-2xl border border-zinc-100 bg-white/88 shadow-[inset_0_1px_8px_rgba(15,23,42,0.025)]">
+              <div className="relative mx-auto h-[390px] w-full overflow-hidden rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-white/88 dark:bg-zinc-900/88 shadow-[inset_0_1px_8px_rgba(15,23,42,0.025)]">
                 <div
                   aria-hidden
                   className="pointer-events-none absolute inset-0 opacity-75"
@@ -468,15 +472,15 @@ export default function LandingPage() {
                   top="205px"
                 />
 
-                <div className="absolute bottom-3 left-3 rounded-xl border border-red-100 bg-white/94 px-3 py-2 shadow-sm backdrop-blur sm:left-4">
+                <div className="absolute bottom-3 left-3 rounded-xl border border-red-100 dark:border-red-900 bg-white/94 dark:bg-zinc-900/94 px-3 py-2 shadow-sm backdrop-blur sm:left-4">
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-red-500" />
-                    <span className="text-[11px] font-semibold text-red-600">
+                    <span className="text-[11px] font-semibold text-red-600 dark:text-red-400">
                       Bottleneck
                     </span>
                   </div>
 
-                  <div className="mt-0.5 text-[10px] text-zinc-400">
+                  <div className="mt-0.5 text-[10px] text-zinc-400 dark:text-zinc-500">
                     Order Service → Database
                   </div>
                 </div>
@@ -489,7 +493,7 @@ export default function LandingPage() {
       {/* Features */}
       <section
         id="features"
-        className="relative overflow-hidden border-t border-zinc-200/60 bg-[#f8fcfd] px-6 py-20 sm:py-24"
+        className="relative overflow-hidden border-t border-zinc-200/60 dark:border-zinc-800 bg-[#f8fcfd] dark:bg-zinc-950 px-6 py-20 sm:py-24"
       >
         <CircuitBackdrop variant="grid" className="opacity-45" />
 
@@ -498,15 +502,15 @@ export default function LandingPage() {
             ref={features.ref}
             className={`reveal ${features.inView ? 'in-view' : ''} mx-auto max-w-3xl text-center`}
           >
-            <div className="mx-auto mb-5 inline-flex rounded-full border border-[#b8edf4] bg-white/90 px-4 py-1.5 text-[12px] font-bold uppercase tracking-[0.12em] text-[#079fbb] shadow-sm">
+            <div className="mx-auto mb-5 inline-flex rounded-full border border-[#b8edf4] dark:border-[#1f5b66] bg-white/90 dark:bg-zinc-900/90 px-4 py-1.5 text-[12px] font-bold uppercase tracking-[0.12em] text-[#079fbb] dark:text-[#5fd2e6] shadow-sm">
               Built for systems thinking
             </div>
 
-            <h2 className="text-[36px] font-bold tracking-[-0.04em] text-[#0f172a] sm:text-[46px]">
+            <h2 className="text-[36px] font-bold tracking-[-0.04em] text-[#0f172a] dark:text-zinc-50 sm:text-[46px]">
               Understand how your architecture behaves.
             </h2>
 
-            <p className="mx-auto mt-5 max-w-2xl text-[17px] leading-7 text-zinc-500 sm:text-[18px]">
+            <p className="mx-auto mt-5 max-w-2xl text-[17px] leading-7 text-zinc-500 dark:text-zinc-400 sm:text-[18px]">
               Every feature exists to turn an architecture diagram into something you can reason about, stress and improve.
             </p>
           </div>
@@ -515,7 +519,7 @@ export default function LandingPage() {
             {FEATURES.map((f, i) => (
               <div
                 key={f.title}
-                className={`reveal hover-lift ${features.inView ? 'in-view' : ''} rounded-2xl border border-zinc-200/80 bg-white/94 p-8 shadow-[0_16px_45px_-25px_rgba(15,23,42,0.20)] transition-all duration-300 hover:border-[#8de3ee] hover:shadow-[0_22px_55px_-22px_rgba(18,184,212,0.34)]`}
+                className={`reveal hover-lift ${features.inView ? 'in-view' : ''} rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white/94 dark:bg-zinc-900/94 p-8 shadow-[0_16px_45px_-25px_rgba(15,23,42,0.20)] transition-all duration-300 hover:border-[#8de3ee] dark:hover:border-[#1f5b66] hover:shadow-[0_22px_55px_-22px_rgba(18,184,212,0.34)]`}
                 style={{ transitionDelay: features.inView ? `${i * 90}ms` : '0ms' }}
               >
                 <div className="flex items-start justify-between">
@@ -523,14 +527,14 @@ export default function LandingPage() {
                     {String(i + 1).padStart(2, '0')}
                   </span>
 
-                  <span className="h-3 w-3 rounded-full bg-[#c9f5fa] shadow-[0_0_0_5px_rgba(201,245,250,0.4)]" />
+                  <span className="h-3 w-3 rounded-full bg-[#c9f5fa] dark:bg-[#1f5b66] shadow-[0_0_0_5px_rgba(201,245,250,0.4)]" />
                 </div>
 
-                <h3 className="mt-8 text-[24px] font-bold text-[#0f172a]">
+                <h3 className="mt-8 text-[24px] font-bold text-[#0f172a] dark:text-zinc-50">
                   {f.title}
                 </h3>
 
-                <p className="mt-3 text-[19px] leading-7 text-zinc-500">
+                <p className="mt-3 text-[19px] leading-7 text-zinc-500 dark:text-zinc-400">
                   {f.desc}
                 </p>
               </div>
@@ -542,7 +546,7 @@ export default function LandingPage() {
       {/* Templates */}
       <section
         id="templates"
-        className="relative overflow-hidden border-y border-zinc-200/70 bg-[#eef9fb] py-20 sm:py-24"
+        className="relative overflow-hidden border-y border-zinc-200/70 dark:border-zinc-800 bg-[#eef9fb] dark:bg-zinc-900 py-20 sm:py-24"
       >
         <CircuitBackdrop variant="glow" className="opacity-45" />
 
@@ -552,22 +556,22 @@ export default function LandingPage() {
             className={`reveal ${templates.inView ? 'in-view' : ''} flex flex-col justify-between gap-5 sm:flex-row sm:items-end`}
           >
             <div>
-              <div className="mb-4 inline-flex rounded-full border border-[#b8edf4] bg-white/90 px-4 py-1.5 text-[12px] font-bold uppercase tracking-[0.12em] text-[#079fbb]">
+              <div className="mb-4 inline-flex rounded-full border border-[#b8edf4] dark:border-[#1f5b66] bg-white/90 dark:bg-zinc-900/90 px-4 py-1.5 text-[12px] font-bold uppercase tracking-[0.12em] text-[#079fbb] dark:text-[#5fd2e6]">
                 Start faster
               </div>
 
-              <h2 className="text-[36px] font-bold tracking-[-0.04em] text-[#0f172a] sm:text-[46px]">
+              <h2 className="text-[36px] font-bold tracking-[-0.04em] text-[#0f172a] dark:text-zinc-50 sm:text-[46px]">
                 Start from a real architecture.
               </h2>
 
-              <p className="mt-4 max-w-xl text-[17px] leading-7 text-zinc-500">
+              <p className="mt-4 max-w-xl text-[17px] leading-7 text-zinc-500 dark:text-zinc-400">
                 Pick a template, change the topology and see where it breaks under load.
               </p>
             </div>
 
             <Link
               to="/app"
-              className="text-[15px] font-bold text-[#079fbb] transition-all hover:translate-x-1 hover:text-[#057f95]"
+              className="text-[15px] font-bold text-[#079fbb] dark:text-[#5fd2e6] transition-all hover:translate-x-1 hover:text-[#057f95] dark:hover:text-[#7fe0f0]"
             >
               Browse in editor →
             </Link>
@@ -578,50 +582,50 @@ export default function LandingPage() {
               <Link
                 key={template.name}
                 to={`/app?template=${template.id}`}
-                className={`reveal hover-lift ${templates.inView ? 'in-view' : ''} group rounded-2xl border border-zinc-200/80 bg-white/96 p-7 shadow-[0_16px_45px_-25px_rgba(15,23,42,0.22)] transition-all duration-300 hover:-translate-y-1 hover:border-[#8de3ee] hover:shadow-[0_24px_55px_-22px_rgba(18,184,212,0.30)]`}
+                className={`reveal hover-lift ${templates.inView ? 'in-view' : ''} group rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white/96 dark:bg-zinc-900/96 p-7 shadow-[0_16px_45px_-25px_rgba(15,23,42,0.22)] transition-all duration-300 hover:-translate-y-1 hover:border-[#8de3ee] dark:hover:border-[#1f5b66] hover:shadow-[0_24px_55px_-22px_rgba(18,184,212,0.30)]`}
                 style={{ transitionDelay: templates.inView ? `${i * 90}ms` : '0ms' }}
               >
                 <div className="flex items-center justify-between">
-                  <span className="rounded-full bg-[#effcff] px-3 py-1.5 text-[11px] font-bold tracking-[0.1em] text-[#079fbb]">
+                  <span className="rounded-full bg-[#effcff] dark:bg-[#122f36] px-3 py-1.5 text-[11px] font-bold tracking-[0.1em] text-[#079fbb] dark:text-[#5fd2e6]">
                     {template.accent}
                   </span>
 
-                  <span className="text-[16px] text-zinc-300 transition-colors group-hover:text-[#12b8d4]">
+                  <span className="text-[16px] text-zinc-300 dark:text-zinc-600 transition-colors group-hover:text-[#12b8d4]">
                     →
                   </span>
                 </div>
 
-                <div className="mt-7 flex h-28 items-center justify-center rounded-xl border border-zinc-100 bg-[#fbfdfe] shadow-inner">
-                  <div className="flex items-center gap-2 text-zinc-400">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-[#079fbb] shadow-sm">
+                <div className="mt-7 flex h-28 items-center justify-center rounded-xl border border-zinc-100 dark:border-zinc-800 bg-[#fbfdfe] dark:bg-zinc-950 shadow-inner">
+                  <div className="flex items-center gap-2 text-zinc-400 dark:text-zinc-500">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-[#079fbb] dark:text-[#5fd2e6] shadow-sm">
                       <ClientIcon width={19} height={19} />
                     </span>
 
-                    <span className="h-px w-5 bg-[#bdeef4]" />
+                    <span className="h-px w-5 bg-[#bdeef4] dark:bg-[#1f5b66]" />
 
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-sm">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 shadow-sm">
                       <GatewayIcon width={19} height={19} />
                     </span>
 
-                    <span className="h-px w-5 bg-[#bdeef4]" />
+                    <span className="h-px w-5 bg-[#bdeef4] dark:bg-[#1f5b66]" />
 
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-sm">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 shadow-sm">
                       <ServiceIcon width={19} height={19} />
                     </span>
 
-                    <span className="h-px w-5 bg-[#bdeef4]" />
+                    <span className="h-px w-5 bg-[#bdeef4] dark:bg-[#1f5b66]" />
 
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-sm">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 shadow-sm">
                       <DatabaseIcon width={19} height={19} />
                     </span>
                   </div>
                 </div>
 
-                <h3 className="mt-6 text-[19px] font-bold text-[#0f172a]">
+                <h3 className="mt-6 text-[19px] font-bold text-[#0f172a] dark:text-zinc-50">
                   {template.name}
                 </h3>
 
-                <p className="mt-2 text-[15px] leading-6 text-zinc-500">
+                <p className="mt-2 text-[15px] leading-6 text-zinc-500 dark:text-zinc-400">
                   {template.desc}
                 </p>
               </Link>
@@ -633,7 +637,7 @@ export default function LandingPage() {
       {/* How it works */}
       <section
         id="how-it-works"
-        className="relative overflow-hidden border-b border-zinc-200/70 bg-[#fafdfe] py-20 sm:py-24"
+        className="relative overflow-hidden border-b border-zinc-200/70 dark:border-zinc-800 bg-[#fafdfe] dark:bg-zinc-950 py-20 sm:py-24"
       >
         <CircuitBackdrop variant="grid" className="opacity-35" />
 
@@ -642,15 +646,15 @@ export default function LandingPage() {
             ref={howItWorks.ref}
             className={`reveal ${howItWorks.inView ? 'in-view' : ''} mx-auto max-w-3xl text-center`}
           >
-            <div className="mx-auto mb-5 inline-flex rounded-full border border-[#b8edf4] bg-white/90 px-4 py-1.5 text-[12px] font-bold uppercase tracking-[0.12em] text-[#079fbb]">
+            <div className="mx-auto mb-5 inline-flex rounded-full border border-[#b8edf4] dark:border-[#1f5b66] bg-white/90 dark:bg-zinc-900/90 px-4 py-1.5 text-[12px] font-bold uppercase tracking-[0.12em] text-[#079fbb] dark:text-[#5fd2e6]">
               How SysFlow works
             </div>
 
-            <h2 className="text-[36px] font-bold tracking-[-0.04em] text-[#0f172a] sm:text-[46px]">
+            <h2 className="text-[36px] font-bold tracking-[-0.04em] text-[#0f172a] dark:text-zinc-50 sm:text-[46px]">
               From idea to stress-tested design.
             </h2>
 
-            <p className="mt-5 text-[17px] leading-7 text-zinc-500 sm:text-[18px]">
+            <p className="mt-5 text-[17px] leading-7 text-zinc-500 dark:text-zinc-400 sm:text-[18px]">
               Four steps. No deployment required.
             </p>
           </div>
@@ -659,18 +663,18 @@ export default function LandingPage() {
             {STEPS.map((s, i) => (
               <div
                 key={s.n}
-                className={`reveal ${howItWorks.inView ? 'in-view' : ''} rounded-2xl border border-zinc-200/80 bg-white/94 p-7 shadow-[0_16px_42px_-28px_rgba(15,23,42,0.22)] transition-all duration-300 hover:-translate-y-1 hover:border-[#8de3ee] hover:shadow-[0_22px_50px_-24px_rgba(18,184,212,0.25)]`}
+                className={`reveal ${howItWorks.inView ? 'in-view' : ''} rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white/94 dark:bg-zinc-900/94 p-7 shadow-[0_16px_42px_-28px_rgba(15,23,42,0.22)] transition-all duration-300 hover:-translate-y-1 hover:border-[#8de3ee] dark:hover:border-[#1f5b66] hover:shadow-[0_22px_50px_-24px_rgba(18,184,212,0.25)]`}
                 style={{ transitionDelay: howItWorks.inView ? `${i * 90}ms` : '0ms' }}
               >
                 <span className="text-[19px] font-extrabold tracking-[0.12em] text-[#12b8d4]">
                   {s.n}
                 </span>
 
-                <h3 className="mt-8 text-[21px] font-bold text-[#0f172a]">
+                <h3 className="mt-8 text-[21px] font-bold text-[#0f172a] dark:text-zinc-50">
                   {s.title}
                 </h3>
 
-                <p className="mt-3 text-[16px] leading-7 text-zinc-500">
+                <p className="mt-3 text-[16px] leading-7 text-zinc-500 dark:text-zinc-400">
                   {s.desc}
                 </p>
               </div>
@@ -680,7 +684,7 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="relative overflow-hidden px-6 py-24 text-center sm:py-28">
+      <section className="relative overflow-hidden px-6 py-24 text-center sm:py-28 bg-white dark:bg-zinc-950">
         <CircuitBackdrop variant="glow" className="opacity-40" />
 
         <div
@@ -689,11 +693,11 @@ export default function LandingPage() {
         >
           <div className="mx-auto mb-6 h-3 w-3 rounded-full bg-[#12b8d4] shadow-[0_0_0_8px_rgba(18,184,212,0.10),0_0_30px_rgba(18,184,212,0.35)]" />
 
-          <h2 className="text-[40px] font-bold tracking-[-0.04em] text-[#0f172a] sm:text-[50px]">
+          <h2 className="text-[40px] font-bold tracking-[-0.04em] text-[#0f172a] dark:text-zinc-50 sm:text-[50px]">
             See your system come alive.
           </h2>
 
-          <p className="mx-auto mt-5 max-w-2xl text-[17px] leading-7 text-zinc-500 sm:text-[18px]">
+          <p className="mx-auto mt-5 max-w-2xl text-[17px] leading-7 text-zinc-500 dark:text-zinc-400 sm:text-[18px]">
             Build an architecture, run traffic through it and find the weak point before production does.
           </p>
 
@@ -706,8 +710,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-zinc-200/70 bg-white py-8">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 text-[13px] text-zinc-400 sm:flex-row">
+      <footer className="border-t border-zinc-200/70 dark:border-zinc-800 bg-white dark:bg-zinc-950 py-8">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 text-[13px] text-zinc-400 dark:text-zinc-500 sm:flex-row">
           <div className="flex items-center gap-2">
             <img src={logo} alt="" className="h-7 w-7 object-contain" />
             <span>© 2026 SysFlow</span>

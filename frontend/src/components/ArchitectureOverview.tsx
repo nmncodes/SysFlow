@@ -9,6 +9,7 @@ import {
 import type { ArchNodeData } from './ArchNode'
 import { COMPONENT_ICONS } from './icons'
 import { COMPONENT_LIBRARY } from './nodes'
+import { useTheme } from '../lib/theme'
 
 interface ArchitectureOverviewProps {
   nodes: Node<ArchNodeData>[]
@@ -70,6 +71,8 @@ export default function ArchitectureOverview({
   nodes,
   edges,
 }: ArchitectureOverviewProps) {
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
   const layout = useMemo(() => {
     if (nodes.length === 0) {
       return null
@@ -127,15 +130,15 @@ export default function ArchitectureOverview({
 
   return (
     <div
-      className="sysflow-minimap absolute bottom-4 right-4 z-10 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg"
+      className="sysflow-minimap absolute bottom-4 right-4 z-10 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg"
       style={{
         width: VIEW_WIDTH,
         height: VIEW_HEIGHT,
       }}
     >
-      <div className="flex items-center justify-between border-b border-zinc-100 px-3 py-2">
-        <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Minimap</span>
-        <span className="text-[9px] text-zinc-300">Architecture overview</span>
+      <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 px-3 py-2">
+        <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Minimap</span>
+        <span className="text-[9px] text-zinc-300 dark:text-zinc-600">Architecture overview</span>
       </div>
       <svg
         width={VIEW_WIDTH}
@@ -149,7 +152,7 @@ export default function ArchitectureOverview({
           y={0}
           width={VIEW_WIDTH}
           height={DRAW_HEIGHT}
-          fill="#fbfeff"
+          fill={isDark ? '#18181b' : '#fbfeff'}
         />
 
         {/* Connections */}
@@ -245,8 +248,8 @@ export default function ArchitectureOverview({
                     width={scaledWidth}
                     height={scaledHeight}
                     rx={Math.min(10, scaledWidth * 0.12)}
-                    fill="white"
-                    stroke="#d4d4d8"
+                    fill={isDark ? '#232326' : 'white'}
+                    stroke={isDark ? '#3f3f46' : '#d4d4d8'}
                     strokeWidth={1}
                   />
 
@@ -292,7 +295,7 @@ export default function ArchitectureOverview({
                         dominantBaseline="middle"
                         fontSize={titleSize}
                         fontWeight="600"
-                        fill="#27272a"
+                        fill={isDark ? '#f4f4f5' : '#27272a'}
                       >
                         {data.label.length > 14
                           ? `${data.label.slice(0, 13)}…`
@@ -315,7 +318,7 @@ export default function ArchitectureOverview({
                           4,
                           titleSize * 0.7,
                         )}
-                        fill="#a1a1aa"
+                        fill={isDark ? '#71717a' : '#a1a1aa'}
                       >
                         {definition?.label ?? ''}
                       </text>

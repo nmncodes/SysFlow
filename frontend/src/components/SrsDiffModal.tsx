@@ -39,40 +39,40 @@ export default function SrsDiffModal({ currentNodes, currentEdges, imported, fil
   const edgeCountDelta = imported.graphJson.edges.length - currentEdges.length
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 p-4 backdrop-blur-sm" onClick={onCancel}>
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-base font-semibold text-zinc-900">Review changes before replacing</h3>
-        <p className="mt-1 text-xs text-zinc-400">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 dark:bg-black/50 p-4 backdrop-blur-sm" onClick={onCancel}>
+      <div className="w-full max-w-md rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Review changes before replacing</h3>
+        <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
           Your canvas already has {currentNodes.length} component{currentNodes.length === 1 ? '' : 's'}. Importing <b>{fileName}</b> will replace it with {imported.graphJson.nodes.length}.
         </p>
 
-        <div className="mt-4 max-h-64 space-y-1 overflow-y-auto rounded-xl border border-zinc-100 p-3">
+        <div className="mt-4 max-h-64 space-y-1 overflow-y-auto rounded-xl border border-zinc-100 dark:border-zinc-800 p-3">
           {added.length === 0 && removed.length === 0 && (
-            <p className="text-xs text-zinc-400">Same component mix, just re-laid-out and re-analyzed.</p>
+            <p className="text-xs text-zinc-400 dark:text-zinc-500">Same component mix, just re-laid-out and re-analyzed.</p>
           )}
           {added.map(({ type, delta }) => (
             <div key={`add-${type}`} className="flex items-center gap-2 text-xs">
-              <span className="font-semibold text-emerald-600">+{delta}</span>
-              <span className="text-zinc-700">{labelFor(type)}</span>
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400">+{delta}</span>
+              <span className="text-zinc-700 dark:text-zinc-300">{labelFor(type)}</span>
             </div>
           ))}
           {removed.map(({ type, delta }) => (
             <div key={`rm-${type}`} className="flex items-center gap-2 text-xs">
-              <span className="font-semibold text-red-500">−{delta}</span>
-              <span className="text-zinc-700">{labelFor(type)}</span>
+              <span className="font-semibold text-red-500 dark:text-red-400">−{delta}</span>
+              <span className="text-zinc-700 dark:text-zinc-300">{labelFor(type)}</span>
             </div>
           ))}
           {edgeCountDelta !== 0 && (
-            <div className="flex items-center gap-2 border-t border-zinc-100 pt-1 text-xs text-zinc-500">
+            <div className="flex items-center gap-2 border-t border-zinc-100 dark:border-zinc-800 pt-1 text-xs text-zinc-500 dark:text-zinc-400">
               <span>{edgeCountDelta > 0 ? '+' : ''}{edgeCountDelta} connection{Math.abs(edgeCountDelta) === 1 ? '' : 's'}</span>
             </div>
           )}
         </div>
 
-        <p className="mt-3 text-[11px] text-zinc-400">This can't be undone from here — but if the canvas is a saved project, its version history will still have the old state.</p>
+        <p className="mt-3 text-[11px] text-zinc-400 dark:text-zinc-500">This can't be undone from here — but if the canvas is a saved project, its version history will still have the old state.</p>
 
         <div className="mt-4 flex justify-end gap-2">
-          <button onClick={onCancel} className="rounded-xl px-3 py-2 text-sm text-zinc-500 hover:bg-zinc-50">Keep current diagram</button>
+          <button onClick={onCancel} className="rounded-xl px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800">Keep current diagram</button>
           <button onClick={onConfirm} className="btn-dark rounded-xl px-4 py-2 text-sm font-semibold">Replace with imported</button>
         </div>
       </div>

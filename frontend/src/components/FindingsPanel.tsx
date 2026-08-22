@@ -9,9 +9,9 @@ interface Props {
 }
 
 const SEVERITY_STYLE = {
-  critical: { dot: 'bg-red-500', ring: 'border-red-100 bg-red-50', label: 'text-red-600' },
-  warning: { dot: 'bg-amber-500', ring: 'border-amber-100 bg-amber-50', label: 'text-amber-600' },
-  info: { dot: 'bg-emerald-500', ring: 'border-emerald-100 bg-emerald-50', label: 'text-emerald-600' },
+  critical: { dot: 'bg-red-500', ring: 'border-red-100 dark:border-red-900 bg-red-50 dark:bg-red-950/30', label: 'text-red-600 dark:text-red-400' },
+  warning: { dot: 'bg-amber-500', ring: 'border-amber-100 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30', label: 'text-amber-600 dark:text-amber-400' },
+  info: { dot: 'bg-emerald-500', ring: 'border-emerald-100 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/30', label: 'text-emerald-600 dark:text-emerald-400' },
 } as const
 
 export default function FindingsPanel({ findings, aiEnabled, summary, onFocusNode, onClose }: Props) {
@@ -21,57 +21,57 @@ export default function FindingsPanel({ findings, aiEnabled, summary, onFocusNod
 
   return (
     <>
-      <div className="fixed inset-0 z-30 bg-zinc-900/20 md:hidden" onClick={onClose} />
-      <aside className="analysis-sidebar panel-slide-in fixed inset-x-0 bottom-0 z-40 flex h-[75vh] flex-col rounded-t-2xl border-t border-zinc-200 bg-white shadow-2xl md:static md:z-auto md:h-full md:w-[330px] md:shrink-0 md:rounded-none md:border-t-0 md:border-l md:shadow-none">
-      <div className="border-b border-zinc-100 p-4">
+      <div className="fixed inset-0 z-30 bg-zinc-900/20 dark:bg-black/50 md:hidden" onClick={onClose} />
+      <aside className="analysis-sidebar panel-slide-in fixed inset-x-0 bottom-0 z-40 flex h-[75vh] flex-col rounded-t-2xl border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl md:static md:z-auto md:h-full md:w-[330px] md:shrink-0 md:rounded-none md:border-t-0 md:border-l md:shadow-none">
+      <div className="border-b border-zinc-100 dark:border-zinc-800 p-4">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-violet-600">System analysis</p>
-            <h2 className="mt-1 text-base font-semibold text-zinc-900">Architecture review</h2>
-            <p className="mt-1 text-[10px] text-zinc-400">{aiEnabled ? 'Rule-checked + AI-reviewed' : 'Rule-based analysis'}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400">System analysis</p>
+            <h2 className="mt-1 text-base font-semibold text-zinc-900 dark:text-zinc-50">Architecture review</h2>
+            <p className="mt-1 text-[10px] text-zinc-400 dark:text-zinc-500">{aiEnabled ? 'Rule-checked + AI-reviewed' : 'Rule-based analysis'}</p>
           </div>
-          <button onClick={onClose} className="rounded-lg px-2 py-1 text-zinc-400 hover:bg-zinc-50 hover:text-zinc-700">✕</button>
+          <button onClick={onClose} className="rounded-lg px-2 py-1 text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-200">✕</button>
         </div>
       </div>
 
       <div className="overflow-y-auto p-4">
-        <div className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4">
+        <div className="rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/40 p-4">
           <div className="flex items-end justify-between">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Overall health</p>
-              <p className="mt-1 text-3xl font-bold text-zinc-900">{overallHealth}%</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Overall health</p>
+              <p className="mt-1 text-3xl font-bold text-zinc-900 dark:text-zinc-50">{overallHealth}%</p>
             </div>
-            <div className="h-14 w-14 rounded-full border-[6px] border-emerald-100 border-t-emerald-500" />
+            <div className="h-14 w-14 rounded-full border-[6px] border-emerald-100 dark:border-emerald-900 border-t-emerald-500" />
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2">
-            <div className="rounded-xl bg-white p-3"><b className="block text-lg text-amber-600">{bottlenecks}</b><span className="text-[9px] uppercase tracking-wide text-zinc-400">Bottlenecks</span></div>
-            <div className="rounded-xl bg-white p-3"><b className="block text-lg text-red-500">{spofs}</b><span className="text-[9px] uppercase tracking-wide text-zinc-400">Single points</span></div>
+            <div className="rounded-xl bg-white dark:bg-zinc-900 p-3"><b className="block text-lg text-amber-600 dark:text-amber-400">{bottlenecks}</b><span className="text-[9px] uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Bottlenecks</span></div>
+            <div className="rounded-xl bg-white dark:bg-zinc-900 p-3"><b className="block text-lg text-red-500 dark:text-red-400">{spofs}</b><span className="text-[9px] uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Single points</span></div>
           </div>
         </div>
 
         <div className="mt-5">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Checks</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Checks</p>
           <div className="mt-2 space-y-2">
-            <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700"><span>✓</span> Load distribution reviewed</div>
-            <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700"><span>✓</span> Capacity constraints reviewed</div>
-            {bottlenecks > 0 && <div className="flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700"><span>⚠</span> {bottlenecks} potential bottleneck{bottlenecks === 1 ? '' : 's'} found</div>}
-            {spofs > 0 && <div className="flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-600"><span>⚠</span> {spofs} single point{spofs === 1 ? '' : 's'} of failure</div>}
+            <div className="flex items-center gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400"><span>✓</span> Load distribution reviewed</div>
+            <div className="flex items-center gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400"><span>✓</span> Capacity constraints reviewed</div>
+            {bottlenecks > 0 && <div className="flex items-center gap-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-700 dark:text-amber-400"><span>⚠</span> {bottlenecks} potential bottleneck{bottlenecks === 1 ? '' : 's'} found</div>}
+            {spofs > 0 && <div className="flex items-center gap-2 rounded-xl bg-red-50 dark:bg-red-950/30 px-3 py-2 text-xs text-red-600 dark:text-red-400"><span>⚠</span> {spofs} single point{spofs === 1 ? '' : 's'} of failure</div>}
           </div>
         </div>
 
         <div className="mt-5">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Recommendations</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Recommendations</p>
           <div className="mt-2 space-y-2">
             {findings.length === 0 ? (
-              <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-xs text-emerald-700">No issues found. This design passed the automated checks.</div>
+              <div className="rounded-xl border border-emerald-100 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/30 p-3 text-xs text-emerald-700 dark:text-emerald-400">No issues found. This design passed the automated checks.</div>
             ) : findings.map((finding, index) => {
               const style = SEVERITY_STYLE[finding.severity]
               return (
                 <div key={index} className={`rounded-xl border p-3 ${style.ring}`}>
                   <div className="flex items-center gap-2"><span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} /><span className={`text-[9px] font-bold uppercase ${style.label}`}>{finding.severity}</span></div>
-                  <h3 className="mt-1 text-xs font-semibold text-zinc-800">{index + 1}. {finding.title}</h3>
-                  <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">{finding.recommendation}</p>
-                  {finding.affectedNodeIds.length > 0 && <button onClick={() => onFocusNode(finding.affectedNodeIds[0])} className="mt-2 text-[10px] font-semibold text-violet-600 hover:text-violet-800">View on canvas →</button>}
+                  <h3 className="mt-1 text-xs font-semibold text-zinc-800 dark:text-zinc-100">{index + 1}. {finding.title}</h3>
+                  <p className="mt-1 text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400">{finding.recommendation}</p>
+                  {finding.affectedNodeIds.length > 0 && <button onClick={() => onFocusNode(finding.affectedNodeIds[0])} className="mt-2 text-[10px] font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300">View on canvas →</button>}
                 </div>
               )
             })}

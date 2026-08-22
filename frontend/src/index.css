@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Manual toggle (not just OS preference) — a `.dark` class on <html> flips every `dark:` utility. See lib/theme.ts. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   color-scheme: light;
   --bg: #fafafa;
@@ -10,6 +13,19 @@
   --accent: #6d28d9;
   --accent-soft: #f3f0ff;
   --ease-apple: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* Scoped to the editor + landing page only this pass — see [[dark-mode-scope]] if you're wondering
+   why a page still looks light-only; other pages (Projects/Gallery/Interview/Auth) weren't converted. */
+.dark {
+  color-scheme: dark;
+  --bg: #18181b;
+  --surface: #232326;
+  --border: #33333a;
+  --text: #f4f4f5;
+  --text-muted: #a1a1aa;
+  --accent: #a78bfa;
+  --accent-soft: #2e2a45;
 }
 
 html, body, #root {
@@ -344,7 +360,6 @@ button:active, a:active {
   /* .component-sidebar/.config-sidebar/.analysis-sidebar go full-width bottom sheets below md (768px)
      via Tailwind classes on the elements themselves — no width/position override needed here anymore. */
   .toolbar-button { padding:0 9px; }
-  .simulation-footer { overflow-x:auto; }
   .chaos-popover { left:auto; right:0; }
 }
 
@@ -741,4 +756,288 @@ button:active, a:active {
 
 .sysflow-traffic-particle {
   filter: drop-shadow(0 0 4px rgba(18,183,210,.55));
+}
+
+/* ================================================================
+   Dark mode overrides — editor UI only (see [[dark-mode-scope]] above).
+   Additive: light rules above are untouched, these just override on top
+   when the ancestor <html> has the `.dark` class (see lib/theme.ts).
+   ================================================================ */
+.dark .toolbar-icon,
+.dark .toolbar-button {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  box-shadow: 0 1px 3px rgba(0,0,0,.3);
+}
+.dark .toolbar-icon:hover:not(:disabled),
+.dark .toolbar-button:hover {
+  border-color: #45454d;
+  background: #29292d;
+  color: var(--text);
+}
+
+.dark .rps-preset { color: var(--text-muted); }
+.dark .rps-preset:hover { color: var(--accent); background: var(--accent-soft); }
+.dark .rps-preset.active { color: var(--accent); background: var(--accent-soft); }
+
+.dark .popover-menu {
+  border-color: var(--border);
+  background: var(--surface);
+  box-shadow: 0 16px 40px rgba(0,0,0,.45);
+}
+.dark .popover-menu button { color: var(--text-muted); }
+.dark .popover-menu button:hover { background: #2a2a2e; color: var(--text); }
+
+.dark .editor-canvas { background: var(--bg); }
+.dark .editor-canvas .react-flow { background: var(--bg); }
+
+.dark .component-sidebar { box-shadow: -8px 0 24px rgba(0,0,0,.2); }
+.dark .component-card {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+}
+.dark .component-card:hover {
+  border-color: #4c4459;
+  background: var(--accent-soft);
+  box-shadow: 0 5px 15px rgba(0,0,0,.3);
+}
+.dark .component-icon { background: #2a2a2e; color: var(--text-muted); }
+.dark .component-card:hover .component-icon { background: #232326; color: var(--accent); }
+.dark .component-dragging { border-color: var(--accent); background: var(--accent-soft); }
+
+.dark .sysflow-minimap { box-shadow: 0 12px 30px rgba(0,0,0,.4); }
+
+.dark .config-sidebar, .dark .analysis-sidebar { box-shadow: -8px 0 24px rgba(0,0,0,.25); }
+
+.dark .run-button { box-shadow: 0 6px 16px rgba(16,185,129,.28); }
+.dark .simulation-secondary {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+}
+.dark .simulation-secondary:hover { background: #29292d; color: var(--text); }
+.dark .simulation-secondary.danger { color: #f87171; border-color: #4c2a2a; }
+.dark .simulation-state { color: var(--text-muted); }
+.dark .simulation-state b { color: var(--text); }
+.dark .state-dot { background: var(--text-muted); }
+.dark .state-dot.running { box-shadow: 0 0 0 4px #064e3b; }
+
+.dark .segmented-group { background: #232326; border-color: var(--border); }
+.dark .segmented-group > span { color: var(--text-muted); }
+.dark .segmented-group button { color: var(--text-muted); }
+.dark .segmented-group button:hover { background: #2a2a2e; color: var(--text); }
+.dark .segmented-group button.active { border-color: #4c4459; background: var(--accent-soft); color: var(--accent); }
+
+.dark .chaos-button {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+}
+.dark .chaos-button:hover, .dark .chaos-button.active { border-color: #6b3a3a; background: #2c1f1f; color: #f87171; }
+.dark .chaos-popover {
+  border-color: var(--border);
+  background: var(--surface);
+  box-shadow: 0 18px 50px rgba(0,0,0,.5);
+}
+.dark .chaos-option { border-color: var(--border); color: var(--text-muted); }
+.dark .chaos-option:hover { background: #2a2a2e; }
+.dark .chaos-option.active { border-color: #6b3a3a; background: #2c1f1f; color: #f87171; }
+
+.dark .live-metrics { border-color: var(--border); background: var(--surface); }
+.dark .live-metrics span { color: var(--text-muted); }
+.dark .live-metrics b { color: #67e8f9; }
+.dark .live-metrics b.bad { color: #f87171; }
+
+.dark .shortcut-strip kbd {
+  border-color: var(--border);
+  background: #232326;
+  color: var(--text-muted);
+}
+.dark .shortcut-strip { background: var(--surface); border-color: var(--border); }
+
+/* ---- Visual polish layer overrides ---- */
+.dark .editor-shell {
+  background:
+    radial-gradient(circle at 52% -10%, rgba(167,139,250,.06), transparent 30%),
+    linear-gradient(180deg, #18181b 0%, #151517 100%);
+}
+
+.dark .editor-header {
+  border-bottom-color: var(--border) !important;
+  background: rgba(24,24,27,.96) !important;
+  box-shadow: 0 1px 0 rgba(167,139,250,.05), 0 8px 24px rgba(0,0,0,.35) !important;
+}
+.dark .editor-header > div:first-child > a {
+  background: var(--surface) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,.4) !important;
+  border-color: var(--border);
+}
+
+.dark .target-rps-box {
+  border-color: var(--border) !important;
+  background: linear-gradient(180deg,#232326,#1c1c1f) !important;
+  box-shadow: 0 3px 10px rgba(0,0,0,.3);
+}
+
+.dark .editor-canvas {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(167,139,250,.05), transparent 34%),
+    radial-gradient(circle at 8% 80%, rgba(124,58,237,.05), transparent 25%),
+    #18181b !important;
+}
+.dark .editor-canvas::before {
+  background-image:
+    linear-gradient(rgba(167,139,250,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(167,139,250,.05) 1px, transparent 1px),
+    linear-gradient(rgba(167,139,250,.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(167,139,250,.08) 1px, transparent 1px);
+}
+.dark .editor-canvas::after {
+  background: radial-gradient(circle, rgba(167,139,250,.07), transparent 68%);
+}
+.dark .editor-canvas .react-flow__background { opacity: .18; }
+
+.dark .editor-canvas .react-flow__controls {
+  border-color: var(--border) !important;
+  box-shadow: 0 10px 25px rgba(0,0,0,.4) !important;
+  background: rgba(35,35,38,.94) !important;
+}
+.dark .editor-canvas .react-flow__controls-button {
+  border-color: var(--border) !important;
+  background: transparent !important;
+  color: var(--text-muted) !important;
+}
+.dark .editor-canvas .react-flow__controls-button:hover {
+  background: #2a2a2e !important;
+  color: #67e8f9 !important;
+}
+
+.dark .sysflow-node {
+  border-color: var(--border) !important;
+  background: linear-gradient(180deg,#232326 0%,#1e1e21 100%) !important;
+  box-shadow: 0 8px 20px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.3) !important;
+}
+.dark .sysflow-node:hover {
+  box-shadow: 0 14px 30px rgba(0,0,0,.5), 0 0 0 1px rgba(167,139,250,.18) !important;
+}
+.dark .node-icon-wrap {
+  background: linear-gradient(145deg,#2a2a2e,#232326) !important;
+  border-color: var(--border);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+.dark .node-health-badge { border-color: rgba(255,255,255,.06); }
+.dark .sysflow-node .sysflow-handle {
+  border-color: #18181b !important;
+  background: var(--accent) !important;
+  box-shadow: 0 0 0 2px rgba(167,139,250,.15);
+}
+.dark .sysflow-node.selected {
+  box-shadow: 0 0 0 2px rgba(167,139,250,.2), 0 0 24px rgba(167,139,250,.2), 0 14px 32px rgba(0,0,0,.45) !important;
+}
+
+.dark .component-sidebar,
+.dark .config-sidebar,
+.dark .analysis-sidebar {
+  border-left-color: var(--border) !important;
+  background: rgba(24,24,27,.97) !important;
+  box-shadow: -12px 0 30px rgba(0,0,0,.3) !important;
+}
+.dark .component-sidebar > div:first-child,
+.dark .config-sidebar > div:first-child,
+.dark .analysis-sidebar > div:first-child {
+  background: linear-gradient(180deg,#232326,#1e1e21);
+}
+.dark .component-sidebar input {
+  border-color: var(--border) !important;
+  background: #1e1e21 !important;
+  color: var(--text);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.2);
+}
+.dark .component-sidebar input:focus {
+  background: #232326 !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 4px rgba(167,139,250,.14) !important;
+}
+.dark .component-card {
+  background: linear-gradient(180deg,#232326,#1e1e21) !important;
+  box-shadow: 0 2px 5px rgba(0,0,0,.25);
+}
+.dark .component-card:hover {
+  border-color: #4c4459 !important;
+  background: linear-gradient(180deg,#28242f,#231f29) !important;
+  box-shadow: 0 9px 20px rgba(0,0,0,.4) !important;
+}
+.dark .component-icon { border-color: var(--border); background: #29292d !important; }
+.dark .component-card:hover .component-icon { background: #2e2a45 !important; color: #c4b5fd !important; }
+
+.dark .sysflow-minimap {
+  border-color: var(--border) !important;
+  background: rgba(35,35,38,.93) !important;
+  box-shadow: 0 14px 32px rgba(0,0,0,.45) !important;
+}
+.dark .sysflow-minimap > div:first-child {
+  background: linear-gradient(180deg,#232326,#1c1c1f);
+}
+
+.dark .empty-state-card {
+  border-color: var(--border) !important;
+  background: rgba(35,35,38,.9) !important;
+  box-shadow: 0 24px 60px rgba(0,0,0,.5), 0 0 0 1px rgba(167,139,250,.06) !important;
+}
+.dark .empty-state-card > div:first-child {
+  background: linear-gradient(145deg,#2e2a45,#232326) !important;
+  color: #c4b5fd !important;
+}
+
+.dark .config-sidebar .border-b,
+.dark .analysis-sidebar .border-b { border-color: var(--border) !important; }
+.dark .config-sidebar .rounded-2xl,
+.dark .analysis-sidebar .rounded-2xl { border-color: var(--border) !important; }
+.dark .analysis-sidebar { background: linear-gradient(180deg,#232326,#1e1e21) !important; }
+
+.dark .simulation-footer {
+  border-top-color: var(--border) !important;
+  background: rgba(24,24,27,.97) !important;
+  box-shadow: 0 -12px 28px rgba(0,0,0,.35) !important;
+}
+.dark .simulation-state { color: var(--text-muted); }
+.dark .segmented-group {
+  border-color: var(--border);
+  background: #1e1e21;
+}
+.dark .segmented-group button.active {
+  border-color: #4c4459;
+  background: #232326;
+  box-shadow: 0 2px 7px rgba(167,139,250,.16);
+}
+.dark .chaos-button { border-color: var(--border); box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+.dark .live-metrics {
+  border-color: var(--border) !important;
+  background: linear-gradient(180deg,#1e1e21,#1a1a1c) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+}
+.dark .live-metrics b { color: #67e8f9; }
+
+.dark .shortcut-strip {
+  background: #1a1a1c !important;
+  border-color: var(--border) !important;
+}
+.dark .shortcut-strip kbd {
+  background: #232326;
+  box-shadow: 0 1px 2px rgba(0,0,0,.3);
+}
+
+.dark .popover-menu {
+  border-color: var(--border);
+  box-shadow: 0 20px 45px rgba(0,0,0,.5);
+}
+.dark .chaos-popover {
+  border-color: var(--border);
+  box-shadow: 0 22px 55px rgba(0,0,0,.55);
+}
+
+.dark .editor-shell .fixed.inset-0 > div {
+  border-color: var(--border);
 }
