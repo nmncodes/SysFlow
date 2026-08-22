@@ -14,6 +14,8 @@ import { useHistory } from '../lib/useHistory'
 import { stashPendingSave, takePendingSave } from '../lib/pendingSave'
 import { estimateTotalMonthlyCost, replicasOf } from '../lib/cost'
 import { generateDockerCompose } from '../lib/iac'
+import { generateReport } from '../lib/report'
+import { createComment, deleteComment, listComments, type NodeComment } from '../lib/comments'
 import { useCollabSession } from '../lib/collab'
 import { COMPONENT_LIBRARY, type ComponentType } from '../components/nodes'
 import CompareModal from '../components/CompareModal'
@@ -99,6 +101,11 @@ export default function EditorPage() {
   const [chaosLatency, setChaosLatency] = useState(100)
   const [chaosDrop, setChaosDrop] = useState(10)
   const [chaosThrottle, setChaosThrottle] = useState(50)
+  const [comments, setComments] = useState<NodeComment[]>([])
+  const [commentNodeId, setCommentNodeId] = useState<string | null>(null)
+  const [commentDraft, setCommentDraft] = useState('')
+  const [isPostingComment, setIsPostingComment] = useState(false)
+  const [commentsError, setCommentsError] = useState<string | null>(null)
 
   const sim = useSimulation()
   const auth = useAuth()
@@ -386,6 +393,50 @@ export default function EditorPage() {
     }
   }
 
+  useEffect(() => {
+    if (!projectId) {
+      setComments([])
+      return
+    }
+    listComments(projectId).then(setComments).catch(() => {})
+  }, [projectId])
+
+  const openCommentsFor = (nodeId: string) => {
+    setCommentNodeId(nodeId)
+    setCommentDraft('')
+    setCommentsError(null)
+  }
+
+  const submitComment = async () => {
+    if (!projectId || !commentNodeId || !commentDraft.trim()) return
+    setIsPostingComment(true)
+    setCommentsError(null)
+    try {
+      const created = await createComment(projectId, commentNodeId, commentDraft.trim())
+      setComments((current) => [...current, created])
+      setCommentDraft('')
+    } catch (err) {
+      setCommentsError(err instanceof Error ? err.message : 'Failed to post comment')
+    } finally {
+      setIsPostingComment(false)
+    }
+  }
+
+  const removeComment = async (commentId: string) => {
+    if (!projectId) return
+    try {
+      await deleteComment(projectId, commentId)
+      setComments((current) => current.filter((c) => c.id !== commentId))
+    } catch {
+      setToast("Couldn't delete comment")
+    }
+  }
+
+  const commentCounts = comments.reduce<Record<string, number>>((acc, c) => {
+    acc[c.nodeId] = (acc[c.nodeId] ?? 0) + 1
+    return acc
+  }, {})
+
   const applyImportedGraph = (result: SrsImportResult, fileName: string) => {
     setNodes(result.graphJson.nodes.map((n) => ({
       id: n.id,
@@ -431,7 +482,17 @@ export default function EditorPage() {
 
   const exportPdf = () => {
     setExportOpen(false)
-    window.print()
+    setMobileMenuOpen(false)
+    generateReport({
+      projectName,
+      nodes: nodes.map((n) => ({ id: n.id, label: n.data.label, type: n.data.componentType })),
+      edges: edges.map((e) => ({ source: e.source, target: e.target })),
+      findings: analysis?.findings ?? [],
+      aiEnabled: analysis?.aiEnabled ?? false,
+      simSummary: sim.result?.summary ?? null,
+      estimatedMonthlyCost,
+      realPricing,
+    })
   }
 
   const exportDockerCompose = () => {
@@ -522,7 +583,7 @@ export default function EditorPage() {
           </div>
         </div>
 
-        <div className="hidden min-w-0 flex-1 items-center justify-center gap-2 lg:flex">
+        <div className="hidden min-w-0 flex-1 items-center justify-center gap-2 xl:flex">
           <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${isDirty ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
             <span className="h-1.5 w-1.5 rounded-full bg-current" /> {isSaving ? 'Saving…' : isDirty ? 'Unsaved changes' : 'Saved'}
           </span>
@@ -564,7 +625,7 @@ export default function EditorPage() {
               <button onClick={() => { setExportRequest((v) => v + 1); setExportOpen(false) }}>PNG image</button>
               <button onClick={exportJson}>JSON graph</button>
               <button onClick={exportDockerCompose}>docker-compose.yml</button>
-              <button onClick={exportPdf}>PDF / Print</button>
+              <button onClick={exportPdf}>PDF report</button>
             </div>}
           </div>
 
@@ -593,6 +654,7 @@ export default function EditorPage() {
               <button onClick={() => { setExportRequest((v) => v + 1); setMobileMenuOpen(false) }}>PNG image</button>
               <button onClick={() => { exportJson(); setMobileMenuOpen(false) }}>JSON graph</button>
               <button onClick={() => { exportDockerCompose(); setMobileMenuOpen(false) }}>docker-compose.yml</button>
+              <button onClick={exportPdf}>PDF report</button>
               <div className="my-1 border-t border-zinc-100" />
               <button onClick={() => { srsFileInputRef.current?.click(); setMobileMenuOpen(false) }} disabled={isImportingSrs}>{isImportingSrs ? 'Importing…' : 'Import SRS'}</button>
               {projectId && <button onClick={() => { openHistory(); setMobileMenuOpen(false) }}>History</button>}
@@ -673,6 +735,11 @@ export default function EditorPage() {
           onCompareNode={setCompareNodeId}
           remoteCursors={collab.remoteCursors}
           onCursorMove={collab.broadcastCursor}
+          onCommentNode={projectId ? openCommentsFor : undefined}
+          commentCounts={commentCounts}
+          onLoadSample={() => applyTemplate('basic-3-tier')}
+          onBrowseTemplates={() => setTemplatesOpen(true)}
+          onImportSrs={() => srsFileInputRef.current?.click()}
         />
         {analysis && <FindingsPanel findings={analysis.findings} aiEnabled={analysis.aiEnabled} summary={sim.result?.summary} onFocusNode={(nodeId) => setFocusRequest({ nodeId, token: Date.now() })} onClose={() => setAnalysis(null)} />}
       </div>
@@ -775,6 +842,57 @@ export default function EditorPage() {
         </div>
       )}
 
+      {commentNodeId && (() => {
+        const targetNode = nodes.find((n) => n.id === commentNodeId)
+        const threadComments = comments.filter((c) => c.nodeId === commentNodeId)
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 p-4 backdrop-blur-sm" onClick={() => setCommentNodeId(null)}>
+            <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-semibold text-zinc-900">Comments</h3>
+                  <p className="mt-0.5 text-xs text-zinc-400">{targetNode?.data.label ?? commentNodeId}</p>
+                </div>
+                <button onClick={() => setCommentNodeId(null)} className="text-zinc-400 hover:text-zinc-700">✕</button>
+              </div>
+
+              <div className="mt-4 max-h-64 space-y-3 overflow-y-auto">
+                {threadComments.length === 0 && <p className="py-2 text-xs text-zinc-400">No comments yet — leave a note for later, or for anyone reviewing this design.</p>}
+                {threadComments.map((c) => (
+                  <div key={c.id} className="group rounded-lg bg-zinc-50 px-3 py-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-zinc-700">{c.authorName}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-zinc-400">{new Date(c.createdAt).toLocaleString()}</span>
+                        <button onClick={() => removeComment(c.id)} className="text-[10px] text-red-400 opacity-0 hover:text-red-600 group-hover:opacity-100">Delete</button>
+                      </div>
+                    </div>
+                    <p className="mt-1 text-sm text-zinc-700">{c.text}</p>
+                  </div>
+                ))}
+              </div>
+
+              {commentsError && <p className="mt-2 text-xs text-red-500">{commentsError}</p>}
+
+              <div className="mt-4 flex gap-2">
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Add a comment…"
+                  value={commentDraft}
+                  onChange={(e) => setCommentDraft(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && submitComment()}
+                  className="flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800 outline-none focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
+                />
+                <button onClick={submitComment} disabled={!commentDraft.trim() || isPostingComment} className="btn-dark rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-50">
+                  {isPostingComment ? '…' : 'Post'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
       {pendingSrsImport && (
         <SrsDiffModal
           currentNodes={nodes}
@@ -860,7 +978,7 @@ export default function EditorPage() {
       </footer>
 
       <div className="shortcut-strip hidden items-center justify-center gap-5 border-t border-zinc-100 bg-white px-4 py-1.5 text-[9px] text-zinc-400 lg:flex">
-        <span><kbd>Delete</kbd> Delete node</span><span><kbd>Ctrl + Z</kbd> Undo</span><span><kbd>Ctrl + Y</kbd> Redo</span><span><kbd>Ctrl + S</kbd> Save</span><span><kbd>Ctrl + A</kbd> Select all</span><span><kbd>Space + Drag</kbd> Pan</span><span><kbd>Esc</kbd> Cancel connection</span>
+        <span><kbd>Delete</kbd> Delete node</span><span><kbd>Ctrl + Z</kbd> Undo</span><span><kbd>Ctrl + Y</kbd> Redo</span><span><kbd>Ctrl + S</kbd> Save</span><span><kbd>Ctrl + A</kbd> Select all</span><span><kbd>Drag</kbd> Pan · <kbd>Scroll</kbd> Pan · <kbd>Ctrl + Scroll</kbd> Zoom</span><span><kbd>Esc</kbd> Cancel connection</span>
       </div>
 
       {showSaveDialog && (

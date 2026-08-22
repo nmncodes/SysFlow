@@ -20,7 +20,12 @@ const DEFAULT_NODE_HEIGHT = 94
 
 const VIEW_WIDTH = 220
 const VIEW_HEIGHT = 150
+const HEADER_HEIGHT = 34
+const DRAW_HEIGHT = VIEW_HEIGHT - HEADER_HEIGHT
 const PADDING = 22
+// A single (or few, clustered) node has almost no bounding-box spread, so an unbounded scale
+// would blow it up to fill the whole minimap and visually crowd the header above it.
+const MAX_SCALE = 0.9
 
 // Color mapping for component types (matches Canvas MiniMap)
 function getComponentColor(componentType: string): string {
@@ -94,14 +99,15 @@ export default function ArchitectureOverview({
 
     const scale = Math.min(
       (VIEW_WIDTH - PADDING * 2) / graphWidth,
-      (VIEW_HEIGHT - PADDING * 2) / graphHeight,
+      (DRAW_HEIGHT - PADDING * 2) / graphHeight,
+      MAX_SCALE,
     )
 
     const offsetX =
       (VIEW_WIDTH - graphWidth * scale) / 2 - minX * scale
 
     const offsetY =
-      (VIEW_HEIGHT - graphHeight * scale) / 2 - minY * scale
+      (DRAW_HEIGHT - graphHeight * scale) / 2 - minY * scale
 
     return {
       nodeRects,
@@ -133,8 +139,8 @@ export default function ArchitectureOverview({
       </div>
       <svg
         width={VIEW_WIDTH}
-        height={VIEW_HEIGHT - 34}
-        viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
+        height={DRAW_HEIGHT}
+        viewBox={`0 0 ${VIEW_WIDTH} ${DRAW_HEIGHT}`}
         className="block"
       >
         {/* Background */}
@@ -142,7 +148,7 @@ export default function ArchitectureOverview({
           x={0}
           y={0}
           width={VIEW_WIDTH}
-          height={VIEW_HEIGHT - 34}
+          height={DRAW_HEIGHT}
           fill="#fbfeff"
         />
 
