@@ -16,11 +16,13 @@ Turn system architecture from a static diagram into a living simulation — buil
 
 Most system design tools stop at drawing boxes and arrows. SysFlow treats an architecture diagram as a **running simulation**:
 
-- **Build** — drag any of 17 components (Client, Load Balancer, API Gateway, Service, Cache, Database, CDN, WAF, Auto-Scaling Group, and more) onto a canvas and wire them together.
+- **Build** — drag any of 30 components (Client, Load Balancer, API Gateway, Service, Cache, Database, CDN, WAF, Auto-Scaling Group, Message Queue, Payment Gateway, and more) onto a canvas and wire them together, or upload an SRS document and let it draft the diagram for you.
 - **Simulate** — hit Run and watch animated request traffic flow through your design in real time. Particle speed and color reflect real latency, not a number you have to go read.
 - **Break it** — right-click a node to kill it, add latency, or throttle it; right-click an edge to drop packets. Watch the failure cascade visually.
-- **Improve** — click Analyze for rule-grounded, graph-specific feedback (single points of failure, missing caches, unprotected databases) — optionally rewritten by Gemini for clarity.
-- **Save it** — register/log in and your architectures persist across sessions.
+- **Improve** — click Analyze for rule-grounded, graph-specific feedback (single points of failure, missing caches, unprotected databases) — optionally rewritten by Gemini for clarity. Swap-and-compare shows the trade-off of an alternative component before you commit to it.
+- **Cost it** — see an illustrative monthly estimate live, or pull real Azure Retail Prices for a verified subset of components.
+- **Review it** — leave per-node comments for async review, export a PDF report (findings + cost breakdown), or invite a collaborator to co-edit in real time.
+- **Save it** — register/log in and your architectures persist across sessions, with restorable version history and a public template gallery.
 
 > The guiding principle behind every design decision: **make architecture visually understandable, not just drawable.** See [`docs/01-PRD.md`](docs/01-PRD.md) for the full product vision.
 
@@ -66,6 +68,10 @@ Actively in development. Phases below track [`docs/05-ROADMAP.md`](docs/05-ROADM
 | 8 — Deployment & Hardening | ✅ Done | Dockerfiles, CI (build+test on PR), health check, AI/SRS rate limiting |
 | 9 — Collaboration & Sharing | ✅ Done | Read-only share links, PNG/JSON export, version history (last 10 saves, restorable) |
 | 10 — SRS Import & Trade-off Advisor | ✅ Done | Upload an SRS, get an auto-generated diagram + tailored trade-off findings |
+| 11 — Market Features | ✅ Done | Real Azure pricing, interview practice mode with AI grading, public template gallery, real-time multiplayer (STOMP/WebSocket) |
+| 12 — Professional Polish | ✅ Done | Sample-architecture onboarding, PDF report export, per-node comments, enriched health check, rate-limit headers |
+
+
 
 ## How It Works
 
@@ -122,7 +128,7 @@ cd backend
 mvn test
 ```
 
-Runs against an in-memory H2 database (see `application-test.yml`) — no live Postgres required. Covers the simulation engine (healthy/saturated/SPOF/failure-injection scenarios), the AI rule engine, and the full register→login→project-CRUD auth flow (14 tests total). See [`docs/07-TESTING-STRATEGY.md`](docs/07-TESTING-STRATEGY.md) for what's automated vs. manually verified.
+Runs against an in-memory H2 database (see `application-test.yml`) — no live Postgres required. Covers the simulation engine (healthy/saturated/SPOF/failure-injection scenarios), the AI rule engine, real-Azure-pricing and interview-grading endpoints, gallery/publish flow, and the full register→login→project-CRUD auth flow (29 tests total). See [`docs/07-TESTING-STRATEGY.md`](docs/07-TESTING-STRATEGY.md) for what's automated vs. manually verified.
 
 ## Team
 
