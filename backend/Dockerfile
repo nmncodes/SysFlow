@@ -9,4 +9,8 @@ FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Explicit heap cap: without it the JVM sizes its default heap off the container's cgroup
+# limit, which on a small free-tier instance can leave too little headroom for non-heap
+# memory (metaspace, thread stacks, direct buffers) and cause GC thrashing that looks like
+# a silent startup hang rather than a clean OOM crash.
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=70", "-XX:+ExitOnOutOfMemoryError", "-jar", "app.jar"]
