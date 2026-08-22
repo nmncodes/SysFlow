@@ -50,6 +50,11 @@ interface Props {
   onCompareNode?: (nodeId: string) => void
   remoteCursors?: RemoteCursor[]
   onCursorMove?: (x: number, y: number) => void
+  onCommentNode?: (nodeId: string) => void
+  commentCounts?: Record<string, number>
+  onLoadSample?: () => void
+  onBrowseTemplates?: () => void
+  onImportSrs?: () => void
 }
 
 export default function Canvas({
@@ -71,6 +76,11 @@ export default function Canvas({
   onCompareNode,
   remoteCursors = [],
   onCursorMove,
+  onCommentNode,
+  commentCounts,
+  onLoadSample,
+  onBrowseTemplates,
+  onImportSrs,
 }: Props) {
   const [selectedNodeId, setSelectedNodeIdState] = useState<string | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
@@ -340,6 +350,8 @@ export default function Canvas({
       onConfigure: () => setSelectedNodeId(n.id),
       onDuplicate: () => duplicateNode(n.id),
       onDelete: () => handleDelete(n.id),
+      onComment: onCommentNode ? () => onCommentNode(n.id) : undefined,
+      commentCount: commentCounts?.[n.id],
     },
   }))
 
@@ -395,10 +407,15 @@ export default function Canvas({
           }}
           snapToGrid
           snapGrid={SNAP_GRID}
-          panOnDrag={spacePressed}
+          panOnDrag={spacePressed ? [0, 1, 2] : [0]}
+          panOnScroll
+          zoomOnScroll={false}
+          zoomOnPinch
           selectionOnDrag={false}
           fitView
           fitViewOptions={{ padding: 0.22, minZoom: 0.55, maxZoom: 1.1 }}
+          minZoom={0.2}
+          maxZoom={2}
           proOptions={{ hideAttribution: true }}
         >
           <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} color="#d9edf1" />
@@ -427,8 +444,8 @@ export default function Canvas({
         })}
 
         {nodes.length === 0 && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
-            <div className="empty-state-card w-full max-w-md rounded-2xl border border-zinc-200 bg-white/95 p-6 text-center shadow-xl backdrop-blur-sm">
+          <div className="absolute inset-0 flex items-center justify-center p-6">
+            <div className="empty-state-card pointer-events-auto w-full max-w-md rounded-2xl border border-zinc-200 bg-white/95 p-6 text-center shadow-xl backdrop-blur-sm">
               <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12h14M12 5v14" />
@@ -444,7 +461,22 @@ export default function Canvas({
                   </div>
                 ))}
               </div>
-              <p className="mt-4 text-[10px] text-zinc-400">Tip: hold Space + drag to pan · nodes snap to grid automatically</p>
+              {onLoadSample && (
+                <>
+                  <button
+                    onClick={onLoadSample}
+                    className="btn-dark mt-5 w-full rounded-xl py-2.5 text-sm font-semibold"
+                  >
+                    Load a sample architecture
+                  </button>
+                  <div className="mt-3 flex items-center justify-center gap-3 text-xs text-zinc-400">
+                    {onBrowseTemplates && <button onClick={onBrowseTemplates} className="font-medium text-violet-600 hover:text-violet-800">Browse templates</button>}
+                    {onBrowseTemplates && onImportSrs && <span className="text-zinc-300">·</span>}
+                    {onImportSrs && <button onClick={onImportSrs} className="font-medium text-violet-600 hover:text-violet-800">Import an SRS doc</button>}
+                  </div>
+                </>
+              )}
+              <p className="mt-4 text-[10px] text-zinc-400">Tip: drag or scroll to pan · nodes snap to grid automatically</p>
             </div>
           </div>
         )}
