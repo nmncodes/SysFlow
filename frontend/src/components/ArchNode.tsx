@@ -18,9 +18,11 @@ export interface ArchNodeData {
   metrics?: ArchNodeMetrics
   connectionTarget?: boolean
   connectionSource?: boolean
+  commentCount?: number
   onConfigure?: () => void
   onDuplicate?: () => void
   onDelete?: () => void
+  onComment?: () => void
 }
 
 const HEALTH_LABEL: Record<HealthState, string> = {
@@ -94,8 +96,21 @@ export default function ArchNode({ data, selected }: NodeProps<ArchNodeData>) {
         </span>
       )}
 
+      {!!data.commentCount && (
+        <button
+          type="button"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={data.onComment}
+          title={`${data.commentCount} comment${data.commentCount === 1 ? '' : 's'}`}
+          className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full border-2 border-white bg-violet-600 px-1 text-[9px] font-bold text-white shadow-sm"
+        >
+          {data.commentCount}
+        </button>
+      )}
+
       <div className="node-actions absolute -right-1.5 -top-8 flex items-center gap-0.5 rounded-lg border border-zinc-200 bg-white p-0.5 shadow-md">
         <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={data.onConfigure} title="Configure" className="rounded-md px-1.5 py-0.5 text-[9px] font-medium text-zinc-500 hover:bg-violet-50 hover:text-violet-600">Configure</button>
+        {data.onComment && <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={data.onComment} title="Comments" className="rounded-md px-1.5 py-0.5 text-[9px] font-medium text-zinc-500 hover:bg-violet-50 hover:text-violet-600">Comment</button>}
         <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={data.onDuplicate} title="Duplicate" className="rounded-md px-1.5 py-0.5 text-[9px] font-medium text-zinc-500 hover:bg-zinc-50">Duplicate</button>
         <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={data.onDelete} title="Delete" className="rounded-md px-1.5 py-0.5 text-[9px] font-medium text-red-500 hover:bg-red-50">Delete</button>
       </div>

@@ -44,17 +44,31 @@ public class RateLimitFilter extends OncePerRequestFilter {
         long now = System.currentTimeMillis();
         Window window = windows.computeIfAbsent(key, k -> new Window(new AtomicLong(now), new AtomicLong(0)));
 
+        long remaining;
+        long resetInSeconds;
+        boolean limited;
+
         synchronized (window) {
             if (now - window.windowStart().get() > WINDOW_MILLIS) {
                 window.windowStart().set(now);
                 window.count().set(0);
             }
-            if (window.count().incrementAndGet() > MAX_REQUESTS_PER_WINDOW) {
-                response.setStatus(429); // 429 Too Many Requests — not defined as a constant on HttpServletResponse
-                response.setContentType("application/json");
-                response.getWriter().write("{\"error\":\"Too many analysis requests — please wait a moment and try again.\"}");
-                return;
-            }
+            long count = window.count().incrementAndGet();
+            limited = count > MAX_REQUESTS_PER_WINDOW;
+            remaining = Math.max(0, MAX_REQUESTS_PER_WINDOW - count);
+            resetInSeconds = Math.max(0, (window.windowStart().get() + WINDOW_MILLIS - now) / 1000);
+        }
+
+        response.setHeader("X-RateLimit-Limit", String.valueOf(MAX_REQUESTS_PER_WINDOW));
+        response.setHeader("X-RateLimit-Remaining", String.valueOf(remaining));
+        response.setHeader("X-RateLimit-Reset", String.valueOf(resetInSeconds));
+
+        if (limited) {
+            response.setHeader("Retry-After", String.valueOf(resetInSeconds));
+            response.setStatus(429); // 429 Too Many Requests — not defined as a constant on HttpServletResponse
+            response.setContentType("application/json");
+            response.getWriter().write("{\"error\":\"Too many analysis requests — please wait a moment and try again.\"}");
+            return;
         }
 
         filterChain.doFilter(request, response);

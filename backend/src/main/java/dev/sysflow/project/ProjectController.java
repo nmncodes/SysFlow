@@ -25,15 +25,18 @@ public class ProjectController {
 
     private final ProjectRepository projectRepository;
     private final ProjectVersionRepository projectVersionRepository;
+    private final NodeCommentRepository nodeCommentRepository;
     private final ObjectMapper objectMapper;
 
     public ProjectController(
             ProjectRepository projectRepository,
             ProjectVersionRepository projectVersionRepository,
+            NodeCommentRepository nodeCommentRepository,
             ObjectMapper objectMapper
     ) {
         this.projectRepository = projectRepository;
         this.projectVersionRepository = projectVersionRepository;
+        this.nodeCommentRepository = nodeCommentRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -89,6 +92,7 @@ public class ProjectController {
     public void delete(@PathVariable UUID id, Authentication auth) {
         Project project = findOwned(id, userId(auth));
         projectVersionRepository.deleteAll(projectVersionRepository.findByProjectIdOrderByCreatedAtDesc(project.getId()));
+        nodeCommentRepository.deleteByProjectId(project.getId());
         projectRepository.delete(project);
     }
 
