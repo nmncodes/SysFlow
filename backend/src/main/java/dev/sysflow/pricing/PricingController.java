@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -47,27 +48,54 @@ public class PricingController {
         return new PricingEstimateResponse(total, "azure", "eastus", nodeCosts);
     }
 
+    /** Below this, SMALL; below MEDIUM_MAX, MEDIUM; otherwise LARGE. Thresholds are deliberately rough — this is a tier pick, not a sizing calculator. */
+    private AzurePricingClient.Tier tierFor(double configuredSize, double mediumMax, double largeMax) {
+        if (configuredSize <= mediumMax) return AzurePricingClient.Tier.SMALL;
+        if (configuredSize <= largeMax) return AzurePricingClient.Tier.MEDIUM;
+        return AzurePricingClient.Tier.LARGE;
+    }
+
+    private static final Map<AzurePricingClient.Tier, String> COMPUTE_SKU_LABEL = Map.of(
+            AzurePricingClient.Tier.SMALL, "Standard_B2s",
+            AzurePricingClient.Tier.MEDIUM, "Standard_D2s_v3",
+            AzurePricingClient.Tier.LARGE, "Standard_D4s_v3");
+    private static final Map<AzurePricingClient.Tier, String> DATABASE_SKU_LABEL = Map.of(
+            AzurePricingClient.Tier.SMALL, "Burstable B1ms",
+            AzurePricingClient.Tier.MEDIUM, "Burstable B2ms",
+            AzurePricingClient.Tier.LARGE, "Burstable B4ms");
+    private static final Map<AzurePricingClient.Tier, String> CACHE_SKU_LABEL = Map.of(
+            AzurePricingClient.Tier.SMALL, "Basic C0",
+            AzurePricingClient.Tier.MEDIUM, "Basic C1",
+            AzurePricingClient.Tier.LARGE, "Basic C2");
+
     private PricingEstimateResponse.NodeCost costOf(PricingEstimateRequest.NodeJson n) {
         GraphNode node = new GraphNode(n.id(), n.type(), n.config());
         int units = costModel.unitsOf(node);
 
         if (GENERIC_COMPUTE_TYPES.contains(n.type())) {
-            var real = pricingClient.monthlyPriceUsd(AzurePricingClient.PricingCategory.GENERIC_COMPUTE);
+            // maxConcurrency (service/worker/serverless) or maxThroughput (queue/cronJob/autoScalingGroup) — whichever the type actually configures.
+            double configuredSize = Math.max(node.getNumber("maxConcurrency", 0), node.getNumber("maxThroughput", 0));
+            var tier = tierFor(configuredSize, 800, 3000);
+            var real = pricingClient.monthlyPriceUsd(AzurePricingClient.computeCategoryFor(tier));
             if (real.isPresent()) {
                 return new PricingEstimateResponse.NodeCost(n.id(), n.type(), real.get() * units, "real",
-                        "Azure Standard_B2s Linux VM as a stand-in for generic compute");
+                        "Azure " + COMPUTE_SKU_LABEL.get(tier) + " Linux VM as a stand-in for generic compute (sized from configured concurrency/throughput)");
             }
         } else if (MANAGED_DATABASE_TYPES.contains(n.type())) {
-            var real = pricingClient.monthlyPriceUsd(AzurePricingClient.PricingCategory.MANAGED_DATABASE);
+            double configuredSize = node.getNumber("maxConnections", 0);
+            var tier = tierFor(configuredSize, 100, 500);
+            var real = pricingClient.monthlyPriceUsd(AzurePricingClient.databaseCategoryFor(tier));
             if (real.isPresent()) {
                 return new PricingEstimateResponse.NodeCost(n.id(), n.type(), real.get() * units, "real",
-                        "Azure Database for PostgreSQL Flexible Server (Burstable B1ms) as a stand-in for managed data stores");
+                        "Azure Database for PostgreSQL Flexible Server (" + DATABASE_SKU_LABEL.get(tier) + ") as a stand-in for managed data stores (sized from configured max connections)");
             }
         } else if ("cache".equals(n.type())) {
-            var real = pricingClient.monthlyPriceUsd(AzurePricingClient.PricingCategory.CACHE);
+            double configuredSize = node.getNumber("maxThroughput", node.getNumber("maxConnections", 0));
+            var tier = tierFor(configuredSize, 1000, 5000);
+            var real = pricingClient.monthlyPriceUsd(AzurePricingClient.cacheCategoryFor(tier));
             if (real.isPresent()) {
                 return new PricingEstimateResponse.NodeCost(n.id(), n.type(), real.get() * units, "real",
-                        "Azure Cache for Redis, Basic C0");
+                        "Azure Cache for Redis, " + CACHE_SKU_LABEL.get(tier) + " (sized from configured throughput)");
             }
         } else if ("objectStorage".equals(n.type())) {
             var real = pricingClient.monthlyStorageCostUsd(ASSUMED_STORAGE_GB);

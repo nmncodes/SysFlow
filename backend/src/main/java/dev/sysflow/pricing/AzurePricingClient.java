@@ -53,22 +53,72 @@ public class AzurePricingClient {
     }
 
     public enum PricingCategory {
-        /** Standard_B2s Linux — a small general-purpose VM, standing in for any generic compute node. */
-        GENERIC_COMPUTE("armRegionName eq 'eastus' and serviceName eq 'Virtual Machines' and armSkuName eq 'Standard_B2s' and priceType eq 'Consumption'", "Virtual Machines BS Series"),
-        /** Postgres Flexible Server, Burstable B1ms — stands in for any managed relational/analytical store. */
-        MANAGED_DATABASE("armRegionName eq 'eastus' and serviceName eq 'Azure Database for PostgreSQL' and skuName eq 'B1MS'", "Burstable BS Series"),
+        /**
+         * Standard_B2s Linux — a small general-purpose VM, standing in for a lightly configured
+         * generic compute node. Tier picked by PricingController from the node's maxConcurrency/
+         * maxThroughput config; each tier's SKU was verified live against the real API (see the
+         * commit that introduced tiering for the discovery queries) before being hardcoded.
+         */
+        GENERIC_COMPUTE_SMALL("armRegionName eq 'eastus' and serviceName eq 'Virtual Machines' and armSkuName eq 'Standard_B2s' and priceType eq 'Consumption'", "Virtual Machines BS Series", null),
+        /** Standard_D2s_v3 Linux, pay-as-you-go (excludes the Spot/Low-Priority/Windows meters that share the same product name). */
+        GENERIC_COMPUTE_MEDIUM("armRegionName eq 'eastus' and serviceName eq 'Virtual Machines' and armSkuName eq 'Standard_D2s_v3' and priceType eq 'Consumption'", "Virtual Machines DSv3 Series", "D2s v3"),
+        /** Standard_D4s_v3 Linux, pay-as-you-go. */
+        GENERIC_COMPUTE_LARGE("armRegionName eq 'eastus' and serviceName eq 'Virtual Machines' and armSkuName eq 'Standard_D4s_v3' and priceType eq 'Consumption'", "Virtual Machines DSv3 Series", "D4s v3"),
+
+        /** Postgres Flexible Server, Burstable B1ms — stands in for a lightly configured managed relational/analytical store. */
+        MANAGED_DATABASE_SMALL("armRegionName eq 'eastus' and serviceName eq 'Azure Database for PostgreSQL' and skuName eq 'B1MS'", "Burstable BS Series", null),
+        /** Postgres Flexible Server, Burstable B2ms. */
+        MANAGED_DATABASE_MEDIUM("armRegionName eq 'eastus' and serviceName eq 'Azure Database for PostgreSQL' and skuName eq 'B2ms'", "Burstable BS Series", null),
+        /** Postgres Flexible Server, Burstable B4ms. */
+        MANAGED_DATABASE_LARGE("armRegionName eq 'eastus' and serviceName eq 'Azure Database for PostgreSQL' and skuName eq 'B4ms'", "Burstable BS Series", null),
+
         /** Azure Cache for Redis, Basic C0 — the smallest managed cache tier. */
-        CACHE("armRegionName eq 'eastus' and serviceName eq 'Redis Cache' and skuName eq 'C0'", "Azure Redis Cache Basic"),
+        CACHE_SMALL("armRegionName eq 'eastus' and serviceName eq 'Redis Cache' and skuName eq 'C0'", "Azure Redis Cache Basic", null),
+        /** Azure Cache for Redis, Basic C1. */
+        CACHE_MEDIUM("armRegionName eq 'eastus' and serviceName eq 'Redis Cache' and skuName eq 'C1'", "Azure Redis Cache Basic", null),
+        /** Azure Cache for Redis, Basic C2. */
+        CACHE_LARGE("armRegionName eq 'eastus' and serviceName eq 'Redis Cache' and skuName eq 'C2'", "Azure Redis Cache Basic", null),
+
         /** Blob Storage, Hot tier, LRS — priced per GB/month, not per hour; see monthlyRateForGbMonth. */
-        OBJECT_STORAGE("armRegionName eq 'eastus' and serviceName eq 'Storage' and skuName eq 'Hot LRS' and meterName eq 'Hot LRS Data Stored'", "Blob Storage");
+        OBJECT_STORAGE("armRegionName eq 'eastus' and serviceName eq 'Storage' and skuName eq 'Hot LRS' and meterName eq 'Hot LRS Data Stored'", "Blob Storage", null);
 
         final String filter;
         final String productNameMatch;
+        /** When set, only an item whose meterName exactly equals this is accepted — needed for SKUs (like D-series VMs) where Spot/Low-Priority/Windows variants share the same productName. */
+        final String exactMeterName;
 
-        PricingCategory(String filter, String productNameMatch) {
+        PricingCategory(String filter, String productNameMatch, String exactMeterName) {
             this.filter = filter;
             this.productNameMatch = productNameMatch;
+            this.exactMeterName = exactMeterName;
         }
+    }
+
+    /** Size tier picked by PricingController from a node's configured concurrency/throughput/connections. */
+    public enum Tier { SMALL, MEDIUM, LARGE }
+
+    public static PricingCategory computeCategoryFor(Tier tier) {
+        return switch (tier) {
+            case SMALL -> PricingCategory.GENERIC_COMPUTE_SMALL;
+            case MEDIUM -> PricingCategory.GENERIC_COMPUTE_MEDIUM;
+            case LARGE -> PricingCategory.GENERIC_COMPUTE_LARGE;
+        };
+    }
+
+    public static PricingCategory databaseCategoryFor(Tier tier) {
+        return switch (tier) {
+            case SMALL -> PricingCategory.MANAGED_DATABASE_SMALL;
+            case MEDIUM -> PricingCategory.MANAGED_DATABASE_MEDIUM;
+            case LARGE -> PricingCategory.MANAGED_DATABASE_LARGE;
+        };
+    }
+
+    public static PricingCategory cacheCategoryFor(Tier tier) {
+        return switch (tier) {
+            case SMALL -> PricingCategory.CACHE_SMALL;
+            case MEDIUM -> PricingCategory.CACHE_MEDIUM;
+            case LARGE -> PricingCategory.CACHE_LARGE;
+        };
     }
 
     /** Real hourly USD rate for a compute/database/cache category, or empty if the live lookup fails. */
@@ -102,7 +152,9 @@ public class AzurePricingClient {
 
             if (response == null) return Optional.empty();
             for (JsonNode item : response.path("Items")) {
-                if (item.path("productName").asText("").contains(category.productNameMatch)) {
+                boolean productMatches = item.path("productName").asText("").contains(category.productNameMatch);
+                boolean meterMatches = category.exactMeterName == null || category.exactMeterName.equals(item.path("meterName").asText(""));
+                if (productMatches && meterMatches) {
                     return Optional.of(item.path("retailPrice").asDouble());
                 }
             }

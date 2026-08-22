@@ -43,7 +43,7 @@ class PricingControllerTest {
 
     @Test
     void usesRealPriceWhenAvailableForMappedType() throws Exception {
-        when(pricingClient.monthlyPriceUsd(AzurePricingClient.PricingCategory.GENERIC_COMPUTE))
+        when(pricingClient.monthlyPriceUsd(AzurePricingClient.PricingCategory.GENERIC_COMPUTE_SMALL))
                 .thenReturn(Optional.of(30.0));
 
         Map<String, Object> body = Map.of("graphJson", Map.of(
@@ -89,8 +89,26 @@ class PricingControllerTest {
     }
 
     @Test
+    void picksLargerSkuTierForHighlyConfiguredCompute() throws Exception {
+        when(pricingClient.monthlyPriceUsd(AzurePricingClient.PricingCategory.GENERIC_COMPUTE_LARGE))
+                .thenReturn(Optional.of(140.0));
+
+        Map<String, Object> body = Map.of("graphJson", Map.of(
+                "nodes", List.of(Map.of("id", "svc", "type", "service", "config", Map.of("maxConcurrency", 5000)))
+        ));
+
+        mockMvc.perform(post("/api/pricing/estimate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nodes[0].source").value("real"))
+                .andExpect(jsonPath("$.nodes[0].monthlyCostUsd").value(140.0))
+                .andExpect(jsonPath("$.nodes[0].note", org.hamcrest.Matchers.containsString("D4s_v3")));
+    }
+
+    @Test
     void totalIsSumOfPerNodeCosts() throws Exception {
-        when(pricingClient.monthlyPriceUsd(AzurePricingClient.PricingCategory.GENERIC_COMPUTE))
+        when(pricingClient.monthlyPriceUsd(AzurePricingClient.PricingCategory.GENERIC_COMPUTE_SMALL))
                 .thenReturn(Optional.of(30.0));
 
         Map<String, Object> body = Map.of("graphJson", Map.of(
