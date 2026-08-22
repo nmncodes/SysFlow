@@ -6,6 +6,7 @@ import dev.sysflow.srs.dto.RawExtraction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -39,8 +40,12 @@ public class SrsGraphExtractor {
         this.objectMapper = objectMapper;
         this.apiKey = apiKey;
         this.model = model;
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(5_000);
+        requestFactory.setReadTimeout(30_000); // SRS documents can be long, so this prompt legitimately takes longer than the analyze/grade ones
         this.restClient = RestClient.builder()
                 .baseUrl("https://generativelanguage.googleapis.com/v1beta")
+                .requestFactory(requestFactory)
                 .build();
     }
 

@@ -1,5 +1,16 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api'
 
+/**
+ * fetch() has no built-in timeout — without this, a slow backend (e.g. an AI call with no
+ * server-side timeout of its own) leaves buttons stuck on "Analyzing…" indefinitely instead
+ * of failing into the UI's existing error/fallback handling.
+ */
+function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  return fetch(url, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer))
+}
+
 export interface NodeTickStats {
   loadPct: number
   errorRatePct: number
@@ -106,7 +117,9 @@ export interface SrsImportResult {
 export async function importSrs(file: File): Promise<SrsImportResult> {
   const formData = new FormData()
   formData.append('file', file)
-  const res = await fetch(`${API_BASE}/srs/import`, { method: 'POST', body: formData })
+  const res = await fetchWithTimeout(`${API_BASE}/srs/import`, { method: 'POST', body: formData }, 45_000).catch(() => {
+    throw new Error('SRS import timed out — the document may be too long or the AI service is slow right now')
+  })
   if (!res.ok) {
     const body = await res.json().catch(() => null)
     throw new Error(body?.error ?? `SRS import failed: ${res.status}`)
@@ -146,13 +159,15 @@ export async function analyzeGraph(
   edges: { id: string; source: string; target: string }[],
   lastSimulationSummary?: SimulationSummary | null,
 ): Promise<AnalyzeResult> {
-  const res = await fetch(`${API_BASE}/ai/analyze`, {
+  const res = await fetchWithTimeout(`${API_BASE}/ai/analyze`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       graphJson: { nodes, edges },
       lastSimulationSummary: lastSimulationSummary ?? null,
     }),
+  }, 25_000).catch(() => {
+    throw new Error('Analysis timed out — the AI service may be slow right now')
   })
   if (!res.ok) {
     throw new Error(`Analyze request failed: ${res.status}`)
@@ -187,10 +202,12 @@ export async function gradeInterview(
   nodes: { id: string; type: string; config: Record<string, unknown> }[],
   edges: { id: string; source: string; target: string }[],
 ): Promise<InterviewGrade> {
-  const res = await fetch(`${API_BASE}/interview/grade`, {
+  const res = await fetchWithTimeout(`${API_BASE}/interview/grade`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ promptId, graphJson: { nodes, edges } }),
+  }, 25_000).catch(() => {
+    throw new Error('Grading timed out — the AI service may be slow right now')
   })
   if (!res.ok) {
     const body = await res.json().catch(() => null)

@@ -3,6 +3,7 @@ package dev.sysflow.pricing;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -31,9 +32,17 @@ public class AzurePricingClient {
     private static final double HOURS_PER_MONTH = 730;
     private static final Duration CACHE_TTL = Duration.ofHours(24);
 
-    private final RestClient restClient = RestClient.builder()
-            .baseUrl("https://prices.azure.com/api/retail/prices")
-            .build();
+    private final RestClient restClient = buildRestClient();
+
+    private static RestClient buildRestClient() {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(5_000);
+        requestFactory.setReadTimeout(10_000);
+        return RestClient.builder()
+                .baseUrl("https://prices.azure.com/api/retail/prices")
+                .requestFactory(requestFactory)
+                .build();
+    }
 
     private final Map<PricingCategory, CachedPrice> cache = new ConcurrentHashMap<>();
 

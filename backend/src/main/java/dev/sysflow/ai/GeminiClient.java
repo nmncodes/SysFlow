@@ -6,6 +6,7 @@ import dev.sysflow.ai.dto.Finding;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -39,8 +40,15 @@ public class GeminiClient {
         this.objectMapper = objectMapper;
         this.apiKey = apiKey;
         this.model = model;
+        // Spring's default request factory has NO timeout — a slow or hung Gemini call would
+        // block the request thread (and the frontend's "Analyzing…" button) indefinitely
+        // instead of falling back to rule-based findings like the catch block below intends.
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(5_000);
+        requestFactory.setReadTimeout(20_000);
         this.restClient = RestClient.builder()
                 .baseUrl("https://generativelanguage.googleapis.com/v1beta")
+                .requestFactory(requestFactory)
                 .build();
     }
 

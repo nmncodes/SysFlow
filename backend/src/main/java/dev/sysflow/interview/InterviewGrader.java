@@ -13,6 +13,7 @@ import dev.sysflow.simulation.model.SimulationGraph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -50,7 +51,13 @@ public class InterviewGrader {
         this.objectMapper = objectMapper;
         this.apiKey = apiKey;
         this.model = model;
-        this.restClient = RestClient.builder().baseUrl("https://generativelanguage.googleapis.com/v1beta").build();
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(5_000);
+        requestFactory.setReadTimeout(20_000);
+        this.restClient = RestClient.builder()
+                .baseUrl("https://generativelanguage.googleapis.com/v1beta")
+                .requestFactory(requestFactory)
+                .build();
     }
 
     public boolean isEnabled() {
