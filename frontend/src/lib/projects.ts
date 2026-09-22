@@ -14,6 +14,7 @@ export interface ProjectSummary {
   createdAt: string
   updatedAt: string
   isPublicTemplate: boolean
+  isShared: boolean
 }
 
 export interface ProjectDetail extends ProjectSummary {
@@ -82,6 +83,31 @@ export async function deleteProject(id: string): Promise<void> {
 export async function getPublicProject(id: string): Promise<ProjectDetail> {
   const res = await fetch(`${API_BASE}/public/projects/${id}`)
   return handle(res)
+}
+
+export async function getSharedProject(token: string): Promise<ProjectDetail> {
+  const res = await fetch(`${API_BASE}/public/projects/share/${token}`)
+  return handle(res)
+}
+
+export interface ShareLink {
+  token: string
+}
+
+export async function createShareLink(projectId: string): Promise<ShareLink> {
+  const res = await fetch(`${API_BASE}/projects/${projectId}/share`, {
+    method: 'POST',
+    headers: { ...authHeaders() },
+  })
+  return handle(res)
+}
+
+export async function revokeShareLink(projectId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/projects/${projectId}/share`, {
+    method: 'DELETE',
+    headers: { ...authHeaders() },
+  })
+  if (!res.ok) throw new Error(`Share-link revocation failed: ${res.status}`)
 }
 
 export async function listVersions(projectId: string): Promise<ProjectVersionSummary[]> {

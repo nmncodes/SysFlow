@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
-import { deleteProject, listProjects, setPublished, type ProjectSummary } from '../lib/projects'
+import { deleteProject, listProjects, revokeShareLink, setPublished, type ProjectSummary } from '../lib/projects'
 import { TEMPLATES } from '../lib/templates'
 import logo from '../assets/logo.png'
 
@@ -14,6 +14,7 @@ export default function ProjectsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [publishingId, setPublishingId] = useState<string | null>(null)
+  const [revokingShareId, setRevokingShareId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) {
@@ -37,6 +38,19 @@ export default function ProjectsPage() {
       setActionError(e instanceof Error ? e.message : 'Failed to delete project')
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  const handleRevokeShare = async (id: string) => {
+    setActionError(null)
+    setRevokingShareId(id)
+    try {
+      await revokeShareLink(id)
+      setProjects((items) => items.map((project) => project.id === id ? { ...project, isShared: false } : project))
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : 'Failed to revoke share link')
+    } finally {
+      setRevokingShareId(null)
     }
   }
 
@@ -120,6 +134,7 @@ export default function ProjectsPage() {
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-semibold text-zinc-900">{p.name}</h3>
                     {p.isPublicTemplate && <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[9px] font-semibold uppercase text-violet-600">Published</span>}
+                    {p.isShared && <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[9px] font-semibold uppercase text-sky-600">Shared</span>}
                   </div>
                   {p.description && <p className="mt-1 text-xs text-zinc-500">{p.description}</p>}
                   <p className="mt-3 text-[11px] text-zinc-400">Edited {new Date(p.updatedAt).toLocaleDateString()}</p>
@@ -133,6 +148,14 @@ export default function ProjectsPage() {
                   >
                     {publishingId === p.id ? '…' : p.isPublicTemplate ? 'Unpublish' : 'Publish'}
                   </button>
+                  {p.isShared && <button
+                    onClick={() => handleRevokeShare(p.id)}
+                    disabled={revokingShareId === p.id}
+                    title="Invalidate this share link immediately"
+                    className="text-xs text-zinc-400 hover:text-amber-600 disabled:opacity-50"
+                  >
+                    {revokingShareId === p.id ? '…' : 'Revoke link'}
+                  </button>}
                   <button
                     onClick={() => handleDelete(p.id)}
                     disabled={deletingId === p.id}

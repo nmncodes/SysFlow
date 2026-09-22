@@ -46,6 +46,14 @@ public class Project {
     @Column(name = "is_public_template", nullable = false, columnDefinition = "boolean default false")
     private boolean isPublicTemplate = false;
 
+    /**
+     * Capability token for an explicitly created share link. It is deliberately
+     * separate from the project id so private projects never become readable
+     * merely because their UUID is known.
+     */
+    @Column(name = "share_token", unique = true)
+    private UUID shareToken;
+
     protected Project() {
     }
 
@@ -106,5 +114,24 @@ public class Project {
     public void setPublicTemplate(boolean publicTemplate) {
         this.isPublicTemplate = publicTemplate;
         this.updatedAt = Instant.now();
+    }
+
+    public UUID getShareToken() {
+        return shareToken;
+    }
+
+    public UUID createShareToken() {
+        if (shareToken == null) {
+            shareToken = UUID.randomUUID();
+            updatedAt = Instant.now();
+        }
+        return shareToken;
+    }
+
+    public void revokeShareToken() {
+        if (shareToken != null) {
+            shareToken = null;
+            updatedAt = Instant.now();
+        }
     }
 }

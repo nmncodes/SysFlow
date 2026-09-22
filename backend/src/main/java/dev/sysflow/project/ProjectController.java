@@ -44,7 +44,7 @@ public class ProjectController {
     public List<ProjectSummaryResponse> list(Authentication auth) {
         UUID userId = userId(auth);
         return projectRepository.findByUserIdOrderByUpdatedAtDesc(userId).stream()
-                .map(p -> new ProjectSummaryResponse(p.getId(), p.getName(), p.getDescription(), p.getCreatedAt(), p.getUpdatedAt(), p.isPublicTemplate()))
+                .map(p -> new ProjectSummaryResponse(p.getId(), p.getName(), p.getDescription(), p.getCreatedAt(), p.getUpdatedAt(), p.isPublicTemplate(), p.getShareToken() != null))
                 .toList();
     }
 
@@ -63,6 +63,27 @@ public class ProjectController {
     }
 
     public record PublishRequest(boolean publish) {
+    }
+
+    public record ShareLinkResponse(UUID token) {
+    }
+
+    /** Creates (or returns) the stable, revocable anonymous read-only link for an owned project. */
+    @PostMapping("/{id}/share")
+    public ShareLinkResponse createShareLink(@PathVariable UUID id, Authentication auth) {
+        Project project = findOwned(id, userId(auth));
+        UUID token = project.createShareToken();
+        projectRepository.save(project);
+        return new ShareLinkResponse(token);
+    }
+
+    /** Immediately invalidates a previously issued share link. */
+    @DeleteMapping("/{id}/share")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void revokeShareLink(@PathVariable UUID id, Authentication auth) {
+        Project project = findOwned(id, userId(auth));
+        project.revokeShareToken();
+        projectRepository.save(project);
     }
 
     @PostMapping
