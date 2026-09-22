@@ -26,17 +26,23 @@ public class ProjectController {
     private final ProjectRepository projectRepository;
     private final ProjectVersionRepository projectVersionRepository;
     private final NodeCommentRepository nodeCommentRepository;
+    private final ProjectCollaboratorRepository collaboratorRepository;
+    private final ProjectAccessService access;
     private final ObjectMapper objectMapper;
 
     public ProjectController(
             ProjectRepository projectRepository,
             ProjectVersionRepository projectVersionRepository,
             NodeCommentRepository nodeCommentRepository,
+            ProjectCollaboratorRepository collaboratorRepository,
+            ProjectAccessService access,
             ObjectMapper objectMapper
     ) {
         this.projectRepository = projectRepository;
         this.projectVersionRepository = projectVersionRepository;
         this.nodeCommentRepository = nodeCommentRepository;
+        this.collaboratorRepository = collaboratorRepository;
+        this.access = access;
         this.objectMapper = objectMapper;
     }
 
@@ -44,19 +50,29 @@ public class ProjectController {
     public List<ProjectSummaryResponse> list(Authentication auth) {
         UUID userId = userId(auth);
         return projectRepository.findByUserIdOrderByUpdatedAtDesc(userId).stream()
-                .map(p -> new ProjectSummaryResponse(p.getId(), p.getName(), p.getDescription(), p.getCreatedAt(), p.getUpdatedAt(), p.isPublicTemplate(), p.getShareToken() != null))
+                .map(p -> summary(p, CollaboratorRole.EDITOR))
+                .toList();
+    }
+
+    @GetMapping("/shared-with-me")
+    public List<ProjectSummaryResponse> sharedWithMe(Authentication auth) {
+        return collaboratorRepository.findByUserId(userId(auth)).stream()
+                .map(member -> projectRepository.findById(member.getProjectId())
+                        .map(project -> summary(project, member.getRole()))
+                        .orElse(null))
+                .filter(java.util.Objects::nonNull)
                 .toList();
     }
 
     @GetMapping("/{id}")
     public ProjectResponse get(@PathVariable UUID id, Authentication auth) {
-        Project project = findOwned(id, userId(auth));
+        Project project = access.requireView(id, userId(auth));
         return toResponse(project);
     }
 
     @PutMapping("/{id}/publish")
     public ProjectResponse setPublished(@PathVariable UUID id, @RequestBody PublishRequest request, Authentication auth) {
-        Project project = findOwned(id, userId(auth));
+        Project project = access.requireOwner(id, userId(auth));
         project.setPublicTemplate(request.publish());
         projectRepository.save(project);
         return toResponse(project);
@@ -71,7 +87,7 @@ public class ProjectController {
     /** Creates (or returns) the stable, revocable anonymous read-only link for an owned project. */
     @PostMapping("/{id}/share")
     public ShareLinkResponse createShareLink(@PathVariable UUID id, Authentication auth) {
-        Project project = findOwned(id, userId(auth));
+        Project project = access.requireOwner(id, userId(auth));
         UUID token = project.createShareToken();
         projectRepository.save(project);
         return new ShareLinkResponse(token);
@@ -81,7 +97,7 @@ public class ProjectController {
     @DeleteMapping("/{id}/share")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void revokeShareLink(@PathVariable UUID id, Authentication auth) {
-        Project project = findOwned(id, userId(auth));
+        Project project = access.requireOwner(id, userId(auth));
         project.revokeShareToken();
         projectRepository.save(project);
     }
@@ -95,7 +111,7 @@ public class ProjectController {
 
     @PutMapping("/{id}")
     public ProjectResponse update(@PathVariable UUID id, @Valid @RequestBody ProjectRequest request, Authentication auth) {
-        Project project = findOwned(id, userId(auth));
+        Project project = access.requireEdit(id, userId(auth));
         project.setName(request.name());
         project.setDescription(request.description());
         if (request.graphJson() != null) {
@@ -111,15 +127,16 @@ public class ProjectController {
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable UUID id, Authentication auth) {
-        Project project = findOwned(id, userId(auth));
+        Project project = access.requireOwner(id, userId(auth));
         projectVersionRepository.deleteAll(projectVersionRepository.findByProjectIdOrderByCreatedAtDesc(project.getId()));
         nodeCommentRepository.deleteByProjectId(project.getId());
+        collaboratorRepository.deleteByProjectId(project.getId());
         projectRepository.delete(project);
     }
 
     @GetMapping("/{id}/versions")
     public List<ProjectVersionSummaryResponse> listVersions(@PathVariable UUID id, Authentication auth) {
-        Project project = findOwned(id, userId(auth));
+        Project project = access.requireView(id, userId(auth));
         return projectVersionRepository.findByProjectIdOrderByCreatedAtDesc(project.getId()).stream()
                 .map(v -> new ProjectVersionSummaryResponse(v.getId(), v.getCreatedAt()))
                 .toList();
@@ -127,14 +144,14 @@ public class ProjectController {
 
     @GetMapping("/{id}/versions/{versionId}")
     public ProjectVersionDetailResponse getVersion(@PathVariable UUID id, @PathVariable UUID versionId, Authentication auth) {
-        findOwned(id, userId(auth));
+        access.requireView(id, userId(auth));
         ProjectVersion version = findOwnedVersion(id, versionId);
         return new ProjectVersionDetailResponse(version.getId(), readJson(version.getGraphJson()), version.getCreatedAt());
     }
 
     @PostMapping("/{id}/versions/{versionId}/restore")
     public ProjectResponse restoreVersion(@PathVariable UUID id, @PathVariable UUID versionId, Authentication auth) {
-        Project project = findOwned(id, userId(auth));
+        Project project = access.requireEdit(id, userId(auth));
         ProjectVersion version = findOwnedVersion(id, versionId);
         snapshotVersion(project); // so restoring is itself undoable
         project.setGraphJson(version.getGraphJson());
@@ -160,13 +177,9 @@ public class ProjectController {
         return version;
     }
 
-    private Project findOwned(UUID id, UUID userId) {
-        Project project = projectRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
-        if (!project.getUserId().equals(userId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found");
-        }
-        return project;
+    private ProjectSummaryResponse summary(Project project, CollaboratorRole role) {
+        return new ProjectSummaryResponse(project.getId(), project.getName(), project.getDescription(), project.getCreatedAt(),
+                project.getUpdatedAt(), project.isPublicTemplate(), project.getShareToken() != null, role.name());
     }
 
     private UUID userId(Authentication auth) {

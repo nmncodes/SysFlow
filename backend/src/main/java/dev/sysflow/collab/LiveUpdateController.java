@@ -8,10 +8,11 @@ import org.springframework.stereotype.Controller;
 import java.util.Map;
 
 /**
- * Pure relay, no server-side state: a client sends to /app/project/{id}/broadcast and every
+ * Authorized relay, no server-side state: a client sends to /app/project/{id}/broadcast and every
  * other subscriber of /topic/project/{id} (including the sender - clients filter out their
  * own clientId) receives it verbatim. The server never interprets or merges payloads; the
  * whole-document last-write-wins resolution happens client-side (see frontend/src/lib/collab.ts).
+ * WebSocketConfig authenticates CONNECT frames and authorizes every subscribe/send before this handler runs.
  *
  * This is deliberately not a CRDT or per-field merge: two people editing different nodes within
  * the same debounce window will have one edit overwrite the other's concurrent change, since

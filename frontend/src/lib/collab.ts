@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Client, type IMessage } from '@stomp/stompjs'
+import { getToken } from './auth'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api'
 const GRAPH_BROADCAST_DEBOUNCE_MS = 400
@@ -87,6 +88,7 @@ export function useCollabSession(projectId: string | null, displayName: string |
 
     const client = new Client({
       brokerURL: wsUrl(),
+      connectHeaders: { Authorization: `Bearer ${getToken() ?? ''}` },
       reconnectDelay: 3000,
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,
