@@ -128,7 +128,7 @@ cd backend
 mvn test
 ```
 
-Runs against an in-memory H2 database (see `application-test.yml`) — no live Postgres required. Covers the simulation engine (healthy/saturated/SPOF/failure-injection scenarios), the AI rule engine, real-Azure-pricing and interview-grading endpoints, gallery/publish flow, and the full register→login→project-CRUD auth flow (29 tests total). See [`docs/07-TESTING-STRATEGY.md`](docs/07-TESTING-STRATEGY.md) for what's automated vs. manually verified.
+Runs against an in-memory H2 database (see `application-test.yml`) — no live Postgres required. Covers the simulation engine (healthy/saturated/SPOF/failure-injection scenarios), the AI rule engine, real-Azure-pricing and interview-grading endpoints, gallery/publish and share-link revocation flows, and the full register→login→project-CRUD auth flow (42 tests total). See [`docs/07-TESTING-STRATEGY.md`](docs/07-TESTING-STRATEGY.md) for what's automated vs. manually verified.
 
 ## Team
 

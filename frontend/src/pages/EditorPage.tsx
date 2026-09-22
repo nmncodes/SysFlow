@@ -8,7 +8,7 @@ import { useSimulation } from '../lib/useSimulation'
 import { useAuth } from '../lib/AuthContext'
 import { analyzeGraph, compareMultiCloudCosts, estimateRealCost, getScaleTiers, gradeInterview, importSrs, listInterviewPrompts, type AnalyzeResult, type InjectedFailure, type InterviewGrade, type InterviewPrompt, type PricingCompareResponse, type PricingEstimate, type ScalePricingResponse, type SrsImportResult } from '../lib/api'
 import { ClockIcon, PacketDropIcon, SkullIcon, ThrottleIcon } from '../components/icons'
-import { createProject, getProject, getPublicProject, listVersions, restoreVersion, updateProject, type ProjectVersionSummary } from '../lib/projects'
+import { createProject, createShareLink, getProject, getPublicProject, listVersions, restoreVersion, updateProject, type ProjectVersionSummary } from '../lib/projects'
 import { TEMPLATES } from '../lib/templates'
 import { useHistory } from '../lib/useHistory'
 import { stashPendingSave, takePendingSave } from '../lib/pendingSave'
@@ -352,6 +352,20 @@ export default function EditorPage() {
     }
   }
 
+  const copyShareLink = async () => {
+    if (!projectId) {
+      setToast('Save the project first to create a share link')
+      return
+    }
+    try {
+      const { token } = await createShareLink(projectId)
+      await navigator.clipboard.writeText(`${window.location.origin}/share/${token}`)
+      setToast('Share link copied')
+    } catch (err) {
+      setToast(err instanceof Error ? err.message : 'Couldn\'t create a share link')
+    }
+  }
+
   const applyTemplate = (templateId: string) => {
     const template = TEMPLATES.find((item) => item.id === templateId)
     if (!template) return
@@ -681,7 +695,7 @@ export default function EditorPage() {
             </div>}
           </div>
 
-          <button onClick={() => { if (!projectId) { setToast('Save the project first to get a share link'); return }; navigator.clipboard.writeText(`${window.location.origin}/share/${projectId}`); setToast('Share link copied') }} className="toolbar-button hidden md:block">Share ↗</button>
+          <button onClick={copyShareLink} className="toolbar-button hidden md:block">Share ↗</button>
 
           {projectId && <button onClick={openHistory} className="toolbar-button hidden md:block">History</button>}
 
@@ -718,7 +732,7 @@ export default function EditorPage() {
               <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Templates</p>
               {TEMPLATES.map((template) => <button key={template.id} onClick={() => { applyTemplate(template.id); setMobileMenuOpen(false) }}><span className="block font-semibold text-zinc-800 dark:text-zinc-100">{template.name}</span></button>)}
               <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
-              <button onClick={() => { if (!projectId) { setToast('Save the project first to get a share link'); setMobileMenuOpen(false); return }; navigator.clipboard.writeText(`${window.location.origin}/share/${projectId}`); setToast('Share link copied'); setMobileMenuOpen(false) }}>Share ↗</button>
+              <button onClick={() => { copyShareLink(); setMobileMenuOpen(false) }}>Share ↗</button>
               {auth.user ? <Link to="/projects" onClick={() => setMobileMenuOpen(false)}>Projects</Link> : <Link to="/login" onClick={() => setMobileMenuOpen(false)}>Log in</Link>}
               <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
               <div className="flex items-center justify-between px-3 py-1"><span className="text-xs text-zinc-500 dark:text-zinc-400">Appearance</span><ThemeToggle /></div>

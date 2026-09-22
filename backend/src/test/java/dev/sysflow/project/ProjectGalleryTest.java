@@ -87,7 +87,7 @@ class ProjectGalleryTest {
                 .andReturn();
         assertEquals(projectId, objectMapper.readTree(galleryAfterPublish.getResponse().getContentAsString()).get(0).path("id").asText());
 
-        // Public detail fetch works with no auth at all.
+        // Public detail fetch works with no auth only after explicit publishing.
         mockMvc.perform(get("/api/public/projects/" + projectId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.graphJson.nodes.length()").value(2));
@@ -102,6 +102,38 @@ class ProjectGalleryTest {
         mockMvc.perform(get("/api/gallery"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(0)));
+    }
+
+    @Test
+    void privateProjectRequiresExplicitShareLinkAndOwnerCanRevokeIt() throws Exception {
+        String token = registerAndGetToken("share-" + System.nanoTime() + "@example.com");
+        Map<String, Object> createBody = Map.of("name", "Private Project", "description", "", "graphJson", sampleGraph());
+        MvcResult created = mockMvc.perform(post("/api/projects")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createBody)))
+                .andExpect(status().isOk())
+                .andReturn();
+        String projectId = objectMapper.readTree(created.getResponse().getContentAsString()).path("id").asText();
+
+        mockMvc.perform(get("/api/public/projects/" + projectId)).andExpect(status().isNotFound());
+
+        MvcResult share = mockMvc.perform(post("/api/projects/" + projectId + "/share")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andReturn();
+        String shareToken = objectMapper.readTree(share.getResponse().getContentAsString()).path("token").asText();
+
+        mockMvc.perform(get("/api/public/projects/share/" + shareToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.graphJson.nodes.length()").value(2));
+
+        mockMvc.perform(delete("/api/projects/" + projectId + "/share")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/public/projects/share/" + shareToken)).andExpect(status().isNotFound());
     }
 
     @Test

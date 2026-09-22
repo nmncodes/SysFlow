@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import ReactFlow, { Background, Controls, type Edge, type Node } from 'reactflow'
 import 'reactflow/dist/style.css'
 import ArchNode, { type ArchNodeData } from '../components/ArchNode'
-import { getPublicProject, type ProjectDetail } from '../lib/projects'
+import { getSharedProject, type ProjectDetail } from '../lib/projects'
 import logo from '../assets/logo.png'
 
 const nodeTypes = { archNode: ArchNode }
@@ -15,7 +15,7 @@ export default function ShareViewPage() {
 
   useEffect(() => {
     if (!id) return
-    getPublicProject(id)
+    getSharedProject(id)
       .then(setProject)
       .catch(() => setError('This project doesn\'t exist or is no longer shared.'))
   }, [id])
