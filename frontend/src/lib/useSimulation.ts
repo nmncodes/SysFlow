@@ -543,10 +543,13 @@ export function useSimulation() {
       })
       .map((n) => n.id)
 
+    const latencySample = engine.latencyObservations.slice(-200)
     const summary: SimulationSummary = {
       avgRps: Math.round(engine.sumRps / engine.tickCount),
       avgErrorRatePct: Math.round((engine.sumErrorRate / engine.tickCount) * 10) / 10,
-      avgP95: calculatePercentile(engine.latencyObservations.slice(-200), 0.95),
+      p50: calculatePercentile(latencySample, 0.5),
+      p95: calculatePercentile(latencySample, 0.95),
+      p99: calculatePercentile(latencySample, 0.99),
       bottleneckNodeId: bottleneckId,
       bottleneckLoadPct: Math.round(maxLoad * 10) / 10,
       singlePointsOfFailure: spofs,

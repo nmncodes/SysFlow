@@ -66,7 +66,7 @@ export function generateReport(input: ReportInput): void {
 
     const rows: [string, string][] = [
       ['Avg throughput', `${Math.round(input.simSummary.avgRps).toLocaleString()} rps`],
-      ['p95 latency', `${Math.round(input.simSummary.avgP95)} ms`],
+      ['p95 latency', `${Math.round(input.simSummary.p95)} ms`],
       ['Error rate', `${input.simSummary.avgErrorRatePct.toFixed(1)}%`],
       ['Bottleneck load', `${Math.round(input.simSummary.bottleneckLoadPct)}%${input.simSummary.bottleneckNodeId ? ` (${input.simSummary.bottleneckNodeId})` : ''}`],
       ['Single points of failure', input.simSummary.singlePointsOfFailure.length ? input.simSummary.singlePointsOfFailure.join(', ') : 'None'],

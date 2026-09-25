@@ -59,7 +59,7 @@ function costOf(nodes: Node<ArchNodeData>[]): number {
 }
 
 const METRIC_ROWS: { label: string; pick: (s: SimulationSummary) => number; unit: string; lowerIsBetter: boolean }[] = [
-  { label: 'p95 latency', pick: (s) => s.avgP95, unit: 'ms', lowerIsBetter: true },
+  { label: 'p95 latency', pick: (s) => s.p95, unit: 'ms', lowerIsBetter: true },
   { label: 'Error rate', pick: (s) => s.avgErrorRatePct, unit: '%', lowerIsBetter: true },
   { label: 'Avg throughput', pick: (s) => s.avgRps, unit: ' rps', lowerIsBetter: false },
   { label: 'Bottleneck load', pick: (s) => s.bottleneckLoadPct, unit: '%', lowerIsBetter: true },

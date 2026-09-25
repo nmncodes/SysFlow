@@ -42,7 +42,9 @@ export interface Tick {
 export interface SimulationSummary {
   avgRps: number
   avgErrorRatePct: number
-  avgP95: number
+  p50: number
+  p95: number
+  p99: number
   bottleneckNodeId: string | null
   bottleneckLoadPct: number
   singlePointsOfFailure: string[]
