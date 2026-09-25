@@ -21,7 +21,9 @@ public record AnalyzeRequest(GraphJson graphJson, SimulationSummaryJson lastSimu
     public record SimulationSummaryJson(
             Double avgRps,
             Double avgErrorRatePct,
+            Double p50,
             Double p95,
+            Double p99,
             String bottleneckNodeId,
             Double bottleneckLoadPct,
             List<String> singlePointsOfFailure) {

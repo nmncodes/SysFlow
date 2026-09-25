@@ -328,4 +328,162 @@ class SimulationEngineTest {
                 // Doubling latency should approximately halve throughput.
                 assertEquals(2.0, fastRps / slowRps, 0.001);
         }
+
+        @Test
+        void healthySystemHasZeroErrorRate() {
+                SimulationGraph graph = new SimulationGraph(
+                                List.of(
+                                                new GraphNode("client", "client", Map.of()),
+                                                new GraphNode("svc", "service",
+                                                                Map.of("minLatencyMs", 10.0, "maxLatencyMs", 20.0,
+                                                                                "maxConcurrency", 1000.0))),
+                                List.of(new GraphEdge("e1", "client", "svc")));
+
+                SimulationConfig config = new SimulationConfig(100, 1, List.of(), 1L);
+                SimulationResult result = engine.run(graph, config);
+
+                double attempted = result.summary().avgRps() / (1.0 - result.summary().avgErrorRatePct() / 100.0);
+                double succeeded = result.summary().avgRps();
+                double failed = attempted - succeeded;
+
+                assertEquals(0.0, result.summary().avgErrorRatePct(), 0.5);
+                assertTrue(attempted >= 90.0 && attempted <= 110.0);
+                assertTrue(succeeded >= 90.0 && succeeded <= 110.0);
+                assertEquals(0.0, failed, 0.05);
+                assertEquals(attempted, succeeded + failed, 0.05);
+        }
+
+        @Test
+        void singleNodeOverloadCountsFailuresOnce() {
+                SimulationGraph graph = new SimulationGraph(
+                                List.of(
+                                                new GraphNode("client", "client", Map.of()),
+                                                new GraphNode("svc", "service",
+                                                                Map.of("minLatencyMs", 10.0, "maxLatencyMs", 20.0,
+                                                                                "maxConcurrency", 1.2))),
+                                List.of(new GraphEdge("e1", "client", "svc")));
+
+                SimulationConfig config = new SimulationConfig(100, 1, List.of(), 1L);
+                SimulationResult result = engine.run(graph, config);
+
+                double attempted = result.summary().avgRps() / (1.0 - result.summary().avgErrorRatePct() / 100.0);
+                double succeeded = result.summary().avgRps();
+                double failed = attempted - succeeded;
+
+                assertTrue(result.summary().avgErrorRatePct() > 15.0 && result.summary().avgErrorRatePct() < 30.0,
+                                "expected roughly 20% error rate under 100 RPS / 1.2 concurrency");
+                assertEquals(100.0, attempted, 10.0);
+                assertEquals(80.0, succeeded, 10.0);
+                assertEquals(20.0, failed, 10.0);
+                assertEquals(attempted, succeeded + failed, 0.05);
+        }
+
+        @Test
+        void upstreamFailurePropagationDoesNotDoubleCount() {
+                SimulationGraph graph = new SimulationGraph(
+                                List.of(
+                                                new GraphNode("client", "client", Map.of()),
+                                                new GraphNode("svcA", "service",
+                                                                Map.of("minLatencyMs", 10.0, "maxLatencyMs", 20.0,
+                                                                                "maxConcurrency", 1.2)),
+                                                new GraphNode("svcB", "service",
+                                                                Map.of("minLatencyMs", 10.0, "maxLatencyMs", 20.0,
+                                                                                "maxConcurrency", 1000.0))),
+                                List.of(
+                                                new GraphEdge("e1", "client", "svcA"),
+                                                new GraphEdge("e2", "svcA", "svcB")));
+
+                SimulationConfig config = new SimulationConfig(100, 1, List.of(), 1L);
+                SimulationResult result = engine.run(graph, config);
+
+                double attempted = result.summary().avgRps() / (1.0 - result.summary().avgErrorRatePct() / 100.0);
+                double succeeded = result.summary().avgRps();
+                double failed = attempted - succeeded;
+
+                assertTrue(result.summary().avgErrorRatePct() > 15.0 && result.summary().avgErrorRatePct() < 30.0,
+                                "expected 20% error rate when A rejects 20 of 100 requests");
+                assertEquals(100.0, attempted, 10.0);
+                assertEquals(80.0, succeeded, 10.0);
+                assertEquals(20.0, failed, 10.0);
+                assertEquals(attempted, succeeded + failed, 0.05);
+        }
+
+        @Test
+        void killedNodeCreatesFailuresExactlyOnce() {
+                SimulationGraph graph = new SimulationGraph(
+                                List.of(
+                                                new GraphNode("client", "client", Map.of()),
+                                                new GraphNode("svc", "service",
+                                                                Map.of("minLatencyMs", 10.0, "maxLatencyMs", 20.0,
+                                                                                "maxConcurrency", 1000.0)),
+                                                new GraphNode("db", "database",
+                                                                Map.of("readLatencyMs", 10.0, "maxConnections", 1000.0))),
+                                List.of(
+                                                new GraphEdge("e1", "client", "svc"),
+                                                new GraphEdge("e2", "svc", "db")));
+
+                InjectedFailure kill = new InjectedFailure("kill", "svc", null, 0, null, 0, 0, 0);
+                SimulationConfig config = new SimulationConfig(100, 1, List.of(kill), 1L);
+                SimulationResult result = engine.run(graph, config);
+
+                Tick lastTick = result.ticks().get(result.ticks().size() - 1);
+                assertTrue(lastTick.nodes().get("svc").down());
+                assertTrue(result.summary().avgErrorRatePct() > 0.0);
+                assertTrue(result.summary().avgErrorRatePct() >= 90.0);
+        }
+
+        @Test
+        void edgeDropCountsDroppedTrafficOnce() {
+                SimulationGraph graph = new SimulationGraph(
+                                List.of(
+                                                new GraphNode("client", "client", Map.of()),
+                                                new GraphNode("svcA", "service",
+                                                                Map.of("minLatencyMs", 10.0, "maxLatencyMs", 20.0,
+                                                                                "maxConcurrency", 1000.0)),
+                                                new GraphNode("svcB", "service",
+                                                                Map.of("minLatencyMs", 10.0, "maxLatencyMs", 20.0,
+                                                                                "maxConcurrency", 1000.0))),
+                                List.of(
+                                                new GraphEdge("e1", "client", "svcA"),
+                                                new GraphEdge("e2", "svcA", "svcB")));
+
+                InjectedFailure edgeDrop = new InjectedFailure("drop", null, "e2", 0, null, 0, 0, 50);
+                SimulationConfig config = new SimulationConfig(100, 1, List.of(edgeDrop), 1L);
+                SimulationResult result = engine.run(graph, config);
+
+                assertTrue(result.summary().avgErrorRatePct() >= 0.0);
+                assertTrue(result.summary().avgErrorRatePct() <= 100.0);
+                assertTrue(result.summary().avgRps() >= 0.0);
+        }
+
+        @Test
+        void upstreamAndDownstreamFailuresAreAddedOnce() {
+                SimulationGraph graph = new SimulationGraph(
+                                List.of(
+                                                new GraphNode("client", "client", Map.of()),
+                                                new GraphNode("svcA", "service",
+                                                                Map.of("minLatencyMs", 10.0, "maxLatencyMs", 20.0,
+                                                                                "maxConcurrency", 8.0)),
+                                                new GraphNode("svcB", "service",
+                                                                Map.of("minLatencyMs", 10.0, "maxLatencyMs", 20.0,
+                                                                                "maxConcurrency", 4.0))),
+                                List.of(
+                                                new GraphEdge("e1", "client", "svcA"),
+                                                new GraphEdge("e2", "svcA", "svcB")));
+
+                SimulationConfig config = new SimulationConfig(100, 1, List.of(), 1L);
+                SimulationResult result = engine.run(graph, config);
+
+                double successRate = result.summary().avgRps();
+                double errorRate = result.summary().avgErrorRatePct();
+                double attempted = successRate / (1.0 - errorRate / 100.0);
+                double succeeded = successRate;
+                double failed = attempted - succeeded;
+
+                assertTrue(errorRate >= 0.0);
+                assertTrue(successRate >= 0.0);
+                assertTrue(attempted >= 0.0);
+                assertTrue(failed >= 0.0);
+                assertEquals(attempted, succeeded + failed, 0.05);
+        }
 }

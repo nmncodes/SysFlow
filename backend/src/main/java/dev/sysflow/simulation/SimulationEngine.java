@@ -87,20 +87,23 @@ public class SimulationEngine {
                         : capacity;
 
                 double accepted;
+                double newlyFailed;
                 double failedHere;
                 if (killed) {
                     accepted = 0;
-                    failedHere = arriving;
+                    newlyFailed = arriving;
                 } else if (isClient) {
                     accepted = arriving;
-                    failedHere = arrivingFailed;
+                    newlyFailed = 0;
                 } else if (arriving <= effectiveCapacity) {
                     accepted = arriving;
-                    failedHere = arrivingFailed;
+                    newlyFailed = 0;
                 } else {
                     accepted = effectiveCapacity;
-                    failedHere = arrivingFailed + (arriving - effectiveCapacity);
+                    newlyFailed = arriving - effectiveCapacity;
                 }
+
+                failedHere = arrivingFailed + newlyFailed;
 
                 double baseLatency = isClient ? 0 : latencyOf(node, random);
                 double extraLatency = killOrDegrade != null && "latency".equals(killOrDegrade.type())
