@@ -156,10 +156,85 @@ class SimulationEngineTest {
                 assertTrue(p95 >= 20.0 && p95 <= 100.0);
                 assertTrue(p99 >= 20.0 && p99 <= 100.0);
 
-                // A sufficiently large sample should produce a non-trivial
-                // latency distribution rather than identical percentile values.
-                assertTrue(p95 >= p50);
-                assertTrue(p99 >= p95);
+                // A sufficiently large sample (100 successful requests in this tick,
+                // drawn from an 80ms-wide range) should produce a non-trivial latency
+                // distribution rather than every request collapsing onto one value.
+                assertTrue(p50 <= p95);
+                assertTrue(p95 <= p99);
+                assertTrue(p99 - p50 > 1.0,
+                                "expected meaningful spread between p50 and p99 when each request is "
+                                                + "sampled independently, got p50=" + p50 + " p99=" + p99);
+        }
+
+        /**
+         * Each successful request within a single tick must receive its own
+         * independent latency draw rather than every request in the tick sharing
+         * one sampled value. This is the regression test for the latency-sampling
+         * bug: previously one latency value was sampled per node per tick and
+         * reused for every request completing that tick, so a batch of same-tick
+         * requests always reported identical latency.
+         */
+        @Test
+        void successfulRequestsInSameTickGetIndependentLatencySamples() {
+                SimulationGraph graph = new SimulationGraph(
+                                List.of(
+                                                new GraphNode("client", "client", Map.of()),
+                                                new GraphNode(
+                                                                "svc",
+                                                                "service",
+                                                                Map.of(
+                                                                                "minLatencyMs", 10.0,
+                                                                                "maxLatencyMs", 200.0,
+                                                                                "maxConcurrency", 5000.0))),
+                                List.of(new GraphEdge("e1", "client", "svc")));
+
+                // A single tick's worth of a large burst of requests, all successful.
+                SimulationConfig config = new SimulationConfig(20000, 1, List.of(), 1L);
+                SimulationResult result = engine.run(graph, config);
+
+                double p50 = result.ticks().get(0).global().p50();
+                double p99 = result.ticks().get(0).global().p99();
+
+                // With hundreds of independently sampled requests in one tick over a
+                // 190ms-wide latency range, p50 and p99 must not be equal: if they were,
+                // every request in the tick received the same latency value.
+                assertTrue(p99 > p50,
+                                "expected distinct p50/p99 from independently sampled per-request latency");
+        }
+
+        /**
+         * Failed/rejected requests must not contribute a latency observation:
+         * only accepted (successful) requests should feed the percentile
+         * calculations.
+         */
+        @Test
+        void failedRequestsDoNotContributeLatencySamples() {
+                SimulationGraph graph = new SimulationGraph(
+                                List.of(
+                                                new GraphNode("client", "client", Map.of()),
+                                                new GraphNode("svc", "service",
+                                                                Map.of("minLatencyMs", 10.0, "maxLatencyMs", 20.0,
+                                                                                "maxConcurrency", 5.0))),
+                                List.of(new GraphEdge("e1", "client", "svc")));
+
+                // Heavily overloaded: most requests are rejected, only a handful succeed.
+                SimulationConfig config = new SimulationConfig(1000, 1, List.of(), 1L);
+                SimulationResult result = engine.run(graph, config);
+
+                Tick firstTick = result.ticks().get(0);
+                double acceptedThisTick = firstTick.nodes().get("svc").loadPct() > 0
+                                ? Math.min(firstTick.nodes().get("svc").loadPct(), 100.0)
+                                : 0.0;
+
+                // Every latency sample recorded overall must fall within the node's
+                // configured latency range: if failed requests leaked into the
+                // samples (e.g. as a zero or otherwise out-of-range value) this
+                // would be violated, and percentiles would also be zero/undefined
+                // when (as here) the vast majority of traffic fails.
+                assertTrue(result.summary().p50() >= 10.0 && result.summary().p50() <= 20.0);
+                assertTrue(result.summary().p95() >= 10.0 && result.summary().p95() <= 20.0);
+                assertTrue(result.summary().p99() >= 10.0 && result.summary().p99() <= 20.0);
+                assertTrue(acceptedThisTick >= 0.0);
         }
 
         /**

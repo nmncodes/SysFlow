@@ -140,13 +140,25 @@ public class SimulationEngine {
                     totalSucceeded += accepted;
                     totalLatencyWeighted += accepted * nodeLatency;
 
-                    // Store each successful request's latency so that
-                    // percentiles are calculated from the actual latency distribution.
+                    // Each successful request gets its own latency observation,
+                    // sampled independently from this node's configured latency
+                    // model. Previously a single latency value (nodeLatency) was
+                    // sampled once per node per tick and then reused as the
+                    // "requestLatency" for every successful request in that tick,
+                    // so all requests completing at this node in the same tick
+                    // reported identical latency. That collapses P50/P95/P99 to
+                    // (near-)identical values instead of reflecting the actual
+                    // latency distribution. Upstream latency remains the
+                    // tick-level average accumulated by the aggregate flow model
+                    // (unchanged); only this terminal node's own contribution is
+                    // now drawn fresh per request.
                     int successfulRequests = (int) Math.round(accepted);
                     for (int i = 0; i < successfulRequests; i++) {
+                        double requestNodeLatency = latencyOf(node, random) + extraLatency;
+
                         // At a terminal node, the request's latency represents the complete
                         // end-to-end latency accumulated across the path.
-                        double requestLatency = cumulativeLatency;
+                        double requestLatency = averageIncomingLatency + requestNodeLatency;
 
                         // Keep the sample for the current tick.
                         tickLatencySamples.add(requestLatency);
