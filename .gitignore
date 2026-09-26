@@ -1,0 +1,39 @@
+# --- Node / Frontend ---
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.local
+.env
+.env.*
+!.env.example
+
+# --- Java / Spring Boot ---
+target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/
+HELP.md
+
+# --- IDE ---
+.idea/
+.vscode/
+*.iml
+.settings/
+.classpath
+.project
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Docker ---
+*.pid
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Postgres local data (if using docker volumes mounted here) ---
+pgdata/
