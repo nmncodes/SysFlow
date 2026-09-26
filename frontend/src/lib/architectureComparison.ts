@@ -148,7 +148,7 @@ export function calculateArchitectureMetrics(snapshot: ArchitectureSnapshot): Ar
     replicatedNodeCount,
     estimatedMonthlyCost: snapshot.estimatedMonthlyCost,
     spofCount: spof.findings.length,
-    p95Ms: snapshot.summary?.avgP95 ?? null,
+    p95Ms: snapshot.summary?.p95 ?? null,
     errorRatePct: snapshot.summary?.avgErrorRatePct ?? null,
     throughputRps: snapshot.summary?.avgRps ?? null,
     bottleneckLoadPct: snapshot.summary?.bottleneckLoadPct ?? null,

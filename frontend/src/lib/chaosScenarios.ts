@@ -215,16 +215,6 @@ function average(values: number[]): number {
   return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0
 }
 
-function percentile(values: number[], p: number): number {
-  if (!values.length) return 0
-  const sorted = [...values].sort((a, b) => a - b)
-  const index = (sorted.length - 1) * p
-  const lower = Math.floor(index)
-  const upper = Math.ceil(index)
-  if (lower === upper) return sorted[lower]
-  return sorted[lower] + (sorted[upper] - sorted[lower]) * (index - lower)
-}
-
 function round(value: number): number {
   return Math.round(value * 10) / 10
 }
