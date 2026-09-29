@@ -56,6 +56,7 @@ export default function ConfigPanel({ node, onChange, onDelete, onClose }: Props
 
   const primaryFields = [
     ...(Object.prototype.hasOwnProperty.call(draft, 'targetRps') ? [{ key: 'targetRps', label: 'Target RPS' }] : []),
+    ...(Object.prototype.hasOwnProperty.call(draft, 'algorithm') ? [{ key: 'algorithm', label: 'Algorithm' }] : []),
     ...(Object.prototype.hasOwnProperty.call(draft, 'scale') ? [{ key: 'scale', label: 'Memory Scale' }] : []),
     ...(Object.prototype.hasOwnProperty.call(draft, 'maxThroughput') ? [{ key: 'maxThroughput', label: 'Capacity (RPS)' }] : []),
     ...(Object.prototype.hasOwnProperty.call(draft, 'maxConcurrency') ? [{ key: 'maxConcurrency', label: 'Capacity' }] : []),
@@ -138,6 +139,12 @@ export default function ConfigPanel({ node, onChange, onDelete, onClose }: Props
                     <option value="MD_8GB">8GB (Medium)</option>
                     <option value="LG_16GB">16GB (Large)</option>
                     <option value="XL_32GB">32GB (Extra Large)</option>
+                  </select>
+                ) : key === 'algorithm' ? (
+                  <select value={String(draft[key] ?? 'round-robin')} onChange={(e) => setField(key, e.target.value)} className="mt-1.5 w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2.5 text-sm font-medium normal-case tracking-normal text-zinc-800 dark:text-zinc-100 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-900/40">
+                    <option value="round-robin">Round Robin (Even Split)</option>
+                    <option value="least-connections">Least Connections</option>
+                    <option value="random">Random Weighting</option>
                   </select>
                 ) : (
                   <input type={typeof draft[key] === 'number' ? 'number' : 'text'} value={String(draft[key] ?? '')} onChange={(e) => setField(key, e.target.value)} className="mt-1.5 w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2.5 text-sm font-medium normal-case tracking-normal text-zinc-800 dark:text-zinc-100 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-900/40" />

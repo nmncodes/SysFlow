@@ -178,9 +178,56 @@ public class SimulationEngine {
 
                 List<GraphEdge> outEdges = graph.outgoing(node.id());
                 if (!outEdges.isEmpty()) {
-                    double sharePerEdge = accepted / outEdges.size();
-                    double failedSharePerEdge = failedHere / Math.max(1, outEdges.size());
-                    for (GraphEdge edge : outEdges) {
+                    String algorithm = "round-robin";
+                    if ("loadBalancer".equals(node.type())) {
+                        algorithm = node.getString("algorithm", "round-robin");
+                    }
+
+                    double[] edgeWeights = new double[outEdges.size()];
+                    double totalWeight = 0;
+
+                    for (int i = 0; i < outEdges.size(); i++) {
+                        GraphEdge edge = outEdges.get(i);
+                        double weight = 1.0;
+
+                        if ("least-connections".equals(algorithm)) {
+                            GraphNode targetNode = graph.node(edge.target());
+                            InjectedFailure targetFailure = activeNodeFailures.get(edge.target());
+                            if (targetFailure != null && "kill".equals(targetFailure.type())) {
+                                weight = 0.0;
+                            } else {
+                                int targetReplicas = 1;
+                                if (targetNode != null && "autoScalingGroup".equals(targetNode.type())) {
+                                    targetReplicas = asgReplicas.getOrDefault(targetNode.id(), (int) targetNode.getNumber("minReplicas", 1));
+                                }
+                                double targetCap = targetNode != null ? capacityOf(targetNode) : 1.0;
+                                if (targetNode != null && "autoScalingGroup".equals(targetNode.type())) {
+                                    targetCap *= targetReplicas;
+                                }
+                                if (targetFailure != null && "throttle".equals(targetFailure.type())) {
+                                    targetCap *= (1 - clampPct(targetFailure.throttlePct()));
+                                }
+                                weight = Math.max(0.1, targetCap);
+                            }
+                        } else if ("random".equals(algorithm)) {
+                            weight = 0.1 + random.nextDouble();
+                        }
+
+                        edgeWeights[i] = weight;
+                        totalWeight += weight;
+                    }
+
+                    if (totalWeight <= 0) {
+                        for (int i = 0; i < outEdges.size(); i++) edgeWeights[i] = 1.0;
+                        totalWeight = outEdges.size();
+                    }
+
+                    for (int i = 0; i < outEdges.size(); i++) {
+                        GraphEdge edge = outEdges.get(i);
+                        double proportion = edgeWeights[i] / totalWeight;
+                        double sharePerEdge = accepted * proportion;
+                        double failedSharePerEdge = failedHere * proportion;
+
                         InjectedFailure edgeFailure = activeEdgeFailures.get(edge.id());
                         double dropPct = edgeFailure != null ? clampPct(edgeFailure.dropPct()) : 0;
                         double dropped = sharePerEdge * dropPct;
