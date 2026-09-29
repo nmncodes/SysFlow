@@ -15,10 +15,12 @@ export interface ProjectSummary {
   updatedAt: string
   isPublicTemplate: boolean
   isShared: boolean
+  accessRole: 'EDITOR' | 'VIEWER'
 }
 
 export interface ProjectDetail extends ProjectSummary {
   graphJson: GraphJson
+  collaborationRevision?: number | null
 }
 
 export interface GalleryItem {
@@ -52,6 +54,40 @@ export async function listProjects(): Promise<ProjectSummary[]> {
   return handle(res)
 }
 
+export async function listSharedWithMe(): Promise<ProjectSummary[]> {
+  const res = await fetch(`${API_BASE}/projects/shared-with-me`, { headers: { ...authHeaders() } })
+  return handle(res)
+}
+
+export interface ProjectCollaborator {
+  userId: string
+  email: string
+  displayName: string | null
+  role: 'EDITOR' | 'VIEWER'
+  owner: boolean
+}
+
+export async function listCollaborators(projectId: string): Promise<ProjectCollaborator[]> {
+  const res = await fetch(`${API_BASE}/projects/${projectId}/collaborators`, { headers: { ...authHeaders() } })
+  return handle(res)
+}
+
+export async function grantCollaborator(projectId: string, email: string, role: 'EDITOR' | 'VIEWER'): Promise<ProjectCollaborator> {
+  const res = await fetch(`${API_BASE}/projects/${projectId}/collaborators`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ email, role }),
+  })
+  return handle(res)
+}
+
+export async function revokeCollaborator(projectId: string, userId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/projects/${projectId}/collaborators/${userId}`, {
+    method: 'DELETE', headers: { ...authHeaders() },
+  })
+  if (!res.ok) throw new Error(`Collaborator removal failed: ${res.status}`)
+}
+
 export async function getProject(id: string): Promise<ProjectDetail> {
   const res = await fetch(`${API_BASE}/projects/${id}`, { headers: { ...authHeaders() } })
   return handle(res)
@@ -66,11 +102,18 @@ export async function createProject(name: string, description: string, graphJson
   return handle(res)
 }
 
-export async function updateProject(id: string, name: string, description: string, graphJson: GraphJson): Promise<ProjectDetail> {
+export async function updateProject(
+  id: string,
+  name: string,
+  description: string,
+  graphJson: GraphJson,
+  collaborationRevision?: number,
+  collaborationClientId?: string,
+): Promise<ProjectDetail> {
   const res = await fetch(`${API_BASE}/projects/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({ name, description, graphJson }),
+    body: JSON.stringify({ name, description, graphJson, collaborationRevision, collaborationClientId }),
   })
   return handle(res)
 }

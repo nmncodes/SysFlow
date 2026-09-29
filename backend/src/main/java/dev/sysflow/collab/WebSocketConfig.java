@@ -1,29 +1,35 @@
 package dev.sysflow.collab;
 
+import dev.sysflow.auth.JwtService;
+import dev.sysflow.project.ProjectAccessService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
 /**
- * Live collaboration transport: STOMP over a plain WebSocket at /ws (no SockJS — every
- * client here is a real browser or a test WebSocket client, no legacy-browser fallback
- * needed). One topic per project id; see LiveUpdateController for the relay logic and
- * docs/05-ROADMAP.md for the last-write-wins design this deliberately keeps simple.
+ * Authenticated STOMP transport. Every room subscription and edit is authorized against
+ * the project's owner/editor/viewer membership.
  */
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final String[] allowedOrigins;
+    private final JwtService jwtService;
+    private final ProjectAccessService access;
 
-    public WebSocketConfig(@Value("${cors.allowed-origins:http://localhost:5173}") String allowedOriginsCsv) {
+    public WebSocketConfig(@Value("${cors.allowed-origins:http://localhost:5173}") String allowedOriginsCsv,
+                           JwtService jwtService, ProjectAccessService access) {
         this.allowedOrigins = allowedOriginsCsv.split(",");
         for (int i = 0; i < this.allowedOrigins.length; i++) {
             this.allowedOrigins[i] = this.allowedOrigins[i].trim();
         }
+        this.jwtService = jwtService;
+        this.access = access;
     }
 
     @Override
@@ -33,7 +39,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        registry.enableSimpleBroker("/topic");
+        registry.enableSimpleBroker("/queue");
         registry.setApplicationDestinationPrefixes("/app");
+    }
+
+    @Override
+    public void configureClientInboundChannel(ChannelRegistration registration) {
+        registration.interceptors(new ProjectMessageChannelInterceptor(jwtService, access));
     }
 }

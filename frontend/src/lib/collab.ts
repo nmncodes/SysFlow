@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Client, type IMessage } from '@stomp/stompjs'
+import { getToken } from './auth'
+import { mergeGraphs, stableStringify, type GraphPayload } from './graphMerge'
+
+export type { GraphPayload } from './graphMerge'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api'
 const GRAPH_BROADCAST_DEBOUNCE_MS = 400
@@ -20,17 +24,6 @@ export interface RemoteCursor extends Collaborator {
   y: number
 }
 
-export interface GraphPayload {
-  nodes: { id: string; type: string; label: string; config: Record<string, unknown>; position: { x: number; y: number } }[]
-  edges: { id: string; source: string; target: string }[]
-}
-
-type LiveMessage =
-  | { type: 'presence-join'; clientId: string; name: string; color: string }
-  | { type: 'presence-leave'; clientId: string }
-  | { type: 'cursor'; clientId: string; name: string; color: string; x: number; y: number }
-  | { type: 'graph'; clientId: string; updatedAt: number; payload: GraphPayload }
-
 function wsUrl(): string {
   const httpBase = API_BASE.replace(/\/api\/?$/, '')
   return httpBase.replace(/^http/, 'ws') + '/ws'
@@ -42,27 +35,39 @@ function colorFor(clientId: string): string {
   return CURSOR_COLORS[Math.abs(hash) % CURSOR_COLORS.length]
 }
 
-/**
- * Whole-document last-write-wins live collaboration: every meaningful local edit
- * (debounced) broadcasts the entire graph snapshot with a timestamp; every client only
- * applies an incoming snapshot if it's newer than the last one it applied. This is
- * deliberately simpler than per-node merging — see backend LiveUpdateController's javadoc
- * for why that trade-off was chosen. Only active for saved projects (projectId set); an
- * unsaved local session has no shared room to join.
- */
-export function useCollabSession(projectId: string | null, displayName: string | null) {
+export interface CollaborationConflict {
+  revision: number
+  payload: GraphPayload
+  conflicts: string[]
+  localDraft: GraphPayload
+}
+
+type LiveMessage =
+  | { type: 'presence-join'; clientId: string; name: string; color: string; initial?: boolean }
+  | { type: 'presence-leave'; clientId: string }
+  | { type: 'cursor'; clientId: string; name: string; color: string; x: number; y: number }
+  | { type: 'graph'; clientId: string; baseRevision?: number; revision?: number; payload: GraphPayload }
+  | { type: 'conflict'; clientId: string; revision: number; payload: GraphPayload; conflicts: string[] }
+export function useCollabSession(projectId: string | null, displayName: string | null, canEdit = true) {
   const [connected, setConnected] = useState(false)
+  const [revision, setRevision] = useState(0)
   const [collaborators, setCollaborators] = useState<Collaborator[]>([])
   const [remoteCursors, setRemoteCursors] = useState<Record<string, RemoteCursor>>({})
 
   const clientIdRef = useRef<string>(crypto.randomUUID())
+  const canEditRef = useRef(canEdit)
+  canEditRef.current = canEdit
   const nameRef = useRef<string>(displayName?.trim() || 'Guest')
   const colorRef = useRef<string>(colorFor(clientIdRef.current))
   const stompRef = useRef<Client | null>(null)
   const graphDebounceRef = useRef<number | null>(null)
   const lastSentGraphJsonRef = useRef<string>('')
+  const localGraphRef = useRef<GraphPayload | null>(null)
+  const baseGraphRef = useRef<GraphPayload | null>(null)
+  const serverRevisionRef = useRef(0)
+  const pendingConflictRef = useRef<CollaborationConflict | null>(null)
+  const [conflict, setConflict] = useState<CollaborationConflict | null>(null)
   const cursorThrottleRef = useRef<number>(0)
-  const lastAppliedGraphAtRef = useRef<number>(0)
   const onRemoteGraphRef = useRef<((payload: GraphPayload) => void) | null>(null)
   const seenClientIdsRef = useRef<Set<string>>(new Set())
   const lastSeenAtRef = useRef<Map<string, number>>(new Map())
@@ -73,9 +78,22 @@ export function useCollabSession(projectId: string | null, displayName: string |
 
   const send = useCallback((message: LiveMessage) => {
     const client = stompRef.current
-    if (!client?.connected || !projectId) return
-    client.publish({ destination: `/app/project/${projectId}/broadcast`, body: JSON.stringify(message) })
+    if (!client?.connected || !projectId) return false
+    const destination = message.type === 'graph'
+      ? `/app/project/${projectId}/broadcast`
+      : `/app/project/${projectId}/presence`
+    client.publish({ destination, body: JSON.stringify(message) })
+    return true
   }, [projectId])
+
+  const sendGraph = useCallback((payload: GraphPayload, force = false) => {
+    if (!canEditRef.current || pendingConflictRef.current) return
+    const json = stableStringify(payload)
+    if (!force && json === lastSentGraphJsonRef.current) return
+    if (send({ type: 'graph', clientId: clientIdRef.current, baseRevision: serverRevisionRef.current, payload })) {
+      lastSentGraphJsonRef.current = json
+    }
+  }, [send])
 
   useEffect(() => {
     if (!projectId) {
@@ -85,8 +103,10 @@ export function useCollabSession(projectId: string | null, displayName: string |
       return
     }
 
+    const clientId = clientIdRef.current
     const client = new Client({
       brokerURL: wsUrl(),
+      connectHeaders: { Authorization: `Bearer ${getToken() ?? ''}` },
       reconnectDelay: 3000,
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,
@@ -94,16 +114,59 @@ export function useCollabSession(projectId: string | null, displayName: string |
 
     seenClientIdsRef.current = new Set()
     lastSeenAtRef.current = new Map()
+    serverRevisionRef.current = 0
+    setRevision(0)
+    lastSentGraphJsonRef.current = ''
+    baseGraphRef.current = null
+    localGraphRef.current = null
+    pendingConflictRef.current = null
+    setConflict(null)
 
     client.onConnect = () => {
       setConnected(true)
-      client.subscribe(`/topic/project/${projectId}`, (msg: IMessage) => {
+      client.subscribe(`/user/queue/project/${projectId}`, (msg: IMessage) => {
         let message: LiveMessage
         try {
           message = JSON.parse(msg.body)
         } catch {
           return
         }
+        if (message.type === 'graph') {
+          if (typeof message.revision !== 'number') return
+          if (message.revision <= serverRevisionRef.current) return
+          const base = baseGraphRef.current ?? localGraphRef.current ?? message.payload
+          const local = localGraphRef.current ?? message.payload
+          const result = mergeGraphs(base, local, message.payload)
+          serverRevisionRef.current = message.revision
+          setRevision(message.revision)
+          baseGraphRef.current = message.payload
+          if (pendingConflictRef.current) {
+            const refreshedConflict = {
+              revision: message.revision,
+              payload: message.payload,
+              conflicts: [...new Set([...pendingConflictRef.current.conflicts, ...result.conflicts])],
+              localDraft: result.graph,
+            }
+            pendingConflictRef.current = refreshedConflict
+            setConflict(refreshedConflict)
+            if (graphDebounceRef.current) window.clearTimeout(graphDebounceRef.current)
+            return
+          }
+          if (result.conflicts.length > 0) {
+            const conflictState = { revision: message.revision, payload: message.payload, conflicts: result.conflicts, localDraft: result.graph }
+            pendingConflictRef.current = conflictState
+            setConflict(conflictState)
+            if (graphDebounceRef.current) window.clearTimeout(graphDebounceRef.current)
+            return
+          }
+
+          localGraphRef.current = result.graph
+          if (stableStringify(result.graph) !== stableStringify(local)) onRemoteGraphRef.current?.(result.graph)
+          if (stableStringify(result.graph) === stableStringify(message.payload)) lastSentGraphJsonRef.current = stableStringify(result.graph)
+          else sendGraph(result.graph)
+          return
+        }
+
         if (message.clientId === clientIdRef.current) return
         lastSeenAtRef.current.set(message.clientId, Date.now())
 
@@ -136,14 +199,57 @@ export function useCollabSession(projectId: string | null, displayName: string |
             ...current,
             [message.clientId]: { clientId: message.clientId, name: message.name, color: message.color, x: message.x, y: message.y },
           }))
-        } else if (message.type === 'graph') {
-          if (message.updatedAt > lastAppliedGraphAtRef.current) {
-            lastAppliedGraphAtRef.current = message.updatedAt
-            onRemoteGraphRef.current?.(message.payload)
-          }
         }
       })
-      send({ type: 'presence-join', clientId: clientIdRef.current, name: nameRef.current, color: colorRef.current })
+      client.subscribe('/user/queue/collaboration-conflicts', (msg: IMessage) => {
+        let message: LiveMessage
+        try {
+          message = JSON.parse(msg.body)
+        } catch {
+          return
+        }
+        if (message.type !== 'conflict' || message.clientId !== clientIdRef.current) return
+        const base = baseGraphRef.current ?? localGraphRef.current ?? message.payload
+        const local = localGraphRef.current ?? message.payload
+        const result = mergeGraphs(base, local, message.payload)
+        serverRevisionRef.current = message.revision
+        setRevision(message.revision)
+        baseGraphRef.current = message.payload
+        if (pendingConflictRef.current) {
+          const refreshedConflict = {
+            revision: message.revision,
+            payload: message.payload,
+            conflicts: [...new Set([...pendingConflictRef.current.conflicts, ...message.conflicts, ...result.conflicts])],
+            localDraft: result.graph,
+          }
+          pendingConflictRef.current = refreshedConflict
+          setConflict(refreshedConflict)
+          if (graphDebounceRef.current) window.clearTimeout(graphDebounceRef.current)
+          return
+        }
+        if (result.conflicts.length === 0) {
+          localGraphRef.current = result.graph
+          if (stableStringify(result.graph) === stableStringify(message.payload)) {
+            lastSentGraphJsonRef.current = stableStringify(result.graph)
+          } else {
+            onRemoteGraphRef.current?.(result.graph)
+            lastSentGraphJsonRef.current = ''
+            sendGraph(result.graph)
+          }
+          return
+        }
+        const conflictState = {
+          revision: message.revision,
+          payload: message.payload,
+          conflicts: [...new Set([...message.conflicts, ...result.conflicts])],
+          localDraft: result.graph,
+        }
+        pendingConflictRef.current = conflictState
+        setConflict(conflictState)
+        if (graphDebounceRef.current) window.clearTimeout(graphDebounceRef.current)
+      })
+      send({ type: 'presence-join', clientId: clientIdRef.current, name: nameRef.current, color: colorRef.current, initial: true })
+      if (canEditRef.current && localGraphRef.current) sendGraph(localGraphRef.current, true)
     }
 
     client.onWebSocketClose = () => setConnected(false)
@@ -179,7 +285,7 @@ export function useCollabSession(projectId: string | null, displayName: string |
     return () => {
       window.clearInterval(heartbeatId)
       window.clearInterval(staleCheckId)
-      send({ type: 'presence-leave', clientId: clientIdRef.current })
+      send({ type: 'presence-leave', clientId })
       client.deactivate()
       stompRef.current = null
       setConnected(false)
@@ -190,19 +296,64 @@ export function useCollabSession(projectId: string | null, displayName: string |
   }, [projectId])
 
   const broadcastGraph = useCallback((payload: GraphPayload) => {
-    // Content-deduped so a caller that re-triggers on every render (e.g. simulation ticks
-    // touching unrelated node.data fields) never actually sends a redundant snapshot,
-    // regardless of how often this is called.
-    const json = JSON.stringify(payload)
+    localGraphRef.current = payload
+    if (!baseGraphRef.current) baseGraphRef.current = payload
+    if (pendingConflictRef.current) return
+    const json = stableStringify(payload)
     if (json === lastSentGraphJsonRef.current) return
     if (graphDebounceRef.current) window.clearTimeout(graphDebounceRef.current)
     graphDebounceRef.current = window.setTimeout(() => {
-      lastSentGraphJsonRef.current = json
-      const updatedAt = Date.now()
-      lastAppliedGraphAtRef.current = updatedAt
-      send({ type: 'graph', clientId: clientIdRef.current, updatedAt, payload })
+      sendGraph(payload)
     }, GRAPH_BROADCAST_DEBOUNCE_MS)
-  }, [send])
+  }, [sendGraph])
+
+  const resolveConflict = useCallback((resolution: 'shared' | 'local') => {
+    const current = pendingConflictRef.current
+    if (!current) return
+    pendingConflictRef.current = null
+    setConflict(null)
+    baseGraphRef.current = current.payload
+    serverRevisionRef.current = current.revision
+    setRevision(current.revision)
+    if (resolution === 'shared') {
+      localGraphRef.current = current.payload
+      lastSentGraphJsonRef.current = stableStringify(current.payload)
+      onRemoteGraphRef.current?.(current.payload)
+      return
+    }
+
+    const merged = current.localDraft
+    localGraphRef.current = merged
+    lastSentGraphJsonRef.current = ''
+    onRemoteGraphRef.current?.(merged)
+    sendGraph(merged)
+  }, [sendGraph])
+
+  const applySavedGraph = useCallback((payload: GraphPayload, nextRevision: number) => {
+    if (nextRevision <= serverRevisionRef.current) return
+    const base = baseGraphRef.current ?? localGraphRef.current ?? payload
+    const local = localGraphRef.current ?? payload
+    const result = mergeGraphs(base, local, payload)
+    serverRevisionRef.current = nextRevision
+    setRevision(nextRevision)
+    baseGraphRef.current = payload
+    if (result.conflicts.length > 0 || pendingConflictRef.current) {
+      const conflictState = {
+        revision: nextRevision,
+        payload,
+        conflicts: [...new Set([...(pendingConflictRef.current?.conflicts ?? []), ...result.conflicts])],
+        localDraft: result.graph,
+      }
+      pendingConflictRef.current = conflictState
+      setConflict(conflictState)
+      if (graphDebounceRef.current) window.clearTimeout(graphDebounceRef.current)
+      return
+    }
+    localGraphRef.current = result.graph
+    if (stableStringify(result.graph) !== stableStringify(local)) onRemoteGraphRef.current?.(result.graph)
+    if (stableStringify(result.graph) === stableStringify(payload)) lastSentGraphJsonRef.current = stableStringify(result.graph)
+    else sendGraph(result.graph)
+  }, [sendGraph])
 
   const broadcastCursor = useCallback((x: number, y: number) => {
     const now = Date.now()
@@ -217,8 +368,12 @@ export function useCollabSession(projectId: string | null, displayName: string |
 
   return {
     connected,
+    revision,
     collaborators,
     remoteCursors: Object.values(remoteCursors),
+    conflict,
+    resolveConflict,
+    applySavedGraph,
     myClientId: clientIdRef.current,
     myColor: colorRef.current,
     broadcastGraph,

@@ -3,11 +3,14 @@ package dev.sysflow.srs;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.sysflow.srs.dto.RawExtraction;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClient;
 
 import java.util.HashSet;
@@ -26,24 +29,37 @@ public class SrsGraphExtractor {
 
     private static final Logger log = LoggerFactory.getLogger(SrsGraphExtractor.class);
     private static final int MAX_INPUT_CHARS = 20_000;
+    private static final int MAX_TRANSIENT_RETRIES = 1;
+    private static final long RETRY_DELAY_MS = 500;
+    // Preserve room for a retry within the frontend's 45-second request timeout.
+    private static final long MAX_FIRST_ATTEMPT_RETRY_WINDOW_MS = 10_000;
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final String apiKey;
     private final String model;
 
+    @Autowired
     public SrsGraphExtractor(
             ObjectMapper objectMapper,
             @Value("${gemini.api-key:}") String apiKey,
             @Value("${gemini.model:gemini-3.6-flash}") String model
     ) {
+        this(objectMapper, apiKey, model, createRestClient());
+    }
+
+    SrsGraphExtractor(ObjectMapper objectMapper, String apiKey, String model, RestClient restClient) {
         this.objectMapper = objectMapper;
         this.apiKey = apiKey;
         this.model = model;
+        this.restClient = restClient;
+    }
+
+    private static RestClient createRestClient() {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(5_000);
         requestFactory.setReadTimeout(30_000); // SRS documents can be long, so this prompt legitimately takes longer than the analyze/grade ones
-        this.restClient = RestClient.builder()
+        return RestClient.builder()
                 .baseUrl("https://generativelanguage.googleapis.com/v1beta")
                 .requestFactory(requestFactory)
                 .build();
@@ -68,11 +84,7 @@ public class SrsGraphExtractor {
                     "generationConfig", Map.of("temperature", 0.1, "responseMimeType", "application/json")
             );
 
-            JsonNode response = restClient.post()
-                    .uri("/models/{model}:generateContent?key={key}", model, apiKey)
-                    .body(body)
-                    .retrieve()
-                    .body(JsonNode.class);
+            JsonNode response = requestExtraction(body);
 
             String text = response
                     .path("candidates").path(0)
@@ -89,9 +101,56 @@ public class SrsGraphExtractor {
                         text.length() > 2000 ? text.substring(0, 2000) : text);
                 throw parseError;
             }
+        } catch (GeminiTemporarilyUnavailableException e) {
+            log.warn("SRS extraction unavailable after retry: {}", e.getMessage());
+            throw e;
         } catch (Exception e) {
             log.warn("SRS extraction failed", e);
             throw new IllegalStateException("Couldn't extract an architecture from this document. Try a shorter or clearer SRS.", e);
+        }
+    }
+
+    private JsonNode requestExtraction(Map<String, Object> body) {
+        for (int attempt = 0; ; attempt++) {
+            long startedAt = System.nanoTime();
+            try {
+                return restClient.post()
+                        .uri("/models/{model}:generateContent?key={key}", model, apiKey)
+                        .body(body)
+                        .retrieve()
+                        .body(JsonNode.class);
+            } catch (HttpStatusCodeException e) {
+                int status = e.getStatusCode().value();
+                boolean transientFailure = status == HttpStatus.SERVICE_UNAVAILABLE.value()
+                        || status == HttpStatus.TOO_MANY_REQUESTS.value();
+                long elapsedMs = (System.nanoTime() - startedAt) / 1_000_000;
+                if (!transientFailure) {
+                    throw e;
+                }
+                if (attempt < MAX_TRANSIENT_RETRIES && elapsedMs < MAX_FIRST_ATTEMPT_RETRY_WINDOW_MS) {
+                    log.warn("Gemini temporarily unavailable for SRS extraction (HTTP {}). Retrying once.", status);
+                    pauseBeforeRetry();
+                    continue;
+                }
+                throw new GeminiTemporarilyUnavailableException(
+                        "Gemini is temporarily busy. Please wait a moment and retry the SRS import.", e);
+            }
+        }
+    }
+
+    private static void pauseBeforeRetry() {
+        try {
+            Thread.sleep(RETRY_DELAY_MS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new GeminiTemporarilyUnavailableException(
+                    "Gemini is temporarily busy. Please wait a moment and retry the SRS import.", e);
+        }
+    }
+
+    private static final class GeminiTemporarilyUnavailableException extends IllegalStateException {
+        private GeminiTemporarilyUnavailableException(String message, Throwable cause) {
+            super(message, cause);
         }
     }
 

@@ -54,6 +54,16 @@ class ProjectGalleryTest {
         );
     }
 
+    private Map<String, Object> graphWithLabels(String clientLabel, String serviceLabel) {
+        return Map.of(
+                "nodes", List.of(
+                        Map.of("id", "c", "type", "client", "label", clientLabel, "config", Map.of()),
+                        Map.of("id", "svc", "type", "service", "label", serviceLabel, "config", Map.of())
+                ),
+                "edges", List.of(Map.of("id", "e1", "source", "c", "target", "svc"))
+        );
+    }
+
     @Test
     void publishListsInGalleryAndUnpublishRemovesIt() throws Exception {
         String token = registerAndGetToken("gallery-" + System.nanoTime() + "@example.com");
@@ -159,5 +169,135 @@ class ProjectGalleryTest {
         mockMvc.perform(get("/api/gallery"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(0)));
+    }
+
+    @Test
+    void ownerCanGrantEditorAndViewerRolesAndRevokeAccess() throws Exception {
+        String suffix = Long.toString(System.nanoTime());
+        String ownerToken = registerAndGetToken("collab-owner-" + suffix + "@example.com");
+        String editorEmail = "collab-editor-" + suffix + "@example.com";
+        String viewerEmail = "collab-viewer-" + suffix + "@example.com";
+        String editorToken = registerAndGetToken(editorEmail);
+        String viewerToken = registerAndGetToken(viewerEmail);
+
+        Map<String, Object> createBody = Map.of("name", "Shared Project", "description", "", "graphJson", sampleGraph());
+        MvcResult created = mockMvc.perform(post("/api/projects")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createBody)))
+                .andExpect(status().isOk())
+                .andReturn();
+        String projectId = objectMapper.readTree(created.getResponse().getContentAsString()).path("id").asText();
+
+        mockMvc.perform(put("/api/projects/" + projectId + "/collaborators")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + editorEmail + "\",\"role\":\"EDITOR\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("EDITOR"));
+        MvcResult viewerGrant = mockMvc.perform(put("/api/projects/" + projectId + "/collaborators")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + viewerEmail + "\",\"role\":\"VIEWER\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("VIEWER"))
+                .andReturn();
+        String viewerId = objectMapper.readTree(viewerGrant.getResponse().getContentAsString()).path("userId").asText();
+
+        mockMvc.perform(get("/api/projects/" + projectId).header("Authorization", "Bearer " + editorToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessRole").value("EDITOR"));
+        mockMvc.perform(get("/api/projects/" + projectId).header("Authorization", "Bearer " + viewerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessRole").value("VIEWER"));
+
+        Map<String, Object> updateBody = Map.of("name", "Updated by editor", "description", "", "graphJson", sampleGraph());
+        mockMvc.perform(put("/api/projects/" + projectId)
+                        .header("Authorization", "Bearer " + editorToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateBody)))
+                .andExpect(status().isOk());
+        mockMvc.perform(put("/api/projects/" + projectId)
+                        .header("Authorization", "Bearer " + viewerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateBody)))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(get("/api/projects/shared-with-me").header("Authorization", "Bearer " + viewerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].accessRole").value("VIEWER"));
+        mockMvc.perform(delete("/api/projects/" + projectId + "/collaborators/" + viewerId)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/projects/" + projectId).header("Authorization", "Bearer " + viewerToken))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void collaboratorInvitationRejectsBlankEmail() throws Exception {
+        String ownerToken = registerAndGetToken("collab-validation-" + System.nanoTime() + "@example.com");
+        Map<String, Object> createBody = Map.of("name", "Validation Project", "description", "", "graphJson", sampleGraph());
+        MvcResult created = mockMvc.perform(post("/api/projects")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createBody)))
+                .andExpect(status().isOk())
+                .andReturn();
+        String projectId = objectMapper.readTree(created.getResponse().getContentAsString()).path("id").asText();
+
+        mockMvc.perform(put("/api/projects/" + projectId + "/collaborators")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"  \",\"role\":\"VIEWER\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void staleSavesMergeIndependentChangesAndRejectConflictingChanges() throws Exception {
+        String ownerToken = registerAndGetToken("collab-save-" + System.nanoTime() + "@example.com");
+        Map<String, Object> createBody = Map.of("name", "Concurrent Save", "description", "", "graphJson", graphWithLabels("Client", "Service"));
+        MvcResult created = mockMvc.perform(post("/api/projects")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createBody)))
+                .andExpect(status().isOk())
+                .andReturn();
+        String projectId = objectMapper.readTree(created.getResponse().getContentAsString()).path("id").asText();
+
+        Map<String, Object> firstSave = Map.of(
+                "name", "Concurrent Save", "description", "", "graphJson", graphWithLabels("Client A", "Service"),
+                "collaborationRevision", 0, "collaborationClientId", "tab-a");
+        mockMvc.perform(put("/api/projects/" + projectId)
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(firstSave)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.collaborationRevision").value(1));
+
+        Map<String, Object> staleIndependentSave = Map.of(
+                "name", "Concurrent Save", "description", "", "graphJson", graphWithLabels("Client", "Service B"),
+                "collaborationRevision", 0, "collaborationClientId", "tab-b");
+        mockMvc.perform(put("/api/projects/" + projectId)
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(staleIndependentSave)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.collaborationRevision").value(2))
+                .andExpect(jsonPath("$.graphJson.nodes[0].label").value("Client A"))
+                .andExpect(jsonPath("$.graphJson.nodes[1].label").value("Service B"));
+
+        Map<String, Object> staleConflictingSave = Map.of(
+                "name", "Concurrent Save", "description", "", "graphJson", graphWithLabels("Client C", "Service"),
+                "collaborationRevision", 0, "collaborationClientId", "tab-c");
+        mockMvc.perform(put("/api/projects/" + projectId)
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(staleConflictingSave)))
+                .andExpect(status().isConflict());
+
+        mockMvc.perform(get("/api/projects/" + projectId).header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.graphJson.nodes[0].label").value("Client A"))
+                .andExpect(jsonPath("$.graphJson.nodes[1].label").value("Service B"));
     }
 }
