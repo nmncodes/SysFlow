@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 
 /**
- * Tick-based, probabilistic simulation engine.
+ * Small, explainable tick-based simulation engine.
  *
  * This is intentionally NOT a discrete-event / queueing-theory accurate
  * network simulator. Per docs/02-ARCHITECTURE.md §4, it's a simplified
@@ -70,7 +70,7 @@ public class SimulationEngine {
                         ? 0.0
                         : incomingLatency / arriving;
 
-                boolean isClient = "client".equals(node.type());
+                boolean isClient = graph.isTrafficSource(node.id());
 
                 InjectedFailure killOrDegrade = activeNodeFailures.get(node.id());
                 boolean killed = killOrDegrade != null && "kill".equals(killOrDegrade.type());
@@ -230,7 +230,7 @@ public class SimulationEngine {
         double bottleneckLoad = bottleneckId == null ? 0 : maxLoadByNode.get(bottleneckId);
 
         List<String> spofs = graph.nodes().stream()
-                .filter(node -> !"client".equals(node.type()))
+                .filter(node -> !graph.isTrafficSource(node.id()))
                 .filter(node -> graph.incoming(node.id()).size() >= 1)
                 .filter(node -> isUnreplicated(node))
                 .filter(node -> hasMultipleDependents(graph, node))

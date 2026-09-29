@@ -10,6 +10,8 @@ import java.util.*;
  */
 public class SimulationGraph {
 
+    private static final Set<String> TRAFFIC_SOURCE_TYPES = Set.of("client", "mobile", "webBrowser", "iotDevice");
+
     private final Map<String, GraphNode> nodesById;
     private final List<GraphEdge> edges;
     private final Map<String, List<GraphEdge>> outgoingByNode;
@@ -45,7 +47,12 @@ public class SimulationGraph {
     }
 
     public List<GraphNode> clientNodes() {
-        return nodesById.values().stream().filter(n -> "client".equals(n.type())).toList();
+        return nodesById.values().stream().filter(n -> TRAFFIC_SOURCE_TYPES.contains(n.type())).toList();
+    }
+
+    public boolean isTrafficSource(String nodeId) {
+        GraphNode node = node(nodeId);
+        return node != null && TRAFFIC_SOURCE_TYPES.contains(node.type());
     }
 
     /** Topological order (Kahn's algorithm). Nodes involved in a cycle are appended at the end. */

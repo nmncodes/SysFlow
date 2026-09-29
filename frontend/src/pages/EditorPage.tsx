@@ -327,17 +327,9 @@ export default function EditorPage() {
 
   useEffect(() => {
     if (sim.isBusted && sim.bustedInfo) {
-      setToast(`💥 System Failure: "${sim.bustedInfo.nodeLabel}" crashed under load (${Math.round(sim.bustedInfo.rps)} RPS vs capacity ${sim.bustedInfo.capacity})`)
+      setToast(`System failure: "${sim.bustedInfo.nodeLabel}" went down at simulation tick ${sim.bustedInfo.tick}`)
     }
   }, [sim.isBusted, sim.bustedInfo])
-
-  useEffect(() => {
-    sim.updateFailures(failures)
-  }, [failures, sim])
-
-  useEffect(() => {
-    sim.setTrafficMultiplier(traffic)
-  }, [traffic, sim])
 
   const markDirty = () => setIsDirty(true)
 
@@ -391,7 +383,6 @@ export default function EditorPage() {
   )
 
       const handleRun = () => {
-    sim.setTrafficMultiplier(traffic)
     if (sim.isBusted) {
       sim.run(nodes, edges, baseRps, 0, failures)
       return
@@ -760,7 +751,6 @@ export default function EditorPage() {
     setChaosActivePlan(plan)
     setChaosLabOpen(true)
     setTraffic(plan.trafficMultiplier)
-    sim.setTrafficMultiplier(plan.trafficMultiplier)
     sim.run(nodes, edges, baseRps, 0, plan.failures)
     setIsDirty(true)
     setToast(`${plan.definition.label} started`)
