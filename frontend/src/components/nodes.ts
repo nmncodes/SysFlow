@@ -41,10 +41,10 @@ export interface ComponentDef {
 
 export const COMPONENT_LIBRARY: ComponentDef[] = [
   // Client
-  { type: 'client', label: 'Client', category: 'Client', defaultConfig: { targetRps: 100 } },
-  { type: 'mobile', label: 'Mobile', category: 'Client', defaultConfig: { targetRps: 100 } },
-  { type: 'webBrowser', label: 'Web Browser', category: 'Client', defaultConfig: { targetRps: 100 } },
-  { type: 'iotDevice', label: 'IoT Device', category: 'Client', defaultConfig: { targetRps: 20 } },
+  { type: 'client', label: 'Client', category: 'Client', defaultConfig: {} },
+  { type: 'mobile', label: 'Mobile', category: 'Client', defaultConfig: {} },
+  { type: 'webBrowser', label: 'Web Browser', category: 'Client', defaultConfig: {} },
+  { type: 'iotDevice', label: 'IoT Device', category: 'Client', defaultConfig: {} },
 
   // Traffic & Edge
   { type: 'dns', label: 'DNS', category: 'Traffic & Edge', defaultConfig: { resolutionLatencyMs: 5 } },
