@@ -46,17 +46,9 @@ public class LiveUpdateController {
         UUID projectId = UUID.fromString(rawProjectId);
         if (!"graph".equals(message.get("type"))) return;
 
-        Project project = projectRepository.findById(projectId).orElseThrow();
-        JsonNode persistedGraph;
-        try {
-            persistedGraph = objectMapper.readTree(project.getGraphJson());
-        } catch (Exception exception) {
-            throw new IllegalStateException("Stored project graph is invalid", exception);
-        }
-
         long baseRevision = message.get("baseRevision") instanceof Number number ? number.longValue() : 0L;
         JsonNode submittedGraph = objectMapper.valueToTree(message.get("payload"));
-        CollaborativeGraphService.Result result = graphService.apply(projectId, baseRevision, submittedGraph, persistedGraph);
+        CollaborativeGraphService.Result result = graphService.apply(projectId, baseRevision, submittedGraph);
         if (result.accepted()) {
             broadcastToMembers(projectId, Map.of(
                     "type", "graph",
@@ -79,19 +71,13 @@ public class LiveUpdateController {
     public void presence(@DestinationVariable String rawProjectId, Map<String, Object> message, Principal principal) {
         UUID projectId = UUID.fromString(rawProjectId);
         if ("presence-join".equals(message.get("type")) && Boolean.TRUE.equals(message.get("initial")) && principal != null) {
-            Project project = projectRepository.findById(projectId).orElseThrow();
-            try {
-                JsonNode persistedGraph = objectMapper.readTree(project.getGraphJson());
-                CollaborativeGraphService.Result snapshot = graphService.snapshot(projectId, persistedGraph);
-                messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/project/" + projectId, Map.of(
-                        "type", "graph",
-                        "clientId", "server",
-                        "revision", snapshot.revision(),
-                        "payload", snapshot.graph()
-                ));
-            } catch (Exception exception) {
-                throw new IllegalStateException("Stored project graph is invalid", exception);
-            }
+            CollaborativeGraphService.Result snapshot = graphService.snapshot(projectId);
+            messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/project/" + projectId, Map.of(
+                    "type", "graph",
+                    "clientId", "server",
+                    "revision", snapshot.revision(),
+                    "payload", snapshot.graph()
+            ));
         }
         if (Set.of("presence-join", "presence-leave", "cursor").contains(message.get("type"))) {
             broadcastToMembers(projectId, message);

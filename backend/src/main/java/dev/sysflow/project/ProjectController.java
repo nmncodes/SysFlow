@@ -9,6 +9,7 @@ import dev.sysflow.project.dto.ProjectSummaryResponse;
 import dev.sysflow.project.dto.ProjectVersionDetailResponse;
 import dev.sysflow.project.dto.ProjectVersionSummaryResponse;
 import jakarta.validation.Valid;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
@@ -121,14 +122,14 @@ public class ProjectController {
     }
 
     @PutMapping("/{id}")
+    @Transactional
     public ProjectResponse update(@PathVariable UUID id, @Valid @RequestBody ProjectRequest request, Authentication auth) {
         Project project = access.requireEdit(id, userId(auth));
         CollaborativeGraphService.Result graphUpdate = null;
         if (request.graphJson() != null) {
             JsonNode submittedGraph = request.graphJson();
-            JsonNode persistedGraph = readJson(project.getGraphJson());
             long baseRevision = request.collaborationRevision() == null ? 0L : request.collaborationRevision();
-            graphUpdate = collaborativeGraphService.apply(id, baseRevision, submittedGraph, persistedGraph);
+            graphUpdate = collaborativeGraphService.apply(id, baseRevision, submittedGraph);
             if (!graphUpdate.accepted()) {
                 if (request.collaborationClientId() != null) {
                     messagingTemplate.convertAndSendToUser(userId(auth).toString(), "/queue/collaboration-conflicts", Map.of(
@@ -156,8 +157,11 @@ public class ProjectController {
     }
 
     @DeleteMapping("/{id}")
+    @Transactional
     public void delete(@PathVariable UUID id, Authentication auth) {
-        Project project = access.requireOwner(id, userId(auth));
+        access.requireOwner(id, userId(auth));
+        Project project = projectRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
         projectVersionRepository.deleteAll(projectVersionRepository.findByProjectIdOrderByCreatedAtDesc(project.getId()));
         nodeCommentRepository.deleteByProjectId(project.getId());
         collaboratorRepository.deleteByProjectId(project.getId());
@@ -181,13 +185,13 @@ public class ProjectController {
     }
 
     @PostMapping("/{id}/versions/{versionId}/restore")
+    @Transactional
     public ProjectResponse restoreVersion(@PathVariable UUID id, @PathVariable UUID versionId, Authentication auth) {
         Project project = access.requireEdit(id, userId(auth));
         ProjectVersion version = findOwnedVersion(id, versionId);
-        JsonNode persistedGraph = readJson(project.getGraphJson());
-        CollaborativeGraphService.Result current = collaborativeGraphService.snapshot(id, persistedGraph);
+        CollaborativeGraphService.Result current = collaborativeGraphService.snapshot(id);
         CollaborativeGraphService.Result graphUpdate = collaborativeGraphService.apply(
-                id, current.revision(), readJson(version.getGraphJson()), persistedGraph);
+                id, current.revision(), readJson(version.getGraphJson()));
         if (!graphUpdate.accepted()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "The graph changed at the same time. Resolve the live collaboration conflict before restoring.");

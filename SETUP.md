@@ -20,6 +20,9 @@ Create a `.env` file at the repo root (never commit this — it's gitignored). U
 | `JWT_EXPIRATION_MS` | backend | Token lifetime, e.g. `86400000` (24h) |
 | `GEMINI_API_KEY` | backend | Gemini API key — **backend only, never exposed to frontend** |
 | `VITE_API_BASE_URL` | frontend | e.g. `http://localhost:8080/api` |
+| `RATE_LIMIT_TRUSTED_PROXIES` | backend | Optional comma-separated proxy IPs/CIDRs. Only configure proxies that overwrite or safely append `X-Forwarded-For`; otherwise leave empty so forwarded headers are ignored. |
+
+In production behind a reverse proxy, configure `RATE_LIMIT_TRUSTED_PROXIES` with the proxy's actual source ranges. The rate limiter deliberately does not trust `X-Forwarded-For` by default; trusting arbitrary client-provided values would let callers evade per-client limits.
 
 ## Running Everything via Docker Compose (once Phase 0 lands)
 

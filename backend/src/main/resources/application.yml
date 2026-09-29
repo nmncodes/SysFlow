@@ -38,3 +38,8 @@ cors:
   # Comma-separated list. Defaults cover local dev + the deployed Vercel frontend so the app
   # works out of the box; override via env var if the Vercel URL ever changes.
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,https://sys-flow-green.vercel.app}
+
+rate-limit:
+  # Forwarded client addresses are ignored unless the immediate peer matches one
+  # of these trusted proxy CIDRs. Leave empty when the app is reached directly.
+  trusted-proxies: ${RATE_LIMIT_TRUSTED_PROXIES:}

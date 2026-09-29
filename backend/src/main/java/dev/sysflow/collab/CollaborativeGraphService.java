@@ -4,7 +4,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import dev.sysflow.project.Project;
+import dev.sysflow.project.ProjectRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -13,7 +18,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /** Serializes graph revisions and merges independent node/edge changes from stale clients. */
 @Service
@@ -22,52 +26,96 @@ public class CollaborativeGraphService {
     private static final int HISTORY_LIMIT = 128;
 
     private final ObjectMapper objectMapper;
-    private final Map<UUID, ProjectState> projects = new ConcurrentHashMap<>();
+    private final ProjectRepository projectRepository;
+    private final ProjectCollaborationStateRepository stateRepository;
+    private final ProjectGraphRevisionRepository revisionRepository;
 
-    public CollaborativeGraphService(ObjectMapper objectMapper) {
+    public CollaborativeGraphService(ObjectMapper objectMapper, ProjectRepository projectRepository,
+                                     ProjectCollaborationStateRepository stateRepository,
+                                     ProjectGraphRevisionRepository revisionRepository) {
         this.objectMapper = objectMapper;
+        this.projectRepository = projectRepository;
+        this.stateRepository = stateRepository;
+        this.revisionRepository = revisionRepository;
     }
 
-    public Result apply(UUID projectId, long baseRevision, JsonNode submittedGraph, JsonNode persistedGraph) {
-        ProjectState state = projects.computeIfAbsent(projectId, ignored -> new ProjectState(persistedGraph.deepCopy()));
-        synchronized (state) {
-            if (!isGraph(submittedGraph)) {
-                return new Result(false, state.revision, state.graph.deepCopy(), List.of("graph:invalid"));
-            }
-            JsonNode baseGraph = state.history.get(baseRevision);
-            if (baseGraph == null) {
-                return new Result(false, state.revision, state.graph.deepCopy(), List.of("graph"));
-            }
-
-            JsonNode acceptedGraph;
-            List<String> conflicts = new ArrayList<>();
-            if (baseRevision == state.revision) {
-                acceptedGraph = submittedGraph.deepCopy();
-            } else {
-                acceptedGraph = merge(baseGraph, state.graph, submittedGraph, conflicts);
-            }
-
-            if (!conflicts.isEmpty()) {
-                return new Result(false, state.revision, state.graph.deepCopy(), List.copyOf(conflicts));
-            }
-
-            state.graph = acceptedGraph.deepCopy();
-            state.revision++;
-            state.history.put(state.revision, state.graph.deepCopy());
-            trimHistory(state.history);
-            return new Result(true, state.revision, state.graph.deepCopy(), List.of());
+    @Transactional
+    public Result apply(UUID projectId, long baseRevision, JsonNode submittedGraph) {
+        Project project = lockProject(projectId);
+        ProjectCollaborationState state = loadOrCreateState(project);
+        JsonNode currentGraph = readGraph(state.getGraphJson());
+        if (!isGraph(submittedGraph)) {
+            return new Result(false, state.getRevision(), currentGraph, List.of("graph:invalid"));
         }
-    }
 
-    public Result snapshot(UUID projectId, JsonNode persistedGraph) {
-        ProjectState state = projects.computeIfAbsent(projectId, ignored -> new ProjectState(persistedGraph.deepCopy()));
-        synchronized (state) {
-            return new Result(true, state.revision, state.graph.deepCopy(), List.of());
+        ProjectGraphRevision baseRevisionEntity = revisionRepository.findByProjectIdAndRevision(projectId, baseRevision).orElse(null);
+        if (baseRevisionEntity == null) {
+            return new Result(false, state.getRevision(), currentGraph, List.of("graph"));
         }
+        JsonNode baseGraph = readGraph(baseRevisionEntity.getGraphJson());
+
+        JsonNode acceptedGraph;
+        List<String> conflicts = new ArrayList<>();
+        if (baseRevision == state.getRevision()) {
+            acceptedGraph = submittedGraph.deepCopy();
+        } else {
+            acceptedGraph = merge(baseGraph, currentGraph, submittedGraph, conflicts);
+        }
+
+        if (!conflicts.isEmpty()) {
+            return new Result(false, state.getRevision(), currentGraph, List.copyOf(conflicts));
+        }
+
+        long nextRevision = state.getRevision() + 1;
+        state.setRevision(nextRevision);
+        state.setGraphJson(writeGraph(acceptedGraph));
+        stateRepository.save(state);
+        revisionRepository.save(new ProjectGraphRevision(projectId, nextRevision, state.getGraphJson()));
+        revisionRepository.deleteByProjectIdAndRevisionLessThan(projectId, Math.max(0, nextRevision - HISTORY_LIMIT + 1));
+        return new Result(true, nextRevision, acceptedGraph.deepCopy(), List.of());
     }
 
+    @Transactional
+    public Result snapshot(UUID projectId) {
+        ProjectCollaborationState state = loadOrCreateState(lockProject(projectId));
+        return new Result(true, state.getRevision(), readGraph(state.getGraphJson()), List.of());
+    }
+
+    @Transactional
     public void remove(UUID projectId) {
-        projects.remove(projectId);
+        revisionRepository.deleteByProjectId(projectId);
+        stateRepository.findById(projectId).ifPresent(stateRepository::delete);
+    }
+
+    private Project lockProject(UUID projectId) {
+        return projectRepository.findByIdForUpdate(projectId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
+    }
+
+    private ProjectCollaborationState loadOrCreateState(Project project) {
+        return stateRepository.findById(project.getId()).orElseGet(() -> {
+            JsonNode initialGraph = readGraph(project.getGraphJson());
+            ProjectCollaborationState initial = new ProjectCollaborationState(project.getId(), 0, writeGraph(initialGraph));
+            stateRepository.save(initial);
+            revisionRepository.save(new ProjectGraphRevision(project.getId(), 0, initial.getGraphJson()));
+            return initial;
+        });
+    }
+
+    private JsonNode readGraph(String graphJson) {
+        try {
+            return objectMapper.readTree(graphJson);
+        } catch (Exception exception) {
+            throw new IllegalStateException("Stored collaboration graph is invalid", exception);
+        }
+    }
+
+    private String writeGraph(JsonNode graph) {
+        try {
+            return objectMapper.writeValueAsString(graph);
+        } catch (Exception exception) {
+            throw new IllegalArgumentException("Unable to serialize collaboration graph", exception);
+        }
     }
 
     private JsonNode merge(JsonNode base, JsonNode current, JsonNode submitted, List<String> conflicts) {
@@ -152,23 +200,6 @@ public class CollaborativeGraphService {
 
     private boolean same(JsonNode left, JsonNode right) {
         return left == null ? right == null : left.equals(right);
-    }
-
-    private void trimHistory(LinkedHashMap<Long, JsonNode> history) {
-        while (history.size() > HISTORY_LIMIT) {
-            history.remove(history.keySet().iterator().next());
-        }
-    }
-
-    private static final class ProjectState {
-        private long revision;
-        private JsonNode graph;
-        private final LinkedHashMap<Long, JsonNode> history = new LinkedHashMap<>();
-
-        private ProjectState(JsonNode initialGraph) {
-            graph = initialGraph;
-            history.put(0L, initialGraph.deepCopy());
-        }
     }
 
     public record Result(boolean accepted, long revision, JsonNode graph, List<String> conflicts) {

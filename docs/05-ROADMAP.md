@@ -57,7 +57,8 @@ Phased so there's a demoable product early and often. Each phase ends in somethi
 - Public read-only share links for a saved project (no login required to view/replay a simulation).
 - Owners can invite existing accounts as editors or viewers; viewers can inspect projects without changing or saving them.
 - Live graph updates carry server revisions. Independent node and edge changes merge; concurrent edits to the same item pause sync and preserve the local draft until a user chooses which change to keep.
-- Live collaboration keeps the most recent 128 revisions per project in server memory; saving the project remains the durable record.
+- Live collaboration stores the canonical graph revision and its most recent 128 merge bases in the shared database. Database row locking serializes concurrent updates across backend instances; project saves and restores update this state in the same transaction.
+- WebSocket delivery still uses Spring's local simple broker. Active collaborators connected to different backend instances need a shared message broker before multi-instance live delivery is supported end to end.
 - Export diagram as PNG/JSON (PDF optional stretch).
 - Versioning: every save snapshots the prior graph (`project_versions` table); last 10 kept per project,
   oldest pruned automatically. "History" button in the editor toolbar lists snapshots by timestamp and
@@ -102,9 +103,7 @@ at broader adoption beyond the core simulate-and-critique loop.
 - **Mobile editor fixes:** touch drag-and-drop didn't work at all (HTML5 DnD doesn't fire on most mobile
   browsers) — added tap-to-add; the Palette/ConfigPanel/FindingsPanel sidebars squeezed the canvas to a
   sliver below 768px — now full-width bottom sheets with a backdrop.
-- **Not built — deliberately deferred:** real-time multiplayer co-editing. Needs dedicated WebSocket +
-  conflict-resolution infrastructure that doesn't fit safely into an incremental pass; revisit as its own
-  scoped effort if there's a real need for it.
+- Real-time multiplayer co-editing was completed in Phase 9; this phase's trade-off features build on that collaboration foundation.
 - **Demo checkpoint:** compare two alternatives for a node and see the diff; publish a project and find it
   in the gallery from a logged-out session; grade a design against an interview prompt and get specific
   feedback tied to the actual graph.

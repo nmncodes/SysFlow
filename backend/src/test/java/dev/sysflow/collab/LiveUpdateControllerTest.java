@@ -33,12 +33,14 @@ class LiveUpdateControllerTest {
         ProjectRepository projects = mock(ProjectRepository.class);
         ProjectCollaboratorRepository collaborators = mock(ProjectCollaboratorRepository.class);
         SimpMessagingTemplate messaging = mock(SimpMessagingTemplate.class);
+        CollaborativeGraphService graphService = mock(CollaborativeGraphService.class);
         when(projects.findById(projectId)).thenReturn(Optional.of(project));
         when(collaborators.findByProjectIdOrderByCreatedAtAsc(projectId)).thenReturn(
                 List.of(new ProjectCollaborator(projectId, editorId, CollaboratorRole.EDITOR)));
-        LiveUpdateController controller = new LiveUpdateController(
-                messaging, projects, collaborators, new CollaborativeGraphService(mapper), mapper);
         JsonNode graph = mapper.readTree("{\"nodes\":[{\"id\":\"n1\",\"type\":\"service\",\"label\":\"Service\",\"config\":{},\"position\":{\"x\":1,\"y\":2}}],\"edges\":[]}");
+        when(graphService.apply(projectId, 0, graph)).thenReturn(new CollaborativeGraphService.Result(true, 1, graph, List.of()));
+        LiveUpdateController controller = new LiveUpdateController(
+                messaging, projects, collaborators, graphService, mapper);
         Principal principal = () -> editorId.toString();
 
         controller.broadcast(projectId.toString(), Map.of(
@@ -59,10 +61,11 @@ class LiveUpdateControllerTest {
         ProjectRepository projects = mock(ProjectRepository.class);
         ProjectCollaboratorRepository collaborators = mock(ProjectCollaboratorRepository.class);
         SimpMessagingTemplate messaging = mock(SimpMessagingTemplate.class);
+        CollaborativeGraphService graphService = mock(CollaborativeGraphService.class);
         when(projects.findById(projectId)).thenReturn(Optional.of(project(projectId, ownerId)));
         when(collaborators.findByProjectIdOrderByCreatedAtAsc(projectId)).thenReturn(List.of());
         LiveUpdateController controller = new LiveUpdateController(
-                messaging, projects, collaborators, new CollaborativeGraphService(mapper), mapper);
+                messaging, projects, collaborators, graphService, mapper);
 
         controller.presence(projectId.toString(), Map.of("type", "cursor", "clientId", "tab-1"), () -> ownerId.toString());
 
