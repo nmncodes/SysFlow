@@ -147,9 +147,13 @@ class CollaborativeGraphServiceTest {
             assertTrue(firstResult.accepted());
             assertNotNull(secondResult);
             assertTrue(secondResult.accepted());
-            assertEquals(2, secondResult.revision());
-            assertEquals("A1", secondResult.graph().path("nodes").get(0).path("label").asText());
-            assertEquals("B1", secondResult.graph().path("nodes").get(1).path("label").asText());
+            assertNotEquals(firstResult.revision(), secondResult.revision());
+            assertEquals(3, firstResult.revision() + secondResult.revision());
+
+            CollaborativeGraphService.Result finalResult = service.snapshot(projectId);
+            assertEquals(2, finalResult.revision());
+            assertEquals("A1", finalResult.graph().path("nodes").get(0).path("label").asText());
+            assertEquals("B1", finalResult.graph().path("nodes").get(1).path("label").asText());
         }
     }
 
