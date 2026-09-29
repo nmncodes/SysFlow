@@ -420,6 +420,22 @@ export default function EditorPage() {
     }
   }
 
+  const handleValidate = () => {
+    const results = validateArchitecture(
+      nodes.map((node) => ({ id: node.id, type: node.data.componentType, label: node.data.label })),
+      edges.map((edge) => ({ id: edge.id, source: edge.source, target: edge.target })),
+    )
+    setValidation(results)
+    setAnalysis(null)
+  }
+
+  const simulateSPOFFailure = (nodeId: string) => {
+    const failure: InjectedFailure = { type: 'kill', nodeId, fromTick: 0 }
+    setFailures((current) => [...current.filter((item) => item.nodeId !== nodeId), failure])
+    setIsDirty(true)
+    setToast('Node failure injected')
+  }
+
   const performSave = async (name: string) => {
     if (collab.conflict) {
       setSaveError('Resolve the collaboration conflict before saving.')
@@ -950,18 +966,6 @@ export default function EditorPage() {
                 ? `${clientNodesCount}c × ${traffic}×`
                 : 'add client'}
             </span>
-<<<<<<< HEAD
-=======
-          )}
-        </div>
-
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {!isReadOnly && <button onClick={history.undo} disabled={!history.canUndo} title="Undo (Ctrl+Z)" className="toolbar-icon" aria-label="Undo">↶</button>}
-          {!isReadOnly && <button onClick={history.redo} disabled={!history.canRedo} title="Redo (Ctrl+Y)" className="toolbar-icon" aria-label="Redo">↷</button>}
-
-          <div className="target-rps-box hidden items-center gap-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 md:flex">
-            <div><p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400">Target RPS <span className="text-zinc-300 dark:text-zinc-600">ⓘ</span></p><input type="number" min={1} max={1000000} value={baseRps} onChange={(e) => { const value = Math.min(1000000, Math.max(1, Number(e.target.value) || 1)); setBaseRps(value); markDirty() }} className="w-24 border-0 bg-transparent p-0 text-sm font-bold text-zinc-900 dark:text-zinc-50 outline-none" /></div>
->>>>>>> d5b93d5ac21caff4f5002bd71a93846ce054259f
           </div>
 
           <div className="relative hidden md:block">
@@ -975,47 +979,28 @@ export default function EditorPage() {
             </div>}
           </div>
 
-<<<<<<< HEAD
-          <button onClick={copyShareLink} className="toolbar-button hidden whitespace-nowrap md:inline-flex">Share ↗</button>
+          {isReadOnly && <span className="rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-semibold text-sky-700">View only</span>}
+          {!isReadOnly && <button onClick={copyShareLink} className="toolbar-button hidden whitespace-nowrap md:inline-flex">Share ↗</button>}
 
           {projectId && <button onClick={openHistory} className="toolbar-button hidden whitespace-nowrap md:inline-flex">History</button>}
           <button onClick={() => setArchitectureCompareOpen(true)} disabled={nodes.length === 0} className="toolbar-button hidden whitespace-nowrap md:inline-flex disabled:opacity-40">Compare</button>
           <button onClick={() => setObservabilityOpen(true)} disabled={nodes.length === 0} className="toolbar-button hidden whitespace-nowrap md:inline-flex disabled:opacity-40">Observe</button>
 
-          <input ref={srsFileInputRef} type="file" accept=".pdf,.docx,.txt,.md" className="hidden" onChange={handleSrsFileSelected} />
-          <button onClick={() => srsFileInputRef.current?.click()} disabled={isImportingSrs} className="toolbar-button hidden whitespace-nowrap md:inline-flex disabled:opacity-50">{isImportingSrs ? 'Importing…' : 'Import SRS'}</button>
+          {!isReadOnly && <input ref={srsFileInputRef} type="file" accept=".pdf,.docx,.txt,.md" className="hidden" onChange={handleSrsFileSelected} />}
+          {!isReadOnly && <button onClick={() => srsFileInputRef.current?.click()} disabled={isImportingSrs} className="toolbar-button hidden whitespace-nowrap md:inline-flex disabled:opacity-50">{isImportingSrs ? 'Importing…' : 'Import SRS'}</button>}
 
-          <div className="relative hidden md:block">
+          {!isReadOnly && <div className="relative hidden md:block">
             <button onClick={() => { setTemplatesOpen((v) => !v); setExportOpen(false); setHistoryOpen(false) }} className="toolbar-button whitespace-nowrap">Templates</button>
             {templatesOpen && <div className="popover-menu template-popover right-0 top-10 w-64">
               <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Start with a template</p>
-=======
-          {isReadOnly && <span className="rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-semibold text-sky-700">View only</span>}
-          {!isReadOnly && <button onClick={copyShareLink} className="toolbar-button hidden md:block">Share ↗</button>}
-
-          {projectId && <button onClick={openHistory} className="toolbar-button hidden md:block">History</button>}
-
-          {!isReadOnly && <input ref={srsFileInputRef} type="file" accept=".pdf,.docx,.txt,.md" className="hidden" onChange={handleSrsFileSelected} />}
-          {!isReadOnly && <button onClick={() => srsFileInputRef.current?.click()} disabled={isImportingSrs} className="toolbar-button hidden md:block disabled:opacity-50">{isImportingSrs ? 'Importing…' : 'Import SRS'}</button>}
-
-          {!isReadOnly && <div className="relative">
-            <button onClick={() => { setTemplatesOpen((v) => !v); setExportOpen(false); setHistoryOpen(false) }} className="toolbar-button hidden md:block">Templates</button>
-              {templatesOpen && <div className="popover-menu template-popover right-0 top-12 w-64">
-               <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Start with a template</p>
->>>>>>> d5b93d5ac21caff4f5002bd71a93846ce054259f
               {TEMPLATES.map((template) => <button key={template.id} onClick={() => applyTemplate(template.id)}><span className="block font-semibold text-zinc-800 dark:text-zinc-100">{template.name}</span><span className="mt-0.5 block text-[10px] leading-relaxed text-zinc-400 dark:text-zinc-500">{template.description}</span></button>)}
             </div>}
           </div>}
 
           <ThemeToggle className="hidden md:inline-flex" />
 
-<<<<<<< HEAD
           {auth.user ? <Link to="/projects" className="toolbar-button hidden whitespace-nowrap lg:inline-flex">Projects</Link> : <Link to="/login" className="toolbar-button hidden whitespace-nowrap lg:inline-flex">Log in</Link>}
-          <button onClick={handleSaveClick} disabled={isSaving} title="Save (Ctrl+S)" className="btn-dark shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50">{isSaving ? 'Saving…' : 'Save'}</button>
-=======
-          {auth.user ? <Link to="/projects" className="toolbar-button hidden lg:block">Projects</Link> : <Link to="/login" className="toolbar-button hidden lg:block">Log in</Link>}
-          {!isReadOnly && <button onClick={handleSaveClick} disabled={isSaving || !!collab.conflict} title="Save (Ctrl+S)" className="btn-dark rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-50">{isSaving ? 'Saving…' : 'Save'}</button>}
->>>>>>> d5b93d5ac21caff4f5002bd71a93846ce054259f
+          {!isReadOnly && <button onClick={handleSaveClick} disabled={isSaving || !!collab.conflict} title="Save (Ctrl+S)" className="btn-dark shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50">{isSaving ? 'Saving…' : 'Save'}</button>}
 
           <div className="relative lg:hidden">
             <button onClick={() => setMobileMenuOpen((v) => !v)} className="toolbar-icon shrink-0" aria-label="More options">⋯</button>
@@ -1029,17 +1014,9 @@ export default function EditorPage() {
               <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
               {!isReadOnly && <button onClick={() => { srsFileInputRef.current?.click(); setMobileMenuOpen(false) }} disabled={isImportingSrs}>{isImportingSrs ? 'Importing…' : 'Import SRS'}</button>}
               {projectId && <button onClick={() => { openHistory(); setMobileMenuOpen(false) }}>History</button>}
-<<<<<<< HEAD
               <button onClick={() => { setArchitectureCompareOpen(true); setMobileMenuOpen(false) }} disabled={nodes.length === 0}>Architecture comparison</button>
               <button onClick={() => { setObservabilityOpen(true); setMobileMenuOpen(false) }} disabled={nodes.length === 0}>Observability dashboard</button>
               {COST_FEATURE_ENABLED && nodes.length > 0 && <button onClick={() => { setMobileMenuOpen(false); toggleRealPricing() }}>Cost estimate (~${estimatedMonthlyCost.toLocaleString()}/mo)</button>}
-              <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
-              <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Templates</p>
-              {TEMPLATES.map((template) => <button key={template.id} onClick={() => { applyTemplate(template.id); setMobileMenuOpen(false) }}><span className="block font-semibold text-zinc-800 dark:text-zinc-100">{template.name}</span></button>)}
-              <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
-              <button onClick={() => { copyShareLink(); setMobileMenuOpen(false) }}>Share ↗</button>
-=======
-              {nodes.length > 0 && <button onClick={() => { setMobileMenuOpen(false); toggleRealPricing() }}>Cost estimate (~${estimatedMonthlyCost.toLocaleString()}/mo)</button>}
               {!isReadOnly && <>
                 <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
                 <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Templates</p>
@@ -1047,7 +1024,6 @@ export default function EditorPage() {
                 <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
                 <button onClick={() => { copyShareLink(); setMobileMenuOpen(false) }}>Share ↗</button>
               </>}
->>>>>>> d5b93d5ac21caff4f5002bd71a93846ce054259f
               {auth.user ? <Link to="/projects" onClick={() => setMobileMenuOpen(false)}>Projects</Link> : <Link to="/login" onClick={() => setMobileMenuOpen(false)}>Log in</Link>}
               <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
               <div className="flex items-center justify-between px-3 py-1"><span className="text-xs text-zinc-500 dark:text-zinc-400">Appearance</span><ThemeToggle /></div>
