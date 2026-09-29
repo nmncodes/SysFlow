@@ -43,8 +43,8 @@ import {
 import { buildObservabilityDashboard, type ObservabilityHealth } from '../lib/observabilityDashboard'
     
 const SPEED_OPTIONS = [0.5, 1, 2, 4]
-const TRAFFIC_OPTIONS = [0.5, 1, 2.5, 5]
-const RPS_PRESETS = [100, 500, 1000, 5000, 10000]
+const TRAFFIC_OPTIONS = [1, 2, 3, 4, 5]
+const COST_FEATURE_ENABLED = false
 
 type ChaosType = InjectedFailure['type']
 
@@ -881,7 +881,7 @@ export default function EditorPage() {
           <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${isDirty ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400' : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400'}`}>
             <span className="h-1.5 w-1.5 rounded-full bg-current" /> {isSaving ? 'Saving…' : isDirty ? 'Unsaved changes' : 'Saved'}
           </span>
-          {nodes.length > 0 && (
+          {COST_FEATURE_ENABLED && nodes.length > 0 && (
             <button
               onClick={toggleRealPricing}
               title="Click to view full Multi-Cloud Cost Pipeline (AWS, GCP, Azure)"
@@ -906,11 +906,8 @@ export default function EditorPage() {
           <button onClick={history.undo} disabled={!history.canUndo} title="Undo (Ctrl+Z)" className="toolbar-icon" aria-label="Undo">↶</button>
           <button onClick={history.redo} disabled={!history.canRedo} title="Redo (Ctrl+Y)" className="toolbar-icon" aria-label="Redo">↷</button>
 
-          <div className="target-rps-box hidden items-center gap-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 xl:flex">
-            <div><p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400">Target RPS <span className="text-zinc-300 dark:text-zinc-600">ⓘ</span></p><input type="number" min={1} max={1000000} value={baseRps} onChange={(e) => { const value = Math.min(1000000, Math.max(1, Number(e.target.value) || 1)); setBaseRps(value); markDirty() }} className="w-20 border-0 bg-transparent p-0 text-sm font-bold text-zinc-900 dark:text-zinc-50 outline-none" /></div>
-            <div className="flex items-end gap-1">
-              {RPS_PRESETS.map((value) => <button key={value} onClick={() => { setBaseRps(value); markDirty() }} className={`rps-preset ${baseRps === value ? 'active' : ''}`}>{value >= 1000 ? `${value / 1000}K` : value}</button>)}
-            </div>
+          <div className="target-rps-box hidden items-center gap-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 md:flex">
+            <div><p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400">Target RPS <span className="text-zinc-300 dark:text-zinc-600">ⓘ</span></p><input type="number" min={1} max={1000000} value={baseRps} onChange={(e) => { const value = Math.min(1000000, Math.max(1, Number(e.target.value) || 1)); setBaseRps(value); markDirty() }} className="w-24 border-0 bg-transparent p-0 text-sm font-bold text-zinc-900 dark:text-zinc-50 outline-none" /></div>
           </div>
 
           <div className="relative hidden md:block">
@@ -960,7 +957,7 @@ export default function EditorPage() {
               {projectId && <button onClick={() => { openHistory(); setMobileMenuOpen(false) }}>History</button>}
                 <button onClick={() => { setArchitectureCompareOpen(true); setMobileMenuOpen(false) }} disabled={nodes.length === 0}>Architecture comparison</button>
               <button onClick={() => { setObservabilityOpen(true); setMobileMenuOpen(false) }} disabled={nodes.length === 0}>Observability dashboard</button>
-                  {nodes.length > 0 && <button onClick={() => { setMobileMenuOpen(false); toggleRealPricing() }}>Cost estimate (~${estimatedMonthlyCost.toLocaleString()}/mo)</button>}
+                  {COST_FEATURE_ENABLED && nodes.length > 0 && <button onClick={() => { setMobileMenuOpen(false); toggleRealPricing() }}>Cost estimate (~${estimatedMonthlyCost.toLocaleString()}/mo)</button>}
               <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
               <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Templates</p>
               {TEMPLATES.map((template) => <button key={template.id} onClick={() => { applyTemplate(template.id); setMobileMenuOpen(false) }}><span className="block font-semibold text-zinc-800 dark:text-zinc-100">{template.name}</span></button>)}
@@ -1035,7 +1032,7 @@ export default function EditorPage() {
           exportRequest={exportRequest}
           brandedExportRequest={brandedExportRequest}
           projectName={projectName}
-          estimatedMonthlyCost={estimatedMonthlyCost}
+          estimatedMonthlyCost={COST_FEATURE_ENABLED ? estimatedMonthlyCost : undefined}
           onSelectionChange={setSelectedNodeId}
           onDirty={markDirty}
           hideSidebar={!!analysis || !!validation}
@@ -1118,7 +1115,7 @@ export default function EditorPage() {
         </div>
       )}
 
-      {realPricingOpen && (
+      {COST_FEATURE_ENABLED && realPricingOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 dark:bg-black/50 p-4 backdrop-blur-sm" onClick={() => setRealPricingOpen(false)}>
           <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-2xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
@@ -1621,7 +1618,7 @@ export default function EditorPage() {
                         ['Replicated', architectureComparison.baselineMetrics.replicatedNodeCount, architectureComparison.currentMetrics.replicatedNodeCount],
                         ['SPOFs', architectureComparison.baselineMetrics.spofCount, architectureComparison.currentMetrics.spofCount],
                         ['Est. cost / mo', `$${architectureComparison.baselineMetrics.estimatedMonthlyCost.toLocaleString()}`, `$${architectureComparison.currentMetrics.estimatedMonthlyCost.toLocaleString()}`],
-                      ].map(([label, baseline, current]) => (
+                      ].filter(([label]) => COST_FEATURE_ENABLED || label !== 'Est. cost / mo').map(([label, baseline, current]) => (
                         <div key={String(label)} className="rounded-lg bg-zinc-50 dark:bg-zinc-800/60 p-3">
                           <span className="text-[10px] text-zinc-400">{label}</span>
                           <div className="mt-1 flex items-baseline justify-between gap-2"><b className="text-sm">{String(baseline)}</b><span className="text-[10px] text-zinc-400">→ {String(current)}</span></div>
@@ -1903,7 +1900,7 @@ export default function EditorPage() {
             <div><span>p95 latency</span><b>{Math.round(global?.p95 ?? 0)}ms</b></div>
             <div><span>Error rate</span><b className={(global?.errorRatePct ?? 0) >= 5 ? 'bad' : ''}>{(global?.errorRatePct ?? 0).toFixed(1)}%</b></div>
             <div><span>Throughput</span><b>{((global?.rps ?? 0) / 100).toFixed(1)} MB/s</b></div>
-            {nodes.length > 0 && (
+            {COST_FEATURE_ENABLED && nodes.length > 0 && (
               <button
                 onClick={toggleRealPricing}
                 title="Click to open Multi-Cloud Cost Pipeline (AWS, GCP, Azure)"

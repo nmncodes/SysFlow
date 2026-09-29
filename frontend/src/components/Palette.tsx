@@ -135,8 +135,15 @@ export default function Palette({ onAdd, mobileOpen = false, onCloseMobile }: Pr
         <div className="flex items-center justify-between">
           <h2 className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Components</h2>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-zinc-300 dark:text-zinc-600">{COMPONENT_LIBRARY.length}</span>
-            <button onClick={onCloseMobile} className="rounded-lg px-2 py-1 text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-200 md:hidden">✕</button>
+            <button
+              type="button"
+              onClick={() => (mobileOpen ? onCloseMobile?.() : togglePanel())}
+              aria-label="Close components panel"
+              title="Close components panel"
+              className="rounded-lg px-2 py-1 text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-200"
+            >
+              ✕
+            </button>
           </div>
         </div>
         <div className="relative mt-3">

@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Node } from 'reactflow'
-import { COMPONENT_LIBRARY, type ComponentType } from './nodes'
+import { COMPONENT_LIBRARY } from './nodes'
 import { COMPONENT_ICONS } from './icons'
 import type { ArchNodeData } from './ArchNode'
-import { estimateNodeMonthlyCost, replicasOf } from '../lib/cost'
 
 interface Props {
   node: Node<ArchNodeData> | null
@@ -62,8 +61,6 @@ export default function ConfigPanel({ node, onChange, onDelete, onClose }: Props
     ...(Object.prototype.hasOwnProperty.call(draft, 'replicaCount') ? [{ key: 'replicaCount', label: 'Instances' }] : []),
   ]
 
-  const nodeCost = node ? estimateNodeMonthlyCost(node.data.componentType as ComponentType, replicasOf(node.data.componentType, draft), draft) : 0
-
   return (
     <>
       <div className="fixed inset-0 z-30 bg-zinc-900/20 dark:bg-black/50 md:hidden" onClick={onClose} />
@@ -94,16 +91,10 @@ export default function ConfigPanel({ node, onChange, onDelete, onClose }: Props
 
       {tab === 'configure' && (
         <div className="flex-1 overflow-y-auto p-4">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2">
             <div className="rounded-xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/40 p-3">
               <p className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Type</p>
               <p className="mt-1 text-sm font-medium text-zinc-800 dark:text-zinc-100">{def?.label ?? node.data.componentType}</p>
-            </div>
-            <div className="rounded-xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/40 p-3">
-              <p className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Est. Cost</p>
-              <p className="mt-1 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                ${nodeCost.toFixed(0)}<span className="text-[10px] font-normal text-zinc-400">/mo</span>
-              </p>
             </div>
           </div>
 

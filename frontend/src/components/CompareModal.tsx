@@ -3,7 +3,6 @@ import type { Edge, Node } from 'reactflow'
 import type { ArchNodeData } from './ArchNode'
 import { COMPONENT_LIBRARY, type ComponentType } from './nodes'
 import { runSimulation, type InjectedFailure, type SimulationSummary } from '../lib/api'
-import { estimateTotalMonthlyCost, replicasOf } from '../lib/cost'
 
 interface Props {
   node: Node<ArchNodeData>
@@ -18,7 +17,6 @@ interface Props {
 interface Side {
   type: ComponentType
   summary: SimulationSummary
-  monthlyCost: number
 }
 
 function toPayload(nodes: Node<ArchNodeData>[]) {
@@ -45,16 +43,6 @@ function withSwappedType(nodes: Node<ArchNodeData>[], nodeId: string, newType: C
           },
         }
       : n,
-  )
-}
-
-function costOf(nodes: Node<ArchNodeData>[]): number {
-  return estimateTotalMonthlyCost(
-    nodes.map((n) => ({
-      type: n.data.componentType as ComponentType,
-      replicas: replicasOf(n.data.componentType, n.data.config, n.data.replicas),
-      config: n.data.config
-    })),
   )
 }
 
@@ -85,8 +73,8 @@ export default function CompareModal({ node, nodes, edges, targetRps, failures, 
         runSimulation({ nodes: toPayload(nodes), edges: edgePayload, targetRps, durationSeconds: 3, injectedFailures: failures }),
         runSimulation({ nodes: toPayload(altNodes), edges: edgePayload, targetRps, durationSeconds: 3, injectedFailures: failures }),
       ])
-      setCurrent({ type: currentType, summary: currentResult.summary, monthlyCost: costOf(nodes) })
-      setAlternative({ type: selectedType, summary: altResult.summary, monthlyCost: costOf(altNodes) })
+      setCurrent({ type: currentType, summary: currentResult.summary })
+      setAlternative({ type: selectedType, summary: altResult.summary })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Comparison failed')
     } finally {
@@ -149,13 +137,6 @@ export default function CompareModal({ node, nodes, edges, targetRps, failures, 
                   </div>
                 )
               })}
-              <div className="grid grid-cols-3 items-center gap-2 px-3 py-2 text-sm">
-                <span className="text-xs text-zinc-500 dark:text-zinc-400">Est. monthly cost</span>
-                <span className="text-center text-zinc-700 dark:text-zinc-300">${current.monthlyCost.toLocaleString()}</span>
-                <span className={`text-center font-semibold ${alternative.monthlyCost < current.monthlyCost ? 'text-emerald-600 dark:text-emerald-400' : alternative.monthlyCost > current.monthlyCost ? 'text-red-500 dark:text-red-400' : 'text-zinc-700 dark:text-zinc-300'}`}>
-                  ${alternative.monthlyCost.toLocaleString()}
-                </span>
-              </div>
             </div>
 
             <div className="mt-4 flex justify-end gap-2">
