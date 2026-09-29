@@ -308,7 +308,7 @@ export default function EditorPage() {
     // The simulator accepts all traffic-entry components, not only the generic Client.
   // This keeps Mobile/Web Browser/IoT templates runnable as well.
   const hasTrafficSource = nodes.some((n) =>
-    ['client', 'mobile', 'webBrowser', 'iotDevice'].includes(n.data.componentType),
+    ['client', 'mobile', 'webBrowser', 'desktopApp', 'apiClient'].includes(n.data.componentType),
   )
   const canRun = nodes.length > 0 && hasTrafficSource && !sim.isRunning
    const global = sim.currentTick?.global

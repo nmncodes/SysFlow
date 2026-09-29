@@ -35,6 +35,8 @@ function getComponentColor(componentType: string): string {
     case 'client':
     case 'mobile':
     case 'webBrowser':
+    case 'desktopApp':
+    case 'apiClient':
       return '#8b5cf6'
 
     // Traffic & Edge

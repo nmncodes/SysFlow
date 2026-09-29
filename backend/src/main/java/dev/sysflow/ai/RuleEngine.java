@@ -26,7 +26,7 @@ public class RuleEngine {
     private static final Set<String> REPLICATED_DATA_STORES = Set.of("database", "searchIndex");
     private static final Set<String> DATA_STORE_TYPES = Set.of(
             "database", "dataWarehouse", "searchIndex", "dataLake", "objectStorage", "messageBroker");
-    private static final Set<String> CLIENT_TYPES = Set.of("client", "mobile", "webBrowser", "iotDevice");
+    private static final Set<String> CLIENT_TYPES = Set.of("client", "mobile", "webBrowser", "desktopApp", "apiClient");
     private static final Set<String> COMPUTE_TYPES = Set.of("service", "worker", "containerOrchestrator");
 
     public List<Finding> analyze(SimulationGraph graph) {

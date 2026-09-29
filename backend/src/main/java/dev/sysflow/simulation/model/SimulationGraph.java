@@ -10,7 +10,7 @@ import java.util.*;
  */
 public class SimulationGraph {
 
-    private static final Set<String> TRAFFIC_SOURCE_TYPES = Set.of("client", "mobile", "webBrowser", "iotDevice");
+    private static final Set<String> TRAFFIC_SOURCE_TYPES = Set.of("client", "mobile", "webBrowser", "desktopApp", "apiClient");
 
     private final Map<String, GraphNode> nodesById;
     private final List<GraphEdge> edges;

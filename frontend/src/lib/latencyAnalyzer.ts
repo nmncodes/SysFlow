@@ -53,7 +53,7 @@ interface NodeAggregate {
   downTicks: number
 }
 
-const ENTRY_TYPES = new Set(['client', 'mobile', 'webBrowser', 'iotDevice', 'cronJob', 'webhook'])
+const ENTRY_TYPES = new Set(['client', 'mobile', 'webBrowser', 'desktopApp', 'apiClient', 'cronJob', 'webhook'])
 
 function percentile(values: number[], p: number): number {
   if (values.length === 0) return 0

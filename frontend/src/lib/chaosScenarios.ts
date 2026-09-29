@@ -131,7 +131,7 @@ export function getScenarioTargets(
   if (definition.targetKind === 'edge') return edges
   return definition.allowedTypes
     ? nodes.filter((node) => definition.allowedTypes!.includes(node.type))
-    : nodes.filter((node) => !['client', 'mobile', 'webBrowser', 'iotDevice'].includes(node.type))
+    : nodes.filter((node) => !['client', 'mobile', 'webBrowser', 'desktopApp', 'apiClient'].includes(node.type))
 }
 
 export function buildChaosScenario(

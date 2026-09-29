@@ -29,7 +29,7 @@ public class CostModel {
     }
 
     private static final Map<String, Double> MONTHLY_COST_USD = Map.ofEntries(
-            Map.entry("client", 0.0), Map.entry("mobile", 0.0), Map.entry("webBrowser", 0.0), Map.entry("iotDevice", 0.0),
+            Map.entry("client", 0.0), Map.entry("mobile", 0.0), Map.entry("webBrowser", 0.0), Map.entry("desktopApp", 0.0), Map.entry("apiClient", 0.0),
             Map.entry("dns", 1.0), Map.entry("cdn", 20.0), Map.entry("loadBalancer", 18.0), Map.entry("apiGateway", 15.0),
             Map.entry("waf", 12.0), Map.entry("ingress", 10.0),
             Map.entry("service", 25.0), Map.entry("worker", 20.0), Map.entry("serverless", 5.0), Map.entry("queue", 10.0),

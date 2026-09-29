@@ -5,6 +5,8 @@ export const MONTHLY_COST_USD: Record<ComponentType, number> = {
   client: 0,
   mobile: 0,
   webBrowser: 0,
+  desktopApp: 0,
+  apiClient: 0,
   dns: 1,
   cdn: 20,
   loadBalancer: 18,
@@ -19,7 +21,6 @@ export const MONTHLY_COST_USD: Record<ComponentType, number> = {
   dataWarehouse: 220,
   queue: 10,
   autoScalingGroup: 25, // × replicas, computed dynamically
-  iotDevice: 0,
   containerOrchestrator: 70,
   cronJob: 5,
   objectStorage: 15,

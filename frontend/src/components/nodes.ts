@@ -2,7 +2,8 @@ export type ComponentType =
   | 'client'
   | 'mobile'
   | 'webBrowser'
-  | 'iotDevice'
+  | 'desktopApp'
+  | 'apiClient'
   | 'dns'
   | 'cdn'
   | 'loadBalancer'
@@ -42,9 +43,10 @@ export interface ComponentDef {
 export const COMPONENT_LIBRARY: ComponentDef[] = [
   // Client
   { type: 'client', label: 'Client', category: 'Client', defaultConfig: {} },
-  { type: 'mobile', label: 'Mobile', category: 'Client', defaultConfig: {} },
+  { type: 'mobile', label: 'Mobile App', category: 'Client', defaultConfig: {} },
   { type: 'webBrowser', label: 'Web Browser', category: 'Client', defaultConfig: {} },
-  { type: 'iotDevice', label: 'IoT Device', category: 'Client', defaultConfig: {} },
+  { type: 'desktopApp', label: 'Desktop App', category: 'Client', defaultConfig: {} },
+  { type: 'apiClient', label: 'API Client', category: 'Client', defaultConfig: {} },
 
   // Traffic & Edge
   { type: 'dns', label: 'DNS', category: 'Traffic & Edge', defaultConfig: { resolutionLatencyMs: 5 } },
