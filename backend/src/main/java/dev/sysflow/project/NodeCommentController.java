@@ -16,31 +16,29 @@ import java.util.UUID;
 /**
  * Lightweight per-node comment threads on a saved project — async review notes, not a
  * chat. Nested under /api/projects/** so SecurityConfig's existing auth requirement covers
- * it automatically. Same ownership model as the rest of ProjectController: comments are
- * scoped to the project owner, not shared with live-collaboration guests (those join by
- * project id over WebSocket without an account).
+ * it automatically. Viewers can read comments; owners and editors can add or remove them.
  */
 @RestController
 @RequestMapping("/api/projects/{projectId}/comments")
 public class NodeCommentController {
 
     private final NodeCommentRepository nodeCommentRepository;
-    private final ProjectRepository projectRepository;
+    private final ProjectAccessService access;
     private final UserRepository userRepository;
 
     public NodeCommentController(
             NodeCommentRepository nodeCommentRepository,
-            ProjectRepository projectRepository,
+            ProjectAccessService access,
             UserRepository userRepository
     ) {
         this.nodeCommentRepository = nodeCommentRepository;
-        this.projectRepository = projectRepository;
+        this.access = access;
         this.userRepository = userRepository;
     }
 
     @GetMapping
     public List<NodeCommentResponse> list(@PathVariable UUID projectId, Authentication auth) {
-        findOwnedProject(projectId, userId(auth));
+        access.requireView(projectId, userId(auth));
         return nodeCommentRepository.findByProjectIdOrderByCreatedAtAsc(projectId).stream()
                 .map(c -> new NodeCommentResponse(c.getId(), c.getNodeId(), c.getAuthorName(), c.getText(), c.getCreatedAt()))
                 .toList();
@@ -49,7 +47,7 @@ public class NodeCommentController {
     @PostMapping
     public NodeCommentResponse create(@PathVariable UUID projectId, @Valid @RequestBody NodeCommentRequest request, Authentication auth) {
         UUID uid = userId(auth);
-        findOwnedProject(projectId, uid);
+        access.requireEdit(projectId, uid);
         String authorName = userRepository.findById(uid).map(User::getDisplayName).orElse("Unknown");
         NodeComment comment = new NodeComment(projectId, request.nodeId(), authorName, request.text());
         nodeCommentRepository.save(comment);
@@ -58,21 +56,13 @@ public class NodeCommentController {
 
     @DeleteMapping("/{commentId}")
     public void delete(@PathVariable UUID projectId, @PathVariable UUID commentId, Authentication auth) {
-        findOwnedProject(projectId, userId(auth));
+        access.requireEdit(projectId, userId(auth));
         NodeComment comment = nodeCommentRepository.findById(commentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
         if (!comment.getProjectId().equals(projectId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found");
         }
         nodeCommentRepository.delete(comment);
-    }
-
-    private void findOwnedProject(UUID projectId, UUID userId) {
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
-        if (!project.getUserId().equals(userId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found");
-        }
     }
 
     private UUID userId(Authentication auth) {

@@ -17,7 +17,7 @@ interface ServiceSpec {
   directive: 'image' | 'build'
   value?: string
   buildNote?: string
-  ports?: string[]
+  ports?: { published: number; target: number }[]
   environment?: Record<string, string>
   volumes?: string[]
 }
@@ -29,8 +29,8 @@ interface ServiceSpec {
  * out as comments instead of a service block — see MANAGED_ONLY_NOTE.
  */
 const SERVICE_SPECS: Partial<Record<ComponentType, ServiceSpec>> = {
-  loadBalancer: { directive: 'image', value: 'nginx:1.27-alpine', ports: ['80:80'] },
-  apiGateway: { directive: 'image', value: 'nginx:1.27-alpine', ports: ['8000:80'] },
+  loadBalancer: { directive: 'image', value: 'nginx:1.27-alpine', ports: [{ published: 80, target: 80 }] },
+  apiGateway: { directive: 'image', value: 'nginx:1.27-alpine', ports: [{ published: 8000, target: 80 }] },
   waf: { directive: 'image', value: 'owasp/modsecurity-crs:nginx' },
   ingress: { directive: 'image', value: 'nginx:1.27-alpine' },
   service: { directive: 'build', buildNote: 'your application code — add a Dockerfile here' },
@@ -38,15 +38,15 @@ const SERVICE_SPECS: Partial<Record<ComponentType, ServiceSpec>> = {
   serverless: { directive: 'build', buildNote: 'your function code — most serverless platforms don\'t run from compose; this is a local stand-in' },
   cronJob: { directive: 'build', buildNote: 'your scheduled job code — add a Dockerfile and your own cron/scheduler entrypoint' },
   autoScalingGroup: { directive: 'build', buildNote: 'your application code — add "deploy: replicas: N" (swarm) or move to k8s for real autoscaling' },
-  queue: { directive: 'image', value: 'rabbitmq:3-management-alpine', ports: ['5672:5672', '15672:15672'] },
-  messageBroker: { directive: 'image', value: 'bitnami/kafka:3.7', ports: ['9092:9092'], environment: { KAFKA_CFG_NODE_ID: '0', KAFKA_CFG_PROCESS_ROLES: 'controller,broker' } },
-  eventBus: { directive: 'image', value: 'nats:2.10-alpine', ports: ['4222:4222'] },
-  cache: { directive: 'image', value: 'redis:7-alpine', ports: ['6379:6379'] },
-  database: { directive: 'image', value: 'postgres:16-alpine', ports: ['5432:5432'], environment: { POSTGRES_PASSWORD: 'change-me' }, volumes: ['pgdata:/var/lib/postgresql/data'] },
-  searchIndex: { directive: 'image', value: 'opensearchproject/opensearch:2', ports: ['9200:9200'], environment: { 'discovery.type': 'single-node' } },
-  objectStorage: { directive: 'image', value: 'minio/minio:latest', ports: ['9000:9000', '9001:9001'], environment: { MINIO_ROOT_USER: 'minioadmin', MINIO_ROOT_PASSWORD: 'change-me' }, volumes: ['objectdata:/data'] },
-  monitoring: { directive: 'image', value: 'prom/prometheus:latest', ports: ['9090:9090'] },
-  logging: { directive: 'image', value: 'grafana/loki:latest', ports: ['3100:3100'] },
+  queue: { directive: 'image', value: 'rabbitmq:3-management-alpine', ports: [{ published: 5672, target: 5672 }, { published: 15672, target: 15672 }] },
+  messageBroker: { directive: 'image', value: 'bitnami/kafka:3.7', ports: [{ published: 9092, target: 9092 }], environment: { KAFKA_CFG_NODE_ID: '0', KAFKA_CFG_PROCESS_ROLES: 'controller,broker' } },
+  eventBus: { directive: 'image', value: 'nats:2.10-alpine', ports: [{ published: 4222, target: 4222 }] },
+  cache: { directive: 'image', value: 'redis:7-alpine', ports: [{ published: 6379, target: 6379 }] },
+  database: { directive: 'image', value: 'postgres:16-alpine', ports: [{ published: 5432, target: 5432 }], environment: { POSTGRES_PASSWORD: 'change-me' }, volumes: ['pgdata:/var/lib/postgresql/data'] },
+  searchIndex: { directive: 'image', value: 'opensearchproject/opensearch:2', ports: [{ published: 9200, target: 9200 }], environment: { 'discovery.type': 'single-node' } },
+  objectStorage: { directive: 'image', value: 'minio/minio:latest', ports: [{ published: 9000, target: 9000 }, { published: 9001, target: 9001 }], environment: { MINIO_ROOT_USER: 'minioadmin', MINIO_ROOT_PASSWORD: 'change-me' }, volumes: ['objectdata:/data'] },
+  monitoring: { directive: 'image', value: 'prom/prometheus:latest', ports: [{ published: 9090, target: 9090 }] },
+  logging: { directive: 'image', value: 'grafana/loki:latest', ports: [{ published: 3100, target: 3100 }] },
 }
 
 const MANAGED_ONLY_NOTE: Partial<Record<ComponentType, string>> = {
@@ -70,9 +70,81 @@ function sanitizeServiceName(id: string): string {
   return /^[a-z]/.test(cleaned) ? cleaned : `svc_${cleaned}`
 }
 
+function createServiceNames(nodes: GraphNodeLike[]): Map<string, string> {
+  const names = new Map<string, string>()
+  const usedIds = new Set<string>()
+  const usedNames = new Set<string>()
+
+  for (const node of nodes) {
+    if (!node.id.trim() || usedIds.has(node.id)) {
+      throw new Error('Cannot export Compose: every graph node must have a unique, non-empty ID.')
+    }
+    usedIds.add(node.id)
+
+    const baseName = sanitizeServiceName(node.id)
+    let name = baseName
+    let suffix = 2
+    while (usedNames.has(name)) name = `${baseName}_${suffix++}`
+    usedNames.add(name)
+    names.set(node.id, name)
+  }
+  return names
+}
+
+function createPublishedPorts(nodes: GraphNodeLike[]): Map<string, { published: number; target: number }[]> {
+  const preferredPorts = new Set<number>()
+  for (const node of nodes) {
+    SERVICE_SPECS[node.type as ComponentType]?.ports?.forEach((port) => preferredPorts.add(port.published))
+  }
+
+  const usedPorts = new Set<number>()
+  const result = new Map<string, { published: number; target: number }[]>()
+  for (const node of nodes) {
+    const spec = SERVICE_SPECS[node.type as ComponentType]
+    if (!spec?.ports) continue
+    const ports = spec.ports.map(({ published, target }) => {
+      let hostPort = published
+      if (usedPorts.has(hostPort)) {
+        hostPort++
+        while (usedPorts.has(hostPort) || preferredPorts.has(hostPort)) hostPort++
+      }
+      if (hostPort > 65535) throw new Error('Cannot export Compose: no free host port is available for every generated service.')
+      usedPorts.add(hostPort)
+      return { published: hostPort, target }
+    })
+    result.set(node.id, ports)
+  }
+  return result
+}
+
+function isDependencyCycle(dependent: string, dependency: string, dependencies: Map<string, Set<string>>): boolean {
+  const visited = new Set<string>()
+  const pending = [dependency]
+  while (pending.length > 0) {
+    const current = pending.pop()!
+    if (current === dependent) return true
+    if (visited.has(current)) continue
+    visited.add(current)
+    dependencies.get(current)?.forEach((next) => pending.push(next))
+  }
+  return false
+}
+
+function oneLine(value: string): string {
+  const printable = [...value].map((character) => {
+    const code = character.charCodeAt(0)
+    return code <= 0x1f || (code >= 0x7f && code <= 0x9f) || character === '\u2028' || character === '\u2029'
+      ? ' '
+      : character
+  }).join('')
+  return printable.replace(/\s+/g, ' ').trim()
+}
+
 export function generateDockerCompose(nodes: GraphNodeLike[], edges: GraphEdgeLike[]): string {
   const deployable = nodes.filter((n) => SERVICE_SPECS[n.type as ComponentType])
-  const deployableIds = new Set(deployable.map((n) => n.id))
+  const serviceNames = createServiceNames(nodes)
+  const deployableIds = new Set(deployable.map((node) => node.id))
+  const publishedPorts = createPublishedPorts(deployable)
   const skipped = nodes.filter((n) => !deployable.includes(n))
 
   const lines: string[] = [
@@ -85,32 +157,57 @@ export function generateDockerCompose(nodes: GraphNodeLike[], edges: GraphEdgeLi
     lines.push('# Not included as containers:')
     for (const n of skipped) {
       const note = MANAGED_ONLY_NOTE[n.type as ComponentType] ?? 'no self-hosted equivalent mapped for this component type'
-      lines.push(`#   - ${n.label ?? n.id} (${n.type}): ${note}`)
+      lines.push(`#   - ${oneLine(n.label ?? n.id)} (${oneLine(n.type)}): ${oneLine(note)}`)
     }
     lines.push('')
   }
 
+  if (deployable.length === 0) {
+    lines.push('services: {}')
+    return lines.join('\n')
+  }
+
   lines.push('services:')
   const volumeNames = new Set<string>()
+  const dependencies = new Map<string, Set<string>>()
+  const skippedDependencies: string[] = []
 
   for (const node of deployable) {
     const spec = SERVICE_SPECS[node.type as ComponentType]!
-    const serviceName = sanitizeServiceName(node.id)
-    const dependsOn = edges
-      .filter((e) => e.target === node.id && deployableIds.has(e.source))
-      .map((e) => sanitizeServiceName(e.source))
+    const serviceName = serviceNames.get(node.id)!
+    if (serviceName !== sanitizeServiceName(node.id)) {
+      lines.push(`  # node id "${oneLine(node.id)}" mapped to Compose service "${serviceName}"`)
+    }
+    const dependsOnSet = new Set<string>()
+    for (const edge of edges.filter((candidate) => candidate.target === node.id && deployableIds.has(candidate.source))) {
+      const dependencyName = serviceNames.get(edge.source)!
+      if (dependencyName === serviceName || isDependencyCycle(serviceName, dependencyName, dependencies)) {
+        skippedDependencies.push(`${oneLine(edge.source)} -> ${oneLine(edge.target)}`)
+        continue
+      }
+      dependsOnSet.add(dependencyName)
+      if (!dependencies.has(serviceName)) dependencies.set(serviceName, new Set())
+      dependencies.get(serviceName)!.add(dependencyName)
+    }
+    const dependsOn = [...dependsOnSet]
 
     if (spec.directive === 'build') {
-      lines.push(`  # ${spec.buildNote}`)
+      lines.push(`  # ${oneLine(spec.buildNote ?? '')}`)
       lines.push(`  ${serviceName}:`)
       lines.push(`    build: ./${serviceName}`)
     } else {
       lines.push(`  ${serviceName}:`)
       lines.push(`    image: ${spec.value}`)
     }
-    if (spec.ports?.length) {
+    const nodePorts = publishedPorts.get(node.id)
+    if (nodePorts?.length) {
       lines.push('    ports:')
-      for (const port of spec.ports) lines.push(`      - "${port}"`)
+      for (let index = 0; index < nodePorts.length; index++) {
+        const port = nodePorts[index]
+        const preferred = spec.ports?.[index].published
+        if (preferred !== port.published) lines.push(`      # host port adjusted from ${preferred} to avoid a collision`)
+        lines.push(`      - "${port.published}:${port.target}"`)
+      }
     }
     if (spec.environment && Object.keys(spec.environment).length > 0) {
       lines.push('    environment:')
@@ -119,8 +216,10 @@ export function generateDockerCompose(nodes: GraphNodeLike[], edges: GraphEdgeLi
     if (spec.volumes?.length) {
       lines.push('    volumes:')
       for (const volume of spec.volumes) {
-        lines.push(`      - ${volume}`)
-        volumeNames.add(volume.split(':')[0])
+        const [volumeName, ...mountPath] = volume.split(':')
+        const uniqueVolumeName = `${volumeName}_${serviceName}`
+        lines.push(`      - ${[uniqueVolumeName, ...mountPath].join(':')}`)
+        volumeNames.add(uniqueVolumeName)
       }
     }
     if (dependsOn.length > 0) {
@@ -128,6 +227,11 @@ export function generateDockerCompose(nodes: GraphNodeLike[], edges: GraphEdgeLi
       for (const dep of dependsOn) lines.push(`      - ${dep}`)
     }
     lines.push('')
+  }
+
+  if (skippedDependencies.length > 0) {
+    lines.push('# Dependencies omitted to keep the Compose service graph acyclic:')
+    for (const edge of skippedDependencies) lines.push(`#   - ${edge}`)
   }
 
   if (volumeNames.size > 0) {

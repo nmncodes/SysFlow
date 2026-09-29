@@ -49,7 +49,7 @@ public class PublicProjectController {
     private ProjectResponse toResponse(Project project) {
         try {
             JsonNode graph = objectMapper.readTree(project.getGraphJson());
-            return new ProjectResponse(project.getId(), project.getName(), project.getDescription(), graph, project.getCreatedAt(), project.getUpdatedAt(), project.isPublicTemplate());
+            return new ProjectResponse(project.getId(), project.getName(), project.getDescription(), graph, project.getCreatedAt(), project.getUpdatedAt(), project.isPublicTemplate(), "VIEWER", null);
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Corrupt project data");
         }

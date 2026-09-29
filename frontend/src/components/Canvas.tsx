@@ -59,6 +59,7 @@ interface Props {
   brandedExportRequest?: number
   projectName?: string
   estimatedMonthlyCost?: number
+  readOnly?: boolean
 }
 
 export default function Canvas({
@@ -88,6 +89,7 @@ export default function Canvas({
   brandedExportRequest,
   projectName = 'Untitled Project',
   estimatedMonthlyCost,
+  readOnly = false,
 }: Props) {
   const [selectedNodeId, setSelectedNodeIdState] = useState<string | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
@@ -127,13 +129,14 @@ export default function Canvas({
 
   const onConnect = useCallback(
     (connection: Connection) => {
+      if (readOnly) return
       if (!connection.source || !connection.target || connection.source === connection.target) return
       if (edges.some((edge) => edge.source === connection.source && edge.target === connection.target)) return
       setEdges((eds) => addEdge({ ...connection, type: 'archEdge' }, eds))
       onDirty?.()
       setConnectingFromId(null)
     },
-    [edges, setEdges, onDirty],
+    [edges, setEdges, onDirty, readOnly],
   )
 
   const onConnectStart: OnConnectStart = useCallback((_, params) => {
@@ -145,6 +148,7 @@ export default function Canvas({
 
   const addNodeAt = useCallback(
     (componentType: string, position: { x: number; y: number }) => {
+      if (readOnly) return null
       const def = COMPONENT_LIBRARY.find((c) => c.type === componentType)
       const id = nextId()
       const newNode: Node<ArchNodeData> = {
@@ -163,12 +167,13 @@ export default function Canvas({
       setSelectedNodeId(id)
       return id
     },
-    [setNodes, onDirty],
+    [setNodes, onDirty, readOnly],
   )
 
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault()
+      if (readOnly) return
       const componentType = event.dataTransfer.getData('application/archflow-node')
       if (!componentType || !rfInstance || !wrapperRef.current) return
       const bounds = wrapperRef.current.getBoundingClientRect()
@@ -183,7 +188,7 @@ export default function Canvas({
       addNodeAt(componentType, position)
       setIsDraggingNode(false)
     },
-    [rfInstance, addNodeAt],
+    [rfInstance, addNodeAt, readOnly],
   )
 
   /** Tap-to-add fallback for touch devices — HTML5 drag-and-drop doesn't fire on most mobile browsers. */
@@ -394,6 +399,9 @@ export default function Canvas({
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
+          nodesDraggable={!readOnly}
+          nodesConnectable={!readOnly}
+          deleteKeyCode={readOnly ? null : ['Backspace', 'Delete']}
           onConnect={onConnect}
           onConnectStart={onConnectStart}
           onConnectEnd={onConnectEnd}
@@ -417,10 +425,12 @@ export default function Canvas({
           }}
           onNodeContextMenu={(e, node) => {
             e.preventDefault()
+            if (readOnly) return
             setContextMenu({ x: e.clientX, y: e.clientY, targetType: 'node', targetId: node.id })
           }}
           onEdgeContextMenu={(e, edge) => {
             e.preventDefault()
+            if (readOnly) return
             setContextMenu({ x: e.clientX, y: e.clientY, targetType: 'edge', targetId: edge.id })
           }}
           snapToGrid
@@ -532,14 +542,14 @@ export default function Canvas({
         />
       ) : !hideSidebar ? (
         <>
-          <button
+          {!readOnly && <button
             onClick={() => setMobilePaletteOpen(true)}
             aria-label="Add component"
             className="fixed bottom-24 right-4 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-900 dark:bg-zinc-100 text-2xl text-white dark:text-zinc-900 shadow-xl md:hidden"
           >
             +
-          </button>
-          <Palette onAdd={onTapAdd} mobileOpen={mobilePaletteOpen} onCloseMobile={() => setMobilePaletteOpen(false)} />
+          </button>}
+          {!readOnly && <Palette onAdd={onTapAdd} mobileOpen={mobilePaletteOpen} onCloseMobile={() => setMobilePaletteOpen(false)} />}
         </>
       ) : null}
 

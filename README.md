@@ -66,7 +66,7 @@ Actively in development. Phases below track [`docs/05-ROADMAP.md`](docs/05-ROADM
 | 6 — Auth + Persistence | ✅ Done | JWT auth, project CRUD scoped per user (PostgreSQL) |
 | 7 — Polish | ✅ Done | Onboarding, starter templates, responsive layout pass, error/loading states |
 | 8 — Deployment & Hardening | ✅ Done | Dockerfiles, CI (build+test on PR), health check, AI/SRS rate limiting |
-| 9 — Collaboration & Sharing | ✅ Done | Read-only share links, PNG/JSON export, version history (last 10 saves, restorable) |
+| 9 — Collaboration & Sharing | ✅ Done | Owner-managed editor/viewer access, revisioned live co-editing, read-only share links, exports, and restorable version history |
 | 10 — SRS Import & Trade-off Advisor | ✅ Done | Upload an SRS, get an auto-generated diagram + tailored trade-off findings |
 | 11 — Market Features | ✅ Done | Real Azure pricing, interview practice mode with AI grading, public template gallery, real-time multiplayer (STOMP/WebSocket) |
 | 12 — Professional Polish | ✅ Done | Sample-architecture onboarding, PDF report export, per-node comments, enriched health check, rate-limit headers |
