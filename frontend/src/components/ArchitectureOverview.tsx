@@ -8,7 +8,7 @@ import {
 
 import type { ArchNodeData } from './ArchNode'
 import { COMPONENT_ICONS } from './icons'
-import { COMPONENT_LIBRARY } from './nodes'
+import { COMPONENT_LIBRARY, getComponentFamilyColor } from './nodes'
 import { useTheme } from '../lib/theme'
 
 interface ArchitectureOverviewProps {
@@ -28,45 +28,8 @@ const PADDING = 22
 // would blow it up to fill the whole minimap and visually crowd the header above it.
 const MAX_SCALE = 0.9
 
-// Color mapping for component types (matches Canvas MiniMap)
 function getComponentColor(componentType: string): string {
-  switch (componentType) {
-    // Client
-    case 'client':
-    case 'mobile':
-    case 'webBrowser':
-    case 'desktopApp':
-    case 'apiClient':
-      return '#8b5cf6'
-
-    // Traffic & Edge
-    case 'dns':
-    case 'cdn':
-    case 'loadBalancer':
-    case 'apiGateway':
-    case 'waf':
-    case 'ingress':
-      return '#3b82f6'
-
-    // Compute
-    case 'service':
-    case 'worker':
-    case 'serverless':
-    case 'autoScalingGroup':
-    case 'queue':
-      return '#22c55e'
-
-    // Data
-    case 'cache':
-      return '#f59e0b'
-
-    case 'database':
-    case 'dataWarehouse':
-      return '#ef4444'
-
-    default:
-      return '#71717a'
-  }
+  return getComponentFamilyColor(componentType)
 }
 
 export default function ArchitectureOverview({
@@ -294,8 +257,8 @@ export default function ArchitectureOverview({
                     height={scaledHeight}
                     rx={Math.min(10, scaledWidth * 0.12)}
                     fill={isDark ? '#232326' : 'white'}
-                    stroke={isDark ? '#3f3f46' : '#d4d4d8'}
-                    strokeWidth={1}
+                    stroke={componentColor}
+                    strokeWidth={1.2}
                   />
 
                   {/* Small top accent - component-type-specific color */}

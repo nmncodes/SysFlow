@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Node } from 'reactflow'
-import { COMPONENT_LIBRARY } from './nodes'
+import { COMPONENT_FAMILY_COLORS, COMPONENT_LIBRARY } from './nodes'
 import { COMPONENT_ICONS } from './icons'
 import type { ArchNodeData } from './ArchNode'
 
@@ -27,8 +27,12 @@ export default function ConfigPanel({ node, onChange, onDelete, onClose }: Props
   const [advancedOpen, setAdvancedOpen] = useState(false)
 
   const def = useMemo(() => COMPONENT_LIBRARY.find((c) => c.type === node?.data.componentType), [node?.data.componentType])
+  const familyColor = def ? COMPONENT_FAMILY_COLORS[def.category] : '#8b5cf6'
   const Icon = node ? COMPONENT_ICONS[node.data.componentType as keyof typeof COMPONENT_ICONS] : null
-  const config = (node?.data.config ?? def?.defaultConfig ?? {}) as Record<string, unknown>
+  const config = useMemo(
+    () => ({ ...(def?.defaultConfig ?? {}), ...(node?.data.config ?? {}) }) as Record<string, unknown>,
+    [def?.defaultConfig, node?.data.config],
+  )
 
   useEffect(() => {
     if (!node) return
@@ -51,6 +55,7 @@ export default function ConfigPanel({ node, onChange, onDelete, onClose }: Props
   const healthLabel = health === 'underLoad' ? 'Warning' : health === 'critical' ? 'Critical' : health === 'down' ? 'Down' : health === 'healthy' ? 'Healthy' : 'Ready'
 
   const primaryFields = [
+    ...(Object.prototype.hasOwnProperty.call(draft, 'targetRps') ? [{ key: 'targetRps', label: 'Target RPS' }] : []),
     ...(Object.prototype.hasOwnProperty.call(draft, 'scale') ? [{ key: 'scale', label: 'Memory Scale' }] : []),
     ...(Object.prototype.hasOwnProperty.call(draft, 'maxThroughput') ? [{ key: 'maxThroughput', label: 'Capacity (RPS)' }] : []),
     ...(Object.prototype.hasOwnProperty.call(draft, 'maxConcurrency') ? [{ key: 'maxConcurrency', label: 'Capacity' }] : []),
@@ -68,7 +73,12 @@ export default function ConfigPanel({ node, onChange, onDelete, onClose }: Props
       <div className="border-b border-zinc-100 dark:border-zinc-800 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-50 dark:bg-violet-950/50 text-violet-600 dark:text-violet-400">{Icon && <Icon width={18} height={18} />}</span>
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border"
+              style={{ color: familyColor, borderColor: `${familyColor}45`, backgroundColor: `${familyColor}14` }}
+            >
+              {Icon && <Icon width={18} height={18} />}
+            </span>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-50">{node.data.label}</p>
               <div className="mt-1 flex items-center gap-1.5">
@@ -92,8 +102,21 @@ export default function ConfigPanel({ node, onChange, onDelete, onClose }: Props
       {tab === 'configure' && (
         <div className="flex-1 overflow-y-auto p-4">
           <div className="grid grid-cols-1 gap-2">
-            <div className="rounded-xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/40 p-3">
-              <p className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Type</p>
+            <div
+              className="rounded-xl border bg-zinc-50/70 dark:bg-zinc-800/40 p-3"
+              style={{ borderColor: `${familyColor}55` }}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Type</p>
+                {def?.category && (
+                  <span
+                    className="rounded-md border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+                    style={{ color: familyColor, borderColor: `${familyColor}45`, backgroundColor: `${familyColor}14` }}
+                  >
+                    {def.category}
+                  </span>
+                )}
+              </div>
               <p className="mt-1 text-sm font-medium text-zinc-800 dark:text-zinc-100">{def?.label ?? node.data.componentType}</p>
             </div>
           </div>

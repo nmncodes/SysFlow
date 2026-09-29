@@ -240,19 +240,22 @@ button:active, a:active {
   border: 1px solid #e4e4e7;
   background: #fff;
   color: #52525b;
-  border-radius: 11px;
-  min-height: 38px;
-  padding: 0 13px;
-  font-size: 12px;
+  border-radius: 9px;
+  min-height: 30px;
+  height: 30px;
+  padding: 0 10px;
+  font-size: 11px;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
   box-shadow: 0 1px 3px rgba(24,24,27,.05);
 }
 
-.toolbar-icon { width: 38px; padding: 0; font-size: 17px; }
+.toolbar-icon { width: 30px; min-width: 30px; padding: 0; font-size: 14px; }
 .toolbar-icon:hover:not(:disabled), .toolbar-button:hover { border-color: #d4d4d8; background: #fafafa; color: #18181b; }
 .toolbar-icon:disabled { opacity: .28; cursor: not-allowed; }
 
-.target-rps-box { min-height: 50px; }
+.target-rps-box { min-height: 30px; height: 30px; white-space: nowrap; flex-shrink: 0; }
 .rps-preset { color: #a1a1aa; font-size: 9px; font-weight: 700; padding: 2px 4px; border-radius: 5px; }
 .rps-preset:hover { color: #7c3aed; background: #f5f3ff; }
 .rps-preset.active { color: #7c3aed; background: #f3f0ff; }
@@ -390,7 +393,7 @@ button:active, a:active {
 }
 
 .editor-header {
-  min-height: 70px !important;
+  min-height: 54px !important;
   border-bottom-color: #dfe8eb !important;
   background: rgba(255,255,255,.96) !important;
   box-shadow: 0 1px 0 rgba(18,183,210,.04), 0 8px 24px rgba(15,23,42,.035) !important;
@@ -411,7 +414,8 @@ button:active, a:active {
 
 .toolbar-icon,
 .toolbar-button {
-  min-height: 36px;
+  min-height: 30px;
+  height: 30px;
   border-color: #e1e8eb;
   background: rgba(255,255,255,.9);
   color: #596273;
@@ -432,8 +436,9 @@ button:active, a:active {
 }
 .target-rps-box::before {
   content: '';
-  width: 4px;
-  height: 28px;
+  width: 3px;
+  height: 14px;
+  flex-shrink: 0;
   border-radius: 999px;
   background: linear-gradient(180deg,#12b7d2,#7c3aed);
 }
@@ -511,7 +516,7 @@ button:active, a:active {
 
 /* Nodes */
 .sysflow-node {
-  border-color: #dce8ec !important;
+  border-color: var(--node-border-color, #dce8ec) !important;
   background: linear-gradient(180deg,#ffffff 0%,#fbfdfe 100%) !important;
   box-shadow: 0 8px 20px rgba(15,23,42,.07), 0 1px 2px rgba(15,23,42,.04) !important;
   overflow: visible;
@@ -526,7 +531,7 @@ button:active, a:active {
   top: 0;
   height: 2px;
   border-radius: 0 0 999px 999px;
-  background: linear-gradient(90deg, rgba(18,183,210,.95), rgba(124,58,237,.35));
+  background: var(--node-family-color, rgba(18,183,210,.95));
   opacity: .65;
 }
 .node-icon-wrap {
@@ -597,23 +602,24 @@ button:active, a:active {
 }
 .component-card {
   min-height: 67px;
-  border-color: #e6edef !important;
+  border-color: var(--card-family-color, #e6edef) !important;
   background: linear-gradient(180deg,#fff,#fbfdfe) !important;
   box-shadow: 0 2px 5px rgba(15,23,42,.025);
 }
 .component-card:hover {
-  border-color: #b9eaf1 !important;
+  border-color: var(--card-family-color, #b9eaf1) !important;
   background: linear-gradient(180deg,#fff,#f3fbfd) !important;
   box-shadow: 0 9px 20px rgba(15,23,42,.075) !important;
   transform: translateY(-2px);
 }
 .component-icon {
-  border: 1px solid #e8eff1;
+  border: 1px solid color-mix(in srgb, var(--card-family-color, #0891b2) 32%, #e8eff1);
   background: #f7fafb !important;
+  color: var(--card-family-color, #0891b2) !important;
 }
 .component-card:hover .component-icon {
   background: #eafafd !important;
-  color: #0891b2 !important;
+  color: var(--card-family-color, #0891b2) !important;
 }
 
 /* Minimap — left side, below canvas controls and above simulation dock */
@@ -918,7 +924,7 @@ button:active, a:active {
 }
 
 .dark .sysflow-node {
-  border-color: var(--border) !important;
+  border-color: var(--node-border-color, var(--border)) !important;
   background: linear-gradient(180deg,#232326 0%,#1e1e21 100%) !important;
   box-shadow: 0 8px 20px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.3) !important;
 }
@@ -927,13 +933,13 @@ button:active, a:active {
 }
 .dark .node-icon-wrap {
   background: linear-gradient(145deg,#2a2a2e,#232326) !important;
-  border-color: var(--border);
+  border-color: color-mix(in srgb, var(--node-family-color, #a78bfa) 40%, var(--border));
   box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
 }
 .dark .node-health-badge { border-color: rgba(255,255,255,.06); }
 .dark .sysflow-node .sysflow-handle {
   border-color: #18181b !important;
-  background: var(--accent) !important;
+  background: var(--node-family-color, var(--accent)) !important;
   box-shadow: 0 0 0 2px rgba(167,139,250,.15);
 }
 .dark .sysflow-node.selected {
@@ -964,16 +970,17 @@ button:active, a:active {
   box-shadow: 0 0 0 4px rgba(167,139,250,.14) !important;
 }
 .dark .component-card {
+  border-color: var(--card-family-color, var(--border)) !important;
   background: linear-gradient(180deg,#232326,#1e1e21) !important;
   box-shadow: 0 2px 5px rgba(0,0,0,.25);
 }
 .dark .component-card:hover {
-  border-color: #4c4459 !important;
+  border-color: var(--card-family-color, #4c4459) !important;
   background: linear-gradient(180deg,#28242f,#231f29) !important;
   box-shadow: 0 9px 20px rgba(0,0,0,.4) !important;
 }
-.dark .component-icon { border-color: var(--border); background: #29292d !important; }
-.dark .component-card:hover .component-icon { background: #2e2a45 !important; color: #c4b5fd !important; }
+.dark .component-icon { border-color: color-mix(in srgb, var(--card-family-color, #a78bfa) 40%, var(--border)); background: #29292d !important; color: var(--card-family-color, #c4b5fd) !important; }
+.dark .component-card:hover .component-icon { background: #2e2a45 !important; color: var(--card-family-color, #c4b5fd) !important; }
 
 .dark .sysflow-minimap {
   border-color: var(--border) !important;
@@ -1559,7 +1566,7 @@ button:active, a:active {
 .editor-shell .editor-header {
   position: relative !important;
   overflow: visible !important;
-  min-height: 74px !important;
+  min-height: 54px !important;
   border-bottom: 1px solid rgba(214, 228, 233, .94) !important;
   background:
     linear-gradient(180deg, rgba(255,255,255,.985), rgba(248,252,253,.95)) !important;
@@ -1591,10 +1598,10 @@ button:active, a:active {
 
 .editor-shell .editor-header > div:first-child > a {
   border: 1px solid rgba(209,225,230,.95) !important;
-  border-radius: 15px !important;
+  border-radius: 10px !important;
   background: linear-gradient(145deg,#ffffff,#f5fbfc) !important;
   box-shadow:
-    0 8px 20px rgba(15,23,42,.08),
+    0 6px 14px rgba(15,23,42,.07),
     inset 0 1px 0 rgba(255,255,255,.98) !important;
 }
 .editor-shell .editor-header > div:first-child > a:hover {
@@ -1621,20 +1628,25 @@ button:active, a:active {
 .editor-shell .editor-header .toolbar-button {
   position: relative;
   border: 1px solid rgba(215,228,233,.94) !important;
-  border-radius: 13px !important;
+  border-radius: 9px !important;
   background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(247,251,252,.94)) !important;
   color: #5a6676 !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
   box-shadow:
-    0 4px 10px rgba(15,23,42,.045),
+    0 3px 8px rgba(15,23,42,.04),
     inset 0 1px 0 rgba(255,255,255,.95) !important;
 }
 .editor-shell .editor-header .toolbar-icon {
-  min-width: 38px;
-  min-height: 38px;
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  min-height: 30px;
 }
 .editor-shell .editor-header .toolbar-button {
-  min-height: 40px;
-  padding-inline: 14px;
+  height: 30px;
+  min-height: 30px;
+  padding-inline: 10px;
   font-size: 11px;
   font-weight: 650;
 }
@@ -1656,22 +1668,26 @@ button:active, a:active {
 
 /* Target RPS is the visual anchor in the middle of the header. */
 .editor-shell .editor-header .target-rps-box {
-  min-height: 50px;
+  height: 30px;
+  min-height: 30px;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
   border: 1px solid rgba(211,227,232,.98) !important;
-  border-radius: 16px !important;
+  border-radius: 9px !important;
   background:
     radial-gradient(circle at 88% 18%, rgba(124,58,237,.055), transparent 35%),
     linear-gradient(180deg,#ffffff,#f7fbfc) !important;
   box-shadow:
-    0 8px 20px rgba(15,23,42,.055),
+    0 4px 12px rgba(15,23,42,.045),
     inset 0 1px 0 rgba(255,255,255,.98) !important;
 }
 .editor-shell .editor-header .target-rps-box::before {
-  width: 4px;
-  height: 30px;
+  width: 3px;
+  height: 14px;
+  flex-shrink: 0;
   border-radius: 999px;
   background: linear-gradient(180deg,#10bcd4,#7c3aed);
-  box-shadow: 0 0 12px rgba(18,183,210,.16);
+  box-shadow: 0 0 10px rgba(18,183,210,.16);
 }
 .editor-shell .editor-header .rps-preset {
   min-width: 28px;
@@ -1692,15 +1708,21 @@ button:active, a:active {
 
 /* Save is the primary header action. */
 .editor-shell .editor-header .btn-dark {
-  min-height: 42px !important;
+  height: 30px;
+  min-height: 30px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
   border: 1px solid rgba(24,24,27,.9) !important;
-  border-radius: 13px !important;
+  border-radius: 9px !important;
   background: linear-gradient(145deg,#25252a,#111114) !important;
-  box-shadow: 0 9px 20px rgba(24,24,27,.16), inset 0 1px 0 rgba(255,255,255,.08) !important;
+  box-shadow: 0 6px 14px rgba(24,24,27,.14), inset 0 1px 0 rgba(255,255,255,.08) !important;
 }
 .editor-shell .editor-header .btn-dark:hover:not(:disabled) {
   background: linear-gradient(145deg,#34343a,#18181b) !important;
-  box-shadow: 0 12px 24px rgba(24,24,27,.20), 0 0 0 3px rgba(24,24,27,.045) !important;
+  box-shadow: 0 10px 20px rgba(24,24,27,.18), 0 0 0 3px rgba(24,24,27,.045) !important;
   transform: translateY(-1px);
 }
 
@@ -1814,13 +1836,11 @@ button:active, a:active {
   background: rgba(18,183,210,.045);
 }
 .editor-shell .component-sidebar .mb-4 > button > span:first-child {
-  color: #475569 !important;
   font-size: 10.5px !important;
   font-weight: 850 !important;
   letter-spacing: .13em !important;
 }
 .editor-shell .component-sidebar .mb-4 > button > span:last-child {
-  color: #94a3b8 !important;
   font-size: 10px !important;
 }
 
@@ -1830,7 +1850,7 @@ button:active, a:active {
   min-height: 84px !important;
   padding: 10px 6px 9px !important;
   gap: 7px;
-  border: 1px solid rgba(219,231,235,.94) !important;
+  border: 1.5px solid var(--card-family-color, rgba(219,231,235,.94)) !important;
   border-radius: 14px !important;
   background:
     linear-gradient(145deg, rgba(255,255,255,.96), rgba(246,250,252,.88)) !important;
@@ -1848,26 +1868,17 @@ button:active, a:active {
   right: -19px;
   top: -19px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(18,183,210,.09), transparent 68%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--card-family-color, #12b7d2) 18%, transparent), transparent 68%);
   pointer-events: none;
-}
-.editor-shell .component-sidebar .component-card:nth-child(3n+1) {
-  background: linear-gradient(145deg,rgba(248,253,255,.98),rgba(239,250,253,.92)) !important;
-}
-.editor-shell .component-sidebar .component-card:nth-child(3n+2) {
-  background: linear-gradient(145deg,rgba(252,250,255,.98),rgba(246,243,255,.92)) !important;
-}
-.editor-shell .component-sidebar .component-card:nth-child(3n) {
-  background: linear-gradient(145deg,rgba(255,253,248,.98),rgba(250,248,240,.92)) !important;
 }
 
 .editor-shell .component-sidebar .component-card:hover {
-  border-color: rgba(136,214,224,.95) !important;
+  border-color: var(--card-family-color, rgba(136,214,224,.95)) !important;
   background:
-    linear-gradient(145deg, #ffffff, #effbfd 62%, #f8f4ff) !important;
+    linear-gradient(145deg, #ffffff, color-mix(in srgb, var(--card-family-color, #12b7d2) 8%, #ffffff)) !important;
   box-shadow:
     0 12px 24px rgba(15,23,42,.085),
-    0 0 0 3px rgba(18,183,210,.045),
+    0 0 0 3px color-mix(in srgb, var(--card-family-color, #12b7d2) 14%, transparent),
     inset 0 1px 0 rgba(255,255,255,.98) !important;
   transform: translateY(-3px) !important;
 }
@@ -1875,18 +1886,18 @@ button:active, a:active {
   width: 42px !important;
   height: 42px !important;
   min-width: 42px !important;
-  border: 1px solid rgba(219,232,236,.96) !important;
+  border: 1px solid color-mix(in srgb, var(--card-family-color, #0891b2) 32%, rgba(219,232,236,.96)) !important;
   border-radius: 12px !important;
-  background: linear-gradient(145deg,#f9fcfd,#edf7f9) !important;
-  color: #788493 !important;
+  background: linear-gradient(145deg,#ffffff,color-mix(in srgb, var(--card-family-color, #0891b2) 10%, #f9fcfd)) !important;
+  color: var(--card-family-color, #788493) !important;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.96),
     0 3px 8px rgba(15,23,42,.035) !important;
 }
 .editor-shell .component-sidebar .component-card:hover .component-icon {
-  border-color: rgba(157,225,233,.95) !important;
-  background: linear-gradient(145deg,#e9fbfe,#f2edff) !important;
-  color: #0891b2 !important;
+  border-color: color-mix(in srgb, var(--card-family-color, #0891b2) 55%, rgba(157,225,233,.95)) !important;
+  background: linear-gradient(145deg,#ffffff,color-mix(in srgb, var(--card-family-color, #0891b2) 16%, #ffffff)) !important;
+  color: var(--card-family-color, #0891b2) !important;
   box-shadow: 0 5px 12px rgba(18,183,210,.10), inset 0 1px 0 rgba(255,255,255,.95) !important;
 }
 .editor-shell .component-sidebar .component-card > span:last-child {
@@ -1902,16 +1913,16 @@ button:active, a:active {
   color: #0f172a !important;
 }
 
-/* Recently-used strip uses the same card language but with a purple cue. */
+/* Recently-used strip uses each component's family border color. */
 .editor-shell .component-sidebar .mb-5 .text-violet-500 {
   color: #7c3aed !important;
 }
 .editor-shell .component-sidebar .mb-5 .component-card {
-  border-color: rgba(222,215,247,.95) !important;
+  border-color: var(--card-family-color, rgba(222,215,247,.95)) !important;
   background: linear-gradient(145deg,#ffffff,#faf7ff) !important;
 }
 .editor-shell .component-sidebar .mb-5 .component-card:hover {
-  border-color: rgba(196,181,253,.95) !important;
+  border-color: var(--card-family-color, rgba(196,181,253,.95)) !important;
   background: linear-gradient(145deg,#ffffff,#f5f0ff) !important;
 }
 .editor-shell .component-sidebar .mb-5 .component-icon {
@@ -2001,34 +2012,34 @@ button:active, a:active {
   color: #8f98a5 !important;
 }
 .dark .editor-shell .component-sidebar .mb-4 > button:hover { background: rgba(34,211,238,.05); }
-.dark .editor-shell .component-sidebar .mb-4 > button > span:first-child { color: #e2e8f0 !important; font-size: 10.5px !important; }
-.dark .editor-shell .component-sidebar .mb-4 > button > span:last-child { color: #94a3b8 !important; font-size: 10px !important; }
+.dark .editor-shell .component-sidebar .mb-4 > button > span:first-child { font-size: 10.5px !important; }
+.dark .editor-shell .component-sidebar .mb-4 > button > span:last-child { font-size: 10px !important; }
 .dark .editor-shell .component-sidebar .component-card {
-  border-color: #46515c !important;
+  border: 1.5px solid var(--card-family-color, #46515c) !important;
   background: linear-gradient(145deg,rgba(47,55,61,.98),rgba(31,37,42,.98)) !important;
   color: #e2e8f0;
   box-shadow: 0 5px 12px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.025) !important;
 }
 .dark .editor-shell .component-sidebar .component-card:hover {
-  border-color: #4e737b !important;
+  border-color: var(--card-family-color, #4e737b) !important;
   background: linear-gradient(145deg,#30353a,#302b3b) !important;
-  box-shadow: 0 12px 24px rgba(0,0,0,.30), 0 0 0 3px rgba(34,211,238,.045) !important;
+  box-shadow: 0 12px 24px rgba(0,0,0,.30), 0 0 0 3px color-mix(in srgb, var(--card-family-color, #22d3ee) 18%, transparent) !important;
 }
 .dark .editor-shell .component-sidebar .component-icon {
-  border-color: #52606d !important;
+  border-color: color-mix(in srgb, var(--card-family-color, #67e8f9) 45%, #52606d) !important;
   background: linear-gradient(145deg,#37434b,#293239) !important;
-  color: #dbeafe !important;
+  color: var(--card-family-color, #dbeafe) !important;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 4px 10px rgba(0,0,0,.24) !important;
 }
 .dark .editor-shell .component-sidebar .component-card:hover .component-icon {
-  border-color: #4e737b !important;
+  border-color: var(--card-family-color, #4e737b) !important;
   background: linear-gradient(145deg,#24363a,#322d43) !important;
-  color: #67e8f9 !important;
+  color: var(--card-family-color, #67e8f9) !important;
 }
 .dark .editor-shell .component-sidebar .component-card > span:last-child { color: #e2e8f0 !important; font-size: 11px !important; font-weight: 750 !important; }
 .dark .editor-shell .component-sidebar .component-card:hover > span:last-child { color: #ffffff !important; }
 .dark .editor-shell .component-sidebar .mb-5 .component-card {
-  border-color: #463d5b !important;
+  border-color: var(--card-family-color, #463d5b) !important;
   background: linear-gradient(145deg,#302c38,#28252d) !important;
 }
 
@@ -2281,35 +2292,35 @@ button:active, a:active {
 /* More expressive architecture nodes — no DOM/behavior changes. */
 .sysflow-node {
   min-width: 172px !important;
-  border-width: 1.5px !important;
-  border-color: #b9dbe2 !important;
+  border-width: 2px !important;
+  border-color: var(--node-border-color, #b9dbe2) !important;
   background:
     linear-gradient(180deg,rgba(255,255,255,.985) 0%,rgba(245,251,253,.985) 100%) !important;
   box-shadow:
     0 14px 30px rgba(15,23,42,.10),
-    0 3px 8px rgba(18,183,210,.07),
+    0 3px 8px color-mix(in srgb, var(--node-border-color, #12b7d2) 12%, transparent),
     inset 0 1px 0 rgba(255,255,255,.98) !important;
 }
 .sysflow-node:hover {
-  border-color: #56c9d8 !important;
+  border-color: var(--node-border-color, #56c9d8) !important;
   box-shadow:
     0 18px 38px rgba(15,23,42,.14),
-    0 0 0 2px rgba(18,183,210,.10),
-    0 8px 24px rgba(18,183,210,.10) !important;
+    0 0 0 2px color-mix(in srgb, var(--node-border-color, #12b7d2) 18%, transparent),
+    0 8px 24px color-mix(in srgb, var(--node-border-color, #12b7d2) 15%, transparent) !important;
 }
 .sysflow-node .node-topline {
   height: 3px !important;
   left: 12px !important;
   right: 12px !important;
-  opacity: .9 !important;
-  background: linear-gradient(90deg,#06b6d4 0%,#6366f1 52%,#a855f7 100%) !important;
+  opacity: .95 !important;
+  background: var(--node-family-color, #06b6d4) !important;
 }
 .node-icon-wrap {
   width: 42px !important;
   height: 42px !important;
   border-radius: 14px !important;
-  border-color: #cfe6eb !important;
-  background: linear-gradient(145deg,#ecfbfe,#f1edff) !important;
+  border-color: color-mix(in srgb, var(--node-family-color, #0891b2) 35%, #cfe6eb) !important;
+  background: linear-gradient(145deg,#ffffff,color-mix(in srgb, var(--node-family-color, #0891b2) 12%, #f8fafc)) !important;
   box-shadow: 0 5px 12px rgba(15,23,42,.07), inset 0 1px 0 #fff !important;
 }
 .node-health-badge {
@@ -2324,40 +2335,36 @@ button:active, a:active {
   color: #111827 !important;
 }
 .sysflow-node .uppercase {
-  color: #64748b !important;
   font-weight: 700 !important;
 }
 .sysflow-node .sysflow-handle {
   width: 11px !important;
   height: 11px !important;
-  background: #06b6d4 !important;
+  background: var(--node-family-color, #06b6d4) !important;
   border-color: #ffffff !important;
-  box-shadow: 0 0 0 3px rgba(6,182,212,.13), 0 0 10px rgba(6,182,212,.22) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--node-family-color, #06b6d4) 18%, transparent), 0 0 10px color-mix(in srgb, var(--node-family-color, #06b6d4) 26%, transparent) !important;
 }
 .dark .sysflow-node {
-  border-color: #52616a !important;
+  border-color: var(--node-border-color, #52616a) !important;
   background: linear-gradient(180deg,#25282c 0%,#1d2024 100%) !important;
-  box-shadow: 0 15px 34px rgba(0,0,0,.50), 0 3px 10px rgba(34,211,238,.08) !important;
+  box-shadow: 0 15px 34px rgba(0,0,0,.50), 0 3px 10px color-mix(in srgb, var(--node-border-color, #22d3ee) 14%, transparent) !important;
 }
 .dark .sysflow-node:hover {
-  border-color: #67e8f9 !important;
-  box-shadow: 0 18px 40px rgba(0,0,0,.60), 0 0 0 2px rgba(103,232,249,.12), 0 8px 24px rgba(103,232,249,.10) !important;
+  border-color: var(--node-border-color, #67e8f9) !important;
+  box-shadow: 0 18px 40px rgba(0,0,0,.60), 0 0 0 2px color-mix(in srgb, var(--node-border-color, #67e8f9) 22%, transparent), 0 8px 24px color-mix(in srgb, var(--node-border-color, #67e8f9) 16%, transparent) !important;
 }
 .dark .node-icon-wrap {
-  border-color: #47545d !important;
+  border-color: color-mix(in srgb, var(--node-family-color, #67e8f9) 45%, #47545d) !important;
   background: linear-gradient(145deg,#26363b,#30283e) !important;
   box-shadow: 0 5px 14px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.06) !important;
 }
 .dark .sysflow-node .text-sm {
   color: #f8fafc !important;
 }
-.dark .sysflow-node .uppercase {
-  color: #cbd5e1 !important;
-}
 .dark .sysflow-node .sysflow-handle {
   border-color: #17191c !important;
-  background: #67e8f9 !important;
-  box-shadow: 0 0 0 3px rgba(103,232,249,.14), 0 0 12px rgba(103,232,249,.28) !important;
+  background: var(--node-family-color, #67e8f9) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--node-family-color, #67e8f9) 20%, transparent), 0 0 12px color-mix(in srgb, var(--node-family-color, #67e8f9) 32%, transparent) !important;
 }
 
 /* Right panel card hierarchy and readable typography. */
@@ -2366,27 +2373,23 @@ button:active, a:active {
   border-radius: 14px !important;
   padding: 10px 6px !important;
   gap: 7px !important;
-  border-color: #d7e7eb !important;
+  border-width: 1.5px !important;
+  border-color: var(--card-family-color, #d7e7eb) !important;
   background:
-    linear-gradient(145deg,#ffffff 0%,#f3fbfd 62%,#f8f4ff 100%) !important;
+    linear-gradient(145deg,#ffffff 0%,color-mix(in srgb, var(--card-family-color, #0891b2) 5%, #ffffff) 100%) !important;
   box-shadow: 0 5px 14px rgba(15,23,42,.055), inset 0 1px 0 #fff !important;
 }
-.component-sidebar .component-card:nth-child(3n+2) {
-  background: linear-gradient(145deg,#ffffff,#f4f0ff) !important;
-}
-.component-sidebar .component-card:nth-child(3n) {
-  background: linear-gradient(145deg,#ffffff,#fff8ea) !important;
-}
 .component-sidebar .component-card:hover {
-  border-color: #7dd3df !important;
-  box-shadow: 0 12px 24px rgba(15,23,42,.11), 0 0 0 2px rgba(18,183,210,.06) !important;
+  border-color: var(--card-family-color, #7dd3df) !important;
+  box-shadow: 0 12px 24px rgba(15,23,42,.11), 0 0 0 2px color-mix(in srgb, var(--card-family-color, #12b7d2) 15%, transparent) !important;
 }
 .component-sidebar .component-icon {
   width: 42px !important;
   height: 42px !important;
   border-radius: 13px !important;
-  border-color: #d4e7eb !important;
-  background: linear-gradient(145deg,#eefafd,#f2f0ff) !important;
+  border-color: color-mix(in srgb, var(--card-family-color, #0891b2) 35%, #d4e7eb) !important;
+  background: linear-gradient(145deg,#ffffff,color-mix(in srgb, var(--card-family-color, #0891b2) 12%, #f8fafc)) !important;
+  color: var(--card-family-color, #0891b2) !important;
   box-shadow: 0 4px 10px rgba(15,23,42,.05), inset 0 1px 0 #fff !important;
 }
 .component-sidebar .component-card > span:last-child {
@@ -2407,24 +2410,19 @@ button:active, a:active {
   box-shadow: -16px 0 38px rgba(0,0,0,.38) !important;
 }
 .dark .component-sidebar .component-card {
-  border-color: #44515a !important;
+  border-width: 1.5px !important;
+  border-color: var(--card-family-color, #44515a) !important;
   background: linear-gradient(145deg,#242a2e,#20252a) !important;
   box-shadow: 0 7px 18px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.035) !important;
 }
-.dark .component-sidebar .component-card:nth-child(3n+2) {
-  background: linear-gradient(145deg,#282631,#24252b) !important;
-}
-.dark .component-sidebar .component-card:nth-child(3n) {
-  background: linear-gradient(145deg,#2a2924,#24282a) !important;
-}
 .dark .component-sidebar .component-card:hover {
-  border-color: #67e8f9 !important;
-  box-shadow: 0 12px 26px rgba(0,0,0,.45), 0 0 0 2px rgba(103,232,249,.08) !important;
+  border-color: var(--card-family-color, #67e8f9) !important;
+  box-shadow: 0 12px 26px rgba(0,0,0,.45), 0 0 0 2px color-mix(in srgb, var(--card-family-color, #67e8f9) 18%, transparent) !important;
 }
 .dark .component-sidebar .component-icon {
-  border-color: #52616a !important;
+  border-color: color-mix(in srgb, var(--node-family-color, var(--card-family-color, #67e8f9)) 45%, #52616a) !important;
   background: linear-gradient(145deg,#29383d,#312a40) !important;
-  color: #e2e8f0 !important;
+  color: var(--card-family-color, #e2e8f0) !important;
 }
 .dark .component-sidebar .component-card > span:last-child {
   color: #f1f5f9 !important;

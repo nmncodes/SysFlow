@@ -42,10 +42,16 @@ public class SimulationEngine {
             // The value is latency-weighted by the incoming request rate.
             Map<String, Double> incomingLatencyWeighted = new HashMap<>();
 
-            double perClientArrival = (config.targetRps() / SimulationConfig.TICKS_PER_SECOND)
-                    / Math.max(1, graph.clientNodes().size());
-            for (GraphNode client : graph.clientNodes()) {
-                incomingRate.merge(client.id(), perClientArrival, Double::sum);
+            List<GraphNode> clients = graph.clientNodes();
+            double totalConfiguredClientRps = clients.stream()
+                    .mapToDouble(c -> Math.max(1.0, c.getNumber("targetRps", 100.0)))
+                    .sum();
+            double totalTickArrival = config.targetRps() / SimulationConfig.TICKS_PER_SECOND;
+            for (GraphNode client : clients) {
+                double clientWeight = totalConfiguredClientRps > 0
+                        ? Math.max(1.0, client.getNumber("targetRps", 100.0)) / totalConfiguredClientRps
+                        : 1.0 / Math.max(1, clients.size());
+                incomingRate.merge(client.id(), totalTickArrival * clientWeight, Double::sum);
 
                 // Client-side starting point: no backend latency has been accumulated yet.
                 incomingLatencyWeighted.merge(client.id(), 0.0, Double::sum);

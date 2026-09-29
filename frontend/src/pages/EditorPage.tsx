@@ -19,7 +19,7 @@ import { generateDockerCompose } from '../lib/iac'
 import { generateReport } from '../lib/report'
 import { createComment, deleteComment, listComments, type NodeComment } from '../lib/comments'
 import { useCollabSession } from '../lib/collab'
-import { COMPONENT_LIBRARY, type ComponentType } from '../components/nodes'
+import { COMPONENT_LIBRARY, getAggregateClientRps, isClientComponent, type ComponentType } from '../components/nodes'
 import CompareModal from '../components/CompareModal'
 import SrsDiffModal from '../components/SrsDiffModal'
 import ThemeToggle from '../components/ThemeToggle'
@@ -78,8 +78,13 @@ function downloadText(filename: string, content: string, type: string) {
 export default function EditorPage() {
   const [nodes, setNodes, onNodesChange] = useNodesState<ArchNodeData>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
-  const [baseRps, setBaseRps] = useState(100)
   const [traffic, setTraffic] = useState(1)
+  const clientNodesCount = useMemo(
+    () => nodes.filter((n) => isClientComponent(n.data.componentType)).length,
+    [nodes],
+  )
+  const aggregateClientRps = useMemo(() => getAggregateClientRps(nodes), [nodes])
+  const baseRps = clientNodesCount > 0 ? aggregateClientRps : 100
   const [failures, setFailures] = useState<InjectedFailure[]>([])
   const [analysis, setAnalysis] = useState<AnalyzeResult | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -860,59 +865,75 @@ export default function EditorPage() {
   return (
       <div className="editor-shell relative flex h-screen min-h-0 flex-col bg-[#f8fcfd] dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
         <style>{`.editor-shell .sysflow-minimap { bottom: 78px !important; }`}</style>
-       <header className="editor-header relative z-30 flex min-h-[76px] items-center justify-between gap-2 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2 shadow-[0_1px_0_rgba(0,0,0,0.02)] sm:gap-3 sm:px-6">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-3 sm:min-w-[220px]">
-          <Link to="/" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white dark:bg-zinc-800 shadow-sm sm:h-12 sm:w-12">
-            <img src={logo} alt="SysFlow" className="h-9 w-9 object-contain sm:h-11 sm:w-11" />
+       <header className="editor-header relative z-30 flex min-h-[56px] items-center justify-between gap-2 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-1.5 shadow-[0_1px_0_rgba(0,0,0,0.02)] sm:px-4">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
+          <Link to="/" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white dark:bg-zinc-800 shadow-sm sm:h-9 sm:w-9">
+            <img src={logo} alt="SysFlow" className="h-7 w-7 object-contain sm:h-8 sm:w-8" />
           </Link>
           <div className="min-w-0">
-            <div className="flex items-center gap-2"><span className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-base">SysFlow</span><span className="hidden rounded-full bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-[8px] font-semibold uppercase text-zinc-400 dark:text-zinc-500 sm:inline">Editor</span></div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-sm">SysFlow</span>
+              <span className="hidden rounded-full bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-[8px] font-semibold uppercase text-zinc-400 dark:text-zinc-500 sm:inline">Editor</span>
+            </div>
             <input
               value={projectName}
               onChange={(e) => { setProjectName(e.target.value); markDirty() }}
               onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
               title="Edit project name"
-              className="mt-0.5 w-24 border-0 bg-transparent p-0 text-xs text-zinc-400 dark:text-zinc-500 outline-none hover:text-zinc-600 dark:hover:text-zinc-300 focus:text-zinc-800 dark:focus:text-zinc-100 sm:w-44"
+              className="w-24 truncate border-0 bg-transparent p-0 text-[11px] text-zinc-400 dark:text-zinc-500 outline-none hover:text-zinc-600 dark:hover:text-zinc-300 focus:text-zinc-800 dark:focus:text-zinc-100 sm:w-32 lg:w-36"
             />
+          </div>
+
+          <div className="hidden items-center gap-1.5 pl-1 lg:flex">
+            <span className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold ${isDirty ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400' : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400'}`}>
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" /> {isSaving ? 'Saving…' : isDirty ? 'Unsaved' : 'Saved'}
+            </span>
+            {COST_FEATURE_ENABLED && nodes.length > 0 && (
+              <button
+                onClick={toggleRealPricing}
+                title="Click to view full Multi-Cloud Cost Pipeline (AWS, GCP, Azure)"
+                className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-[10px] font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+              >
+                ~${estimatedMonthlyCost.toLocaleString()}/mo <span className="text-zinc-400 dark:text-zinc-500">▾</span>
+              </button>
+            )}
+            {isLoadingProject && <span className="shrink-0 whitespace-nowrap text-[10px] text-zinc-400 dark:text-zinc-500">Loading…</span>}
+            {projectId && collab.collaborators.length > 0 && (
+              <span title={collab.collaborators.map((c) => c.name).join(', ') + ' also viewing this project'} className="flex shrink-0 items-center -space-x-1.5">
+                {collab.collaborators.slice(0, 4).map((c) => (
+                  <span key={c.clientId} className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-white text-[9px] font-bold text-white" style={{ background: c.color }}>
+                    {c.name.charAt(0).toUpperCase()}
+                  </span>
+                ))}
+              </span>
+            )}
           </div>
         </div>
 
-        <div className="hidden min-w-0 flex-1 items-center justify-center gap-2 md:flex">
-          <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${isDirty ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400' : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400'}`}>
-            <span className="h-1.5 w-1.5 rounded-full bg-current" /> {isSaving ? 'Saving…' : isDirty ? 'Unsaved changes' : 'Saved'}
-          </span>
-          {COST_FEATURE_ENABLED && nodes.length > 0 && (
-            <button
-              onClick={toggleRealPricing}
-              title="Click to view full Multi-Cloud Cost Pipeline (AWS, GCP, Azure)"
-              className="flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 text-[10px] font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-            >
-              ~${estimatedMonthlyCost.toLocaleString()}/mo <span className="text-zinc-400 dark:text-zinc-500">▾</span>
-            </button>
-          )}
-          {isLoadingProject && <span className="text-[10px] text-zinc-400 dark:text-zinc-500">Loading project…</span>}
-          {projectId && collab.collaborators.length > 0 && (
-            <span title={collab.collaborators.map((c) => c.name).join(', ') + ' also viewing this project'} className="flex items-center -space-x-1.5">
-              {collab.collaborators.slice(0, 4).map((c) => (
-                <span key={c.clientId} className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-white text-[9px] font-bold text-white" style={{ background: c.color }}>
-                  {c.name.charAt(0).toUpperCase()}
-                </span>
-              ))}
+        <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+          <button onClick={history.undo} disabled={!history.canUndo} title="Undo (Ctrl+Z)" className="toolbar-icon shrink-0" aria-label="Undo">↶</button>
+          <button onClick={history.redo} disabled={!history.canRedo} title="Redo (Ctrl+Y)" className="toolbar-icon shrink-0" aria-label="Redo">↷</button>
+
+          <div
+            className="target-rps-box hidden shrink-0 items-center gap-2 whitespace-nowrap rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1 md:inline-flex"
+            title="Aggregate Target RPS across all Client / Mobile / Browser / API Client components, scaled by Traffic (1×–5×)"
+          >
+            <span className="text-[10px] font-bold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              RPS
             </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <button onClick={history.undo} disabled={!history.canUndo} title="Undo (Ctrl+Z)" className="toolbar-icon" aria-label="Undo">↶</button>
-          <button onClick={history.redo} disabled={!history.canRedo} title="Redo (Ctrl+Y)" className="toolbar-icon" aria-label="Redo">↷</button>
-
-          <div className="target-rps-box hidden items-center gap-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 md:flex">
-            <div><p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400">Target RPS <span className="text-zinc-300 dark:text-zinc-600">ⓘ</span></p><input type="number" min={1} max={1000000} value={baseRps} onChange={(e) => { const value = Math.min(1000000, Math.max(1, Number(e.target.value) || 1)); setBaseRps(value); markDirty() }} className="w-24 border-0 bg-transparent p-0 text-sm font-bold text-zinc-900 dark:text-zinc-50 outline-none" /></div>
+            <span className="text-xs font-extrabold text-zinc-900 dark:text-zinc-50">
+              {(clientNodesCount > 0 ? aggregateClientRps * traffic : 0).toLocaleString()}
+            </span>
+            <span className="text-[10px] font-medium text-zinc-400 dark:text-zinc-500">
+              {clientNodesCount > 0
+                ? `${clientNodesCount}c × ${traffic}×`
+                : 'add client'}
+            </span>
           </div>
 
           <div className="relative hidden md:block">
-            <button onClick={() => { setExportOpen((v) => !v); setTemplatesOpen(false); setHistoryOpen(false) }} className="toolbar-button">Export⌄</button>
-            {exportOpen && <div className="popover-menu right-0 top-12">
+            <button onClick={() => { setExportOpen((v) => !v); setTemplatesOpen(false); setHistoryOpen(false) }} className="toolbar-button whitespace-nowrap">Export ▾</button>
+            {exportOpen && <div className="popover-menu right-0 top-10">
               <button onClick={() => { setExportRequest((v) => v + 1); setExportOpen(false) }}>PNG image</button>
               <button onClick={() => { setBrandedExportRequest((v) => v + 1); setExportOpen(false) }}>Branded PNG (for sharing)</button>
               <button onClick={exportJson}>JSON graph</button>
@@ -921,31 +942,31 @@ export default function EditorPage() {
             </div>}
           </div>
 
-          <button onClick={copyShareLink} className="toolbar-button hidden md:block">Share ↗</button>
+          <button onClick={copyShareLink} className="toolbar-button hidden whitespace-nowrap md:inline-flex">Share ↗</button>
 
-          {projectId && <button onClick={openHistory} className="toolbar-button hidden md:block">History</button>}
-            <button onClick={() => setArchitectureCompareOpen(true)} disabled={nodes.length === 0} className="toolbar-button hidden md:block disabled:opacity-40">Compare</button>
-          <button onClick={() => setObservabilityOpen(true)} disabled={nodes.length === 0} className="toolbar-button hidden md:block disabled:opacity-40">Observe</button>
-    
+          {projectId && <button onClick={openHistory} className="toolbar-button hidden whitespace-nowrap md:inline-flex">History</button>}
+          <button onClick={() => setArchitectureCompareOpen(true)} disabled={nodes.length === 0} className="toolbar-button hidden whitespace-nowrap md:inline-flex disabled:opacity-40">Compare</button>
+          <button onClick={() => setObservabilityOpen(true)} disabled={nodes.length === 0} className="toolbar-button hidden whitespace-nowrap md:inline-flex disabled:opacity-40">Observe</button>
+
           <input ref={srsFileInputRef} type="file" accept=".pdf,.docx,.txt,.md" className="hidden" onChange={handleSrsFileSelected} />
-          <button onClick={() => srsFileInputRef.current?.click()} disabled={isImportingSrs} className="toolbar-button hidden md:block disabled:opacity-50">{isImportingSrs ? 'Importing…' : 'Import SRS'}</button>
+          <button onClick={() => srsFileInputRef.current?.click()} disabled={isImportingSrs} className="toolbar-button hidden whitespace-nowrap md:inline-flex disabled:opacity-50">{isImportingSrs ? 'Importing…' : 'Import SRS'}</button>
 
-          <div className="relative">
-            <button onClick={() => { setTemplatesOpen((v) => !v); setExportOpen(false); setHistoryOpen(false) }} className="toolbar-button hidden md:block">Templates</button>
-              {templatesOpen && <div className="popover-menu template-popover right-0 top-12 w-64">
-               <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Start with a template</p>
+          <div className="relative hidden md:block">
+            <button onClick={() => { setTemplatesOpen((v) => !v); setExportOpen(false); setHistoryOpen(false) }} className="toolbar-button whitespace-nowrap">Templates</button>
+            {templatesOpen && <div className="popover-menu template-popover right-0 top-10 w-64">
+              <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Start with a template</p>
               {TEMPLATES.map((template) => <button key={template.id} onClick={() => applyTemplate(template.id)}><span className="block font-semibold text-zinc-800 dark:text-zinc-100">{template.name}</span><span className="mt-0.5 block text-[10px] leading-relaxed text-zinc-400 dark:text-zinc-500">{template.description}</span></button>)}
             </div>}
           </div>
 
           <ThemeToggle className="hidden md:inline-flex" />
 
-          {auth.user ? <Link to="/projects" className="toolbar-button hidden lg:block">Projects</Link> : <Link to="/login" className="toolbar-button hidden lg:block">Log in</Link>}
-          <button onClick={handleSaveClick} disabled={isSaving} title="Save (Ctrl+S)" className="btn-dark rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-50">{isSaving ? 'Saving…' : 'Save'}</button>
+          {auth.user ? <Link to="/projects" className="toolbar-button hidden whitespace-nowrap lg:inline-flex">Projects</Link> : <Link to="/login" className="toolbar-button hidden whitespace-nowrap lg:inline-flex">Log in</Link>}
+          <button onClick={handleSaveClick} disabled={isSaving} title="Save (Ctrl+S)" className="btn-dark shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50">{isSaving ? 'Saving…' : 'Save'}</button>
 
           <div className="relative lg:hidden">
-            <button onClick={() => setMobileMenuOpen((v) => !v)} className="toolbar-icon" aria-label="More options">⋯</button>
-            {mobileMenuOpen && <div className="popover-menu right-0 top-12 w-56 max-h-[70vh] overflow-y-auto">
+            <button onClick={() => setMobileMenuOpen((v) => !v)} className="toolbar-icon shrink-0" aria-label="More options">⋯</button>
+            {mobileMenuOpen && <div className="popover-menu right-0 top-10 w-56 max-h-[70vh] overflow-y-auto">
               <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Export</p>
               <button onClick={() => { setExportRequest((v) => v + 1); setMobileMenuOpen(false) }}>PNG image</button>
               <button onClick={() => { setBrandedExportRequest((v) => v + 1); setMobileMenuOpen(false) }}>Branded PNG (for sharing)</button>
@@ -955,9 +976,9 @@ export default function EditorPage() {
               <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
               <button onClick={() => { srsFileInputRef.current?.click(); setMobileMenuOpen(false) }} disabled={isImportingSrs}>{isImportingSrs ? 'Importing…' : 'Import SRS'}</button>
               {projectId && <button onClick={() => { openHistory(); setMobileMenuOpen(false) }}>History</button>}
-                <button onClick={() => { setArchitectureCompareOpen(true); setMobileMenuOpen(false) }} disabled={nodes.length === 0}>Architecture comparison</button>
+              <button onClick={() => { setArchitectureCompareOpen(true); setMobileMenuOpen(false) }} disabled={nodes.length === 0}>Architecture comparison</button>
               <button onClick={() => { setObservabilityOpen(true); setMobileMenuOpen(false) }} disabled={nodes.length === 0}>Observability dashboard</button>
-                  {COST_FEATURE_ENABLED && nodes.length > 0 && <button onClick={() => { setMobileMenuOpen(false); toggleRealPricing() }}>Cost estimate (~${estimatedMonthlyCost.toLocaleString()}/mo)</button>}
+              {COST_FEATURE_ENABLED && nodes.length > 0 && <button onClick={() => { setMobileMenuOpen(false); toggleRealPricing() }}>Cost estimate (~${estimatedMonthlyCost.toLocaleString()}/mo)</button>}
               <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
               <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Templates</p>
               {TEMPLATES.map((template) => <button key={template.id} onClick={() => { applyTemplate(template.id); setMobileMenuOpen(false) }}><span className="block font-semibold text-zinc-800 dark:text-zinc-100">{template.name}</span></button>)}
