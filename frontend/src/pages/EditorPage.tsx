@@ -598,12 +598,16 @@ export default function EditorPage() {
   }
 
   const exportDockerCompose = () => {
-    const compose = generateDockerCompose(
-      nodes.map((n) => ({ id: n.id, type: n.data.componentType, label: n.data.label, config: n.data.config })),
-      edges.map((e) => ({ source: e.source, target: e.target })),
-    )
-    downloadText('docker-compose.yml', compose, 'text/yaml')
-    setExportOpen(false)
+    try {
+      const compose = generateDockerCompose(
+        nodes.map((n) => ({ id: n.id, type: n.data.componentType, label: n.data.label, config: n.data.config })),
+        edges.map((e) => ({ source: e.source, target: e.target })),
+      )
+      downloadText('docker-compose.yml', compose, 'text/yaml')
+      setExportOpen(false)
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'Could not generate the Compose export.')
+    }
   }
 
   const nodeTargets = nodes
