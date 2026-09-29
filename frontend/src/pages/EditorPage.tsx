@@ -69,6 +69,7 @@ export default function EditorPage() {
   const [brandedExportRequest, setBrandedExportRequest] = useState(0)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [projectId, setProjectId] = useState<string | null>(null)
+  const [isReadOnly, setIsReadOnly] = useState(false)
   const [projectName, setProjectName] = useState('Untitled Project')
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [saveDraftName, setSaveDraftName] = useState('')
@@ -119,7 +120,7 @@ export default function EditorPage() {
   const [params] = useSearchParams()
   const loadedRef = useRef(false)
   const history = useHistory(nodes, edges, setNodes, setEdges)
-  const collab = useCollabSession(projectId, auth.user?.displayName ?? null)
+  const collab = useCollabSession(projectId, auth.user?.displayName ?? null, !isReadOnly)
   const applyingRemoteGraphRef = useRef(false)
 
   collab.onRemoteGraph((payload) => {
@@ -222,6 +223,7 @@ export default function EditorPage() {
       getProject(loadProjectId)
         .then((project) => {
           setProjectId(project.id)
+          setIsReadOnly(project.accessRole === 'VIEWER')
           setProjectName(project.name)
           setNodes(project.graphJson.nodes.map((n) => ({
             id: n.id,
@@ -276,11 +278,13 @@ export default function EditorPage() {
   const markDirty = () => setIsDirty(true)
 
   const handleNodesChange = (changes: Parameters<typeof onNodesChange>[0]) => {
+    if (isReadOnly) return
     if (changes.length > 0) setIsDirty(true)
     onNodesChange(changes)
   }
 
   const handleEdgesChange = (changes: Parameters<typeof onEdgesChange>[0]) => {
+    if (isReadOnly) return
     if (changes.length > 0) setIsDirty(true)
     onEdgesChange(changes)
   }
@@ -316,12 +320,28 @@ export default function EditorPage() {
   }
 
   const performSave = async (name: string) => {
+    if (collab.conflict) {
+      setSaveError('Resolve the collaboration conflict before saving.')
+      return
+    }
     setIsSaving(true)
     setSaveError(null)
     const graphJson = { nodes: toGraphNodes(nodes), edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target })) }
     try {
       if (projectId) {
-        await updateProject(projectId, name, '', graphJson)
+        const saved = await updateProject(projectId, name, '', graphJson, collab.revision, collab.myClientId)
+        if (saved.collaborationRevision != null) {
+          collab.applySavedGraph({
+            nodes: saved.graphJson.nodes.map((node) => ({
+              id: node.id,
+              type: node.type,
+              label: node.label ?? node.type,
+              config: node.config,
+              position: node.position ?? { x: 0, y: 0 },
+            })),
+            edges: saved.graphJson.edges,
+          }, saved.collaborationRevision)
+        }
       } else {
         const created = await createProject(name, '', graphJson)
         setProjectId(created.id)
@@ -338,6 +358,10 @@ export default function EditorPage() {
   }
 
   const handleSaveClick = () => {
+    if (collab.conflict) {
+      setToast('Resolve the collaboration conflict before saving')
+      return
+    }
     if (!auth.user) {
       const graphJson = { nodes: toGraphNodes(nodes), edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target })) }
       stashPendingSave(projectName, graphJson)
@@ -441,13 +465,26 @@ export default function EditorPage() {
     setRestoringVersionId(versionId)
     try {
       const restored = await restoreVersion(projectId, versionId)
-      setNodes(restored.graphJson.nodes.map((n) => ({
-        id: n.id,
-        type: 'archNode',
-        position: n.position ?? { x: 0, y: 0 },
-        data: { componentType: n.type, label: n.label ?? n.type, config: n.config, health: 'idle' },
-      })))
-      setEdges(restored.graphJson.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: 'archEdge' })))
+      if (restored.collaborationRevision != null) {
+        collab.applySavedGraph({
+          nodes: restored.graphJson.nodes.map((node) => ({
+            id: node.id,
+            type: node.type,
+            label: node.label ?? node.type,
+            config: node.config,
+            position: node.position ?? { x: 0, y: 0 },
+          })),
+          edges: restored.graphJson.edges,
+        }, restored.collaborationRevision)
+      } else {
+        setNodes(restored.graphJson.nodes.map((n) => ({
+          id: n.id,
+          type: 'archNode',
+          position: n.position ?? { x: 0, y: 0 },
+          data: { componentType: n.type, label: n.label ?? n.type, config: n.config, health: 'idle' },
+        })))
+        setEdges(restored.graphJson.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: 'archEdge' })))
+      }
       setIsDirty(false)
       setHistoryOpen(false)
       setToast('Restored previous version')
@@ -640,6 +677,7 @@ export default function EditorPage() {
             <div className="flex items-center gap-2"><span className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-base">SysFlow</span><span className="hidden rounded-full bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-[8px] font-semibold uppercase text-zinc-400 dark:text-zinc-500 sm:inline">Editor</span></div>
             <input
               value={projectName}
+              readOnly={isReadOnly}
               onChange={(e) => { setProjectName(e.target.value); markDirty() }}
               onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
               title="Edit project name"
@@ -674,8 +712,8 @@ export default function EditorPage() {
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <button onClick={history.undo} disabled={!history.canUndo} title="Undo (Ctrl+Z)" className="toolbar-icon" aria-label="Undo">↶</button>
-          <button onClick={history.redo} disabled={!history.canRedo} title="Redo (Ctrl+Y)" className="toolbar-icon" aria-label="Redo">↷</button>
+          {!isReadOnly && <button onClick={history.undo} disabled={!history.canUndo} title="Undo (Ctrl+Z)" className="toolbar-icon" aria-label="Undo">↶</button>}
+          {!isReadOnly && <button onClick={history.redo} disabled={!history.canRedo} title="Redo (Ctrl+Y)" className="toolbar-icon" aria-label="Redo">↷</button>}
 
           <div className="target-rps-box hidden items-center gap-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 xl:flex">
             <div><p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400">Target RPS <span className="text-zinc-300 dark:text-zinc-600">ⓘ</span></p><input type="number" min={1} max={1000000} value={baseRps} onChange={(e) => { const value = Math.min(1000000, Math.max(1, Number(e.target.value) || 1)); setBaseRps(value); markDirty() }} className="w-20 border-0 bg-transparent p-0 text-sm font-bold text-zinc-900 dark:text-zinc-50 outline-none" /></div>
@@ -695,25 +733,26 @@ export default function EditorPage() {
             </div>}
           </div>
 
-          <button onClick={copyShareLink} className="toolbar-button hidden md:block">Share ↗</button>
+          {isReadOnly && <span className="rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-semibold text-sky-700">View only</span>}
+          {!isReadOnly && <button onClick={copyShareLink} className="toolbar-button hidden md:block">Share ↗</button>}
 
           {projectId && <button onClick={openHistory} className="toolbar-button hidden md:block">History</button>}
 
-          <input ref={srsFileInputRef} type="file" accept=".pdf,.docx,.txt,.md" className="hidden" onChange={handleSrsFileSelected} />
-          <button onClick={() => srsFileInputRef.current?.click()} disabled={isImportingSrs} className="toolbar-button hidden md:block disabled:opacity-50">{isImportingSrs ? 'Importing…' : 'Import SRS'}</button>
+          {!isReadOnly && <input ref={srsFileInputRef} type="file" accept=".pdf,.docx,.txt,.md" className="hidden" onChange={handleSrsFileSelected} />}
+          {!isReadOnly && <button onClick={() => srsFileInputRef.current?.click()} disabled={isImportingSrs} className="toolbar-button hidden md:block disabled:opacity-50">{isImportingSrs ? 'Importing…' : 'Import SRS'}</button>}
 
-          <div className="relative">
+          {!isReadOnly && <div className="relative">
             <button onClick={() => { setTemplatesOpen((v) => !v); setExportOpen(false); setHistoryOpen(false) }} className="toolbar-button hidden md:block">Templates</button>
             {templatesOpen && <div className="popover-menu right-0 top-12 w-64">
               <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Start with a template</p>
               {TEMPLATES.map((template) => <button key={template.id} onClick={() => applyTemplate(template.id)}><span className="block font-semibold text-zinc-800 dark:text-zinc-100">{template.name}</span><span className="mt-0.5 block text-[10px] leading-relaxed text-zinc-400 dark:text-zinc-500">{template.description}</span></button>)}
             </div>}
-          </div>
+          </div>}
 
           <ThemeToggle className="hidden md:inline-flex" />
 
           {auth.user ? <Link to="/projects" className="toolbar-button hidden lg:block">Projects</Link> : <Link to="/login" className="toolbar-button hidden lg:block">Log in</Link>}
-          <button onClick={handleSaveClick} disabled={isSaving} title="Save (Ctrl+S)" className="btn-dark rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-50">{isSaving ? 'Saving…' : 'Save'}</button>
+          {!isReadOnly && <button onClick={handleSaveClick} disabled={isSaving || !!collab.conflict} title="Save (Ctrl+S)" className="btn-dark rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-50">{isSaving ? 'Saving…' : 'Save'}</button>}
 
           <div className="relative lg:hidden">
             <button onClick={() => setMobileMenuOpen((v) => !v)} className="toolbar-icon" aria-label="More options">⋯</button>
@@ -725,14 +764,16 @@ export default function EditorPage() {
               <button onClick={() => { exportDockerCompose(); setMobileMenuOpen(false) }}>docker-compose.yml</button>
               <button onClick={exportPdf}>PDF report</button>
               <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
-              <button onClick={() => { srsFileInputRef.current?.click(); setMobileMenuOpen(false) }} disabled={isImportingSrs}>{isImportingSrs ? 'Importing…' : 'Import SRS'}</button>
+              {!isReadOnly && <button onClick={() => { srsFileInputRef.current?.click(); setMobileMenuOpen(false) }} disabled={isImportingSrs}>{isImportingSrs ? 'Importing…' : 'Import SRS'}</button>}
               {projectId && <button onClick={() => { openHistory(); setMobileMenuOpen(false) }}>History</button>}
               {nodes.length > 0 && <button onClick={() => { setMobileMenuOpen(false); toggleRealPricing() }}>Cost estimate (~${estimatedMonthlyCost.toLocaleString()}/mo)</button>}
-              <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
-              <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Templates</p>
-              {TEMPLATES.map((template) => <button key={template.id} onClick={() => { applyTemplate(template.id); setMobileMenuOpen(false) }}><span className="block font-semibold text-zinc-800 dark:text-zinc-100">{template.name}</span></button>)}
-              <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
-              <button onClick={() => { copyShareLink(); setMobileMenuOpen(false) }}>Share ↗</button>
+              {!isReadOnly && <>
+                <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
+                <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Templates</p>
+                {TEMPLATES.map((template) => <button key={template.id} onClick={() => { applyTemplate(template.id); setMobileMenuOpen(false) }}><span className="block font-semibold text-zinc-800 dark:text-zinc-100">{template.name}</span></button>)}
+                <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
+                <button onClick={() => { copyShareLink(); setMobileMenuOpen(false) }}>Share ↗</button>
+              </>}
               {auth.user ? <Link to="/projects" onClick={() => setMobileMenuOpen(false)}>Projects</Link> : <Link to="/login" onClick={() => setMobileMenuOpen(false)}>Log in</Link>}
               <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
               <div className="flex items-center justify-between px-3 py-1"><span className="text-xs text-zinc-500 dark:text-zinc-400">Appearance</span><ThemeToggle /></div>
@@ -740,6 +781,20 @@ export default function EditorPage() {
           </div>
         </div>
       </header>
+
+      {collab.conflict && (
+        <div role="alert" className="relative z-30 flex flex-wrap items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 sm:px-6">
+          <div className="min-w-0">
+            <p className="font-semibold">Conflicting edits need your choice</p>
+            <p className="mt-0.5">Your draft is preserved. {collab.conflict.conflicts.join(', ')} changed in both versions. Export your draft or choose which version to keep.</p>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <button onClick={exportJson} className="rounded-lg border border-amber-300 px-3 py-1.5 font-semibold hover:bg-amber-100">Download my draft</button>
+            <button onClick={() => collab.resolveConflict('shared')} className="rounded-lg border border-amber-300 px-3 py-1.5 font-semibold hover:bg-amber-100">Use shared version</button>
+            <button onClick={() => collab.resolveConflict('local')} className="rounded-lg bg-amber-900 px-3 py-1.5 font-semibold text-white hover:bg-amber-800">Keep my changes</button>
+          </div>
+        </div>
+      )}
 
       {srsUnrecognized.length > 0 && (
         <div className="relative z-20 flex items-center justify-between gap-3 border-b border-amber-100 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 px-4 py-1.5 text-xs text-amber-700 dark:text-amber-400 sm:px-6">
@@ -805,15 +860,16 @@ export default function EditorPage() {
           estimatedMonthlyCost={estimatedMonthlyCost}
           onSelectionChange={setSelectedNodeId}
           onDirty={markDirty}
-          hideSidebar={!!analysis}
+          hideSidebar={!!analysis || isReadOnly || !!collab.conflict}
+          readOnly={isReadOnly || !!collab.conflict}
           onCompareNode={setCompareNodeId}
           remoteCursors={collab.remoteCursors}
           onCursorMove={collab.broadcastCursor}
           onCommentNode={projectId ? openCommentsFor : undefined}
           commentCounts={commentCounts}
-          onLoadSample={() => applyTemplate('basic-3-tier')}
-          onBrowseTemplates={() => setTemplatesOpen(true)}
-          onImportSrs={() => srsFileInputRef.current?.click()}
+          onLoadSample={isReadOnly ? undefined : () => applyTemplate('basic-3-tier')}
+          onBrowseTemplates={isReadOnly ? undefined : () => setTemplatesOpen(true)}
+          onImportSrs={isReadOnly ? undefined : () => srsFileInputRef.current?.click()}
         />
         {analysis && <FindingsPanel findings={analysis.findings} aiEnabled={analysis.aiEnabled} summary={sim.result?.summary} onFocusNode={(nodeId) => setFocusRequest({ nodeId, token: Date.now() })} onClose={() => setAnalysis(null)} />}
       </div>
@@ -1114,10 +1170,10 @@ export default function EditorPage() {
               {isLoadingVersions && <p className="py-2 text-xs text-zinc-400 dark:text-zinc-500">Loading…</p>}
               {!isLoadingVersions && versions.length === 0 && <p className="py-2 text-xs text-zinc-400 dark:text-zinc-500">No previous versions yet — saves create one automatically.</p>}
               {!isLoadingVersions && versions.map((v) => (
-                <button key={v.id} onClick={() => handleRestoreVersion(v.id)} disabled={restoringVersionId === v.id} className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-50">
+                <div key={v.id} className="flex items-center justify-between rounded-lg px-2 py-2 text-sm">
                   <span className="text-zinc-700 dark:text-zinc-300">{new Date(v.createdAt).toLocaleString()}</span>
-                  <span className="text-[10px] font-semibold text-violet-600 dark:text-violet-400">{restoringVersionId === v.id ? 'Restoring…' : 'Restore'}</span>
-                </button>
+                  {!isReadOnly && <button onClick={() => handleRestoreVersion(v.id)} disabled={restoringVersionId === v.id} className="text-[10px] font-semibold text-violet-600 hover:underline dark:text-violet-400 disabled:opacity-50">{restoringVersionId === v.id ? 'Restoring…' : 'Restore'}</button>}
+                </div>
               ))}
             </div>
           </div>

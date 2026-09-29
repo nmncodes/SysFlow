@@ -2,6 +2,7 @@ package dev.sysflow.project;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.sysflow.collab.CollaborativeGraphService;
 import dev.sysflow.project.dto.ProjectRequest;
 import dev.sysflow.project.dto.ProjectResponse;
 import dev.sysflow.project.dto.ProjectSummaryResponse;
@@ -9,11 +10,15 @@ import dev.sysflow.project.dto.ProjectVersionDetailResponse;
 import dev.sysflow.project.dto.ProjectVersionSummaryResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -29,6 +34,8 @@ public class ProjectController {
     private final ProjectCollaboratorRepository collaboratorRepository;
     private final ProjectAccessService access;
     private final ObjectMapper objectMapper;
+    private final CollaborativeGraphService collaborativeGraphService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public ProjectController(
             ProjectRepository projectRepository,
@@ -36,7 +43,9 @@ public class ProjectController {
             NodeCommentRepository nodeCommentRepository,
             ProjectCollaboratorRepository collaboratorRepository,
             ProjectAccessService access,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            CollaborativeGraphService collaborativeGraphService,
+            SimpMessagingTemplate messagingTemplate
     ) {
         this.projectRepository = projectRepository;
         this.projectVersionRepository = projectVersionRepository;
@@ -44,6 +53,8 @@ public class ProjectController {
         this.collaboratorRepository = collaboratorRepository;
         this.access = access;
         this.objectMapper = objectMapper;
+        this.collaborativeGraphService = collaborativeGraphService;
+        this.messagingTemplate = messagingTemplate;
     }
 
     @GetMapping
@@ -67,7 +78,7 @@ public class ProjectController {
     @GetMapping("/{id}")
     public ProjectResponse get(@PathVariable UUID id, Authentication auth) {
         Project project = access.requireView(id, userId(auth));
-        return toResponse(project);
+        return toResponse(project, access.roleFor(project, userId(auth)));
     }
 
     @PutMapping("/{id}/publish")
@@ -75,7 +86,7 @@ public class ProjectController {
         Project project = access.requireOwner(id, userId(auth));
         project.setPublicTemplate(request.publish());
         projectRepository.save(project);
-        return toResponse(project);
+        return toResponse(project, CollaboratorRole.EDITOR);
     }
 
     public record PublishRequest(boolean publish) {
@@ -106,23 +117,42 @@ public class ProjectController {
     public ProjectResponse create(@Valid @RequestBody ProjectRequest request, Authentication auth) {
         Project project = new Project(userId(auth), request.name(), request.description(), writeJson(request.graphJson()));
         projectRepository.save(project);
-        return toResponse(project);
+        return toResponse(project, CollaboratorRole.EDITOR);
     }
 
     @PutMapping("/{id}")
     public ProjectResponse update(@PathVariable UUID id, @Valid @RequestBody ProjectRequest request, Authentication auth) {
         Project project = access.requireEdit(id, userId(auth));
-        project.setName(request.name());
-        project.setDescription(request.description());
+        CollaborativeGraphService.Result graphUpdate = null;
         if (request.graphJson() != null) {
-            String newGraphJson = writeJson(request.graphJson());
-            if (!newGraphJson.equals(project.getGraphJson())) {
+            JsonNode submittedGraph = request.graphJson();
+            JsonNode persistedGraph = readJson(project.getGraphJson());
+            long baseRevision = request.collaborationRevision() == null ? 0L : request.collaborationRevision();
+            graphUpdate = collaborativeGraphService.apply(id, baseRevision, submittedGraph, persistedGraph);
+            if (!graphUpdate.accepted()) {
+                if (request.collaborationClientId() != null) {
+                    messagingTemplate.convertAndSendToUser(userId(auth).toString(), "/queue/collaboration-conflicts", Map.of(
+                            "type", "conflict",
+                            "clientId", request.collaborationClientId(),
+                            "revision", graphUpdate.revision(),
+                            "payload", graphUpdate.graph(),
+                            "conflicts", graphUpdate.conflicts()
+                    ));
+                }
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "The graph changed at the same time. Resolve the live collaboration conflict before saving.");
+            }
+            String canonicalGraphJson = writeJson(graphUpdate.graph());
+            if (!canonicalGraphJson.equals(project.getGraphJson())) {
                 snapshotVersion(project);
-                project.setGraphJson(newGraphJson);
+                project.setGraphJson(canonicalGraphJson);
             }
         }
+        project.setName(request.name());
+        project.setDescription(request.description());
         projectRepository.save(project);
-        return toResponse(project);
+        if (graphUpdate != null) broadcastGraphUpdate(project, graphUpdate);
+        return toResponse(project, access.roleFor(project, userId(auth)), graphUpdate == null ? null : graphUpdate.revision());
     }
 
     @DeleteMapping("/{id}")
@@ -131,6 +161,7 @@ public class ProjectController {
         projectVersionRepository.deleteAll(projectVersionRepository.findByProjectIdOrderByCreatedAtDesc(project.getId()));
         nodeCommentRepository.deleteByProjectId(project.getId());
         collaboratorRepository.deleteByProjectId(project.getId());
+        collaborativeGraphService.remove(project.getId());
         projectRepository.delete(project);
     }
 
@@ -153,10 +184,19 @@ public class ProjectController {
     public ProjectResponse restoreVersion(@PathVariable UUID id, @PathVariable UUID versionId, Authentication auth) {
         Project project = access.requireEdit(id, userId(auth));
         ProjectVersion version = findOwnedVersion(id, versionId);
+        JsonNode persistedGraph = readJson(project.getGraphJson());
+        CollaborativeGraphService.Result current = collaborativeGraphService.snapshot(id, persistedGraph);
+        CollaborativeGraphService.Result graphUpdate = collaborativeGraphService.apply(
+                id, current.revision(), readJson(version.getGraphJson()), persistedGraph);
+        if (!graphUpdate.accepted()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "The graph changed at the same time. Resolve the live collaboration conflict before restoring.");
+        }
         snapshotVersion(project); // so restoring is itself undoable
-        project.setGraphJson(version.getGraphJson());
+        project.setGraphJson(writeJson(graphUpdate.graph()));
         projectRepository.save(project);
-        return toResponse(project);
+        broadcastGraphUpdate(project, graphUpdate);
+        return toResponse(project, access.roleFor(project, userId(auth)), graphUpdate.revision());
     }
 
     /** Saves the project's current graph as a version, then prunes anything past the retention limit. */
@@ -202,12 +242,34 @@ public class ProjectController {
         }
     }
 
-    private ProjectResponse toResponse(Project project) {
+    private ProjectResponse toResponse(Project project, CollaboratorRole role) {
         try {
             JsonNode graph = objectMapper.readTree(project.getGraphJson());
-            return new ProjectResponse(project.getId(), project.getName(), project.getDescription(), graph, project.getCreatedAt(), project.getUpdatedAt(), project.isPublicTemplate());
+            return new ProjectResponse(project.getId(), project.getName(), project.getDescription(), graph, project.getCreatedAt(), project.getUpdatedAt(), project.isPublicTemplate(), role.name(), null);
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Corrupt project data");
+        }
+    }
+
+    private ProjectResponse toResponse(Project project, CollaboratorRole role, Long collaborationRevision) {
+        ProjectResponse response = toResponse(project, role);
+        return new ProjectResponse(response.id(), response.name(), response.description(), response.graphJson(),
+                response.createdAt(), response.updatedAt(), response.isPublicTemplate(), response.accessRole(), collaborationRevision);
+    }
+
+    private void broadcastGraphUpdate(Project project, CollaborativeGraphService.Result update) {
+        Map<String, Object> event = Map.of(
+                "type", "graph",
+                "clientId", "server",
+                "revision", update.revision(),
+                "payload", update.graph()
+        );
+        Set<UUID> members = new LinkedHashSet<>();
+        members.add(project.getUserId());
+        collaboratorRepository.findByProjectIdOrderByCreatedAtAsc(project.getId())
+                .forEach(collaborator -> members.add(collaborator.getUserId()));
+        for (UUID memberId : members) {
+            messagingTemplate.convertAndSendToUser(memberId.toString(), "/queue/project/" + project.getId(), event);
         }
     }
 }

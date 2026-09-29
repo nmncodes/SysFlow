@@ -12,6 +12,8 @@ public record ProjectResponse(
         JsonNode graphJson,
         Instant createdAt,
         Instant updatedAt,
-        boolean isPublicTemplate
+        boolean isPublicTemplate,
+        String accessRole,
+        Long collaborationRevision
 ) {
 }

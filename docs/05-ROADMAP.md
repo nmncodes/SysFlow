@@ -55,11 +55,13 @@ Phased so there's a demoable product early and often. Each phase ends in somethi
 
 ## Phase 9 — Collaboration & Sharing ✅ Done
 - Public read-only share links for a saved project (no login required to view/replay a simulation).
+- Owners can invite existing accounts as editors or viewers; viewers can inspect projects without changing or saving them.
+- Live graph updates carry server revisions. Independent node and edge changes merge; concurrent edits to the same item pause sync and preserve the local draft until a user chooses which change to keep.
+- Live collaboration keeps the most recent 128 revisions per project in server memory; saving the project remains the durable record.
 - Export diagram as PNG/JSON (PDF optional stretch).
 - Versioning: every save snapshots the prior graph (`project_versions` table); last 10 kept per project,
   oldest pruned automatically. "History" button in the editor toolbar lists snapshots by timestamp and
   restores one in place — restoring itself snapshots the pre-restore state, so a restore is undoable too.
-- Multi-user live co-editing is out of scope here — too large for this timeline; revisit only if Phase 8-9 land early.
 - **Demo checkpoint:** share a link, a logged-out visitor watches the same simulation replay. Save a
   project a few times, open History, restore an older version, confirm it round-trips.
 

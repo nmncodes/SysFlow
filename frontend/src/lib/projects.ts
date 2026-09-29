@@ -20,6 +20,7 @@ export interface ProjectSummary {
 
 export interface ProjectDetail extends ProjectSummary {
   graphJson: GraphJson
+  collaborationRevision?: number | null
 }
 
 export interface GalleryItem {
@@ -101,11 +102,18 @@ export async function createProject(name: string, description: string, graphJson
   return handle(res)
 }
 
-export async function updateProject(id: string, name: string, description: string, graphJson: GraphJson): Promise<ProjectDetail> {
+export async function updateProject(
+  id: string,
+  name: string,
+  description: string,
+  graphJson: GraphJson,
+  collaborationRevision?: number,
+  collaborationClientId?: string,
+): Promise<ProjectDetail> {
   const res = await fetch(`${API_BASE}/projects/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({ name, description, graphJson }),
+    body: JSON.stringify({ name, description, graphJson, collaborationRevision, collaborationClientId }),
   })
   return handle(res)
 }
