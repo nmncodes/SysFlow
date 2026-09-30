@@ -6,7 +6,7 @@ import java.util.Set;
 public final class ComponentTypes {
 
     public static final Set<String> VALID_TYPES = Set.of(
-            "client", "mobile", "webBrowser", "desktopApp", "apiClient",
+            "client", "mobile", "webBrowser", "desktopApp", "apiClient", "customClient",
             "dns", "cdn", "loadBalancer", "apiGateway", "waf", "ingress",
             "service", "worker", "serverless", "queue", "autoScalingGroup", "containerOrchestrator", "cronJob",
             "cache", "database", "dataWarehouse", "objectStorage", "searchIndex", "dataLake",

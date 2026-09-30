@@ -31,7 +31,7 @@ export interface SPOFAnalysisResult {
   checkedNodeCount: number
 }
 
-const CLIENT_TYPES = new Set(['client', 'mobile', 'webBrowser', 'desktopApp', 'apiClient'])
+const CLIENT_TYPES = new Set(['client', 'mobile', 'webBrowser', 'desktopApp', 'apiClient', 'customClient'])
 const REPLICATED_DATA_TYPES = new Set(['database', 'searchIndex'])
 const BASIC_SPOF_TYPES = new Set(['service', 'cache', 'queue', 'messageBroker', 'dataWarehouse'])
 

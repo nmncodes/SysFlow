@@ -4,6 +4,7 @@ export type ComponentType =
   | 'webBrowser'
   | 'desktopApp'
   | 'apiClient'
+  | 'customClient'
   | 'dns'
   | 'cdn'
   | 'loadBalancer'
@@ -144,6 +145,14 @@ export const COMPONENT_LIBRARY: ComponentDef[] = [
     category: 'Client',
     description: 'Automated SDK, CLI, or B2B partner integration calling your endpoints programmatically.',
     examples: 'Partner Webhook · SDK · CLI Bot',
+    defaultConfig: { targetRps: 100 },
+  },
+  {
+    type: 'customClient',
+    label: 'Custom Client',
+    category: 'Client',
+    description: 'A custom client source whose name and parameters can be tailored to your specific use case.',
+    examples: 'IoT Device · Scheduled Cron · Legacy System',
     defaultConfig: { targetRps: 100 },
   },
 

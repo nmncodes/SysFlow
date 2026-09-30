@@ -366,7 +366,7 @@ public class SimulationEngine {
 
     private double capacityOf(GraphNode node) {
         return switch (node.type()) {
-            case "client", "mobile", "webBrowser", "desktopApp", "apiClient" -> Double.MAX_VALUE;
+            case "client", "mobile", "webBrowser", "desktopApp", "apiClient", "customClient" -> Double.MAX_VALUE;
             case "dns" -> Double.MAX_VALUE;
             case "cdn" -> node.getNumber("maxThroughput", 5000);
             case "loadBalancer" -> node.getNumber("maxThroughput", 1000);

@@ -7,6 +7,7 @@ export const MONTHLY_COST_USD: Record<ComponentType, number> = {
   webBrowser: 0,
   desktopApp: 0,
   apiClient: 0,
+  customClient: 0,
   dns: 1,
   cdn: 20,
   loadBalancer: 18,
