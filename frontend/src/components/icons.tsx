@@ -349,6 +349,7 @@ export const COMPONENT_ICONS = {
   webBrowser: WebBrowserIcon,
   desktopApp: ClientIcon,
   apiClient: GatewayIcon,
+  customClient: ClientIcon,
   dns: DnsIcon,
   cdn: CdnIcon,
   loadBalancer: LoadBalancerIcon,
