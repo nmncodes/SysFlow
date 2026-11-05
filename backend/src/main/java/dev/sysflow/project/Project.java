@@ -24,9 +24,9 @@ public class Project {
     private String description;
 
     /**
-     * Raw JSON: { nodes: [...], edges: [...] } — see docs/04-DATA-MODEL-AND-API.md.
+     * Raw JSON: { nodes: [...], edges: [...] } - see docs/04-DATA-MODEL-AND-API.md.
      * No hardcoded "jsonb" columnDefinition so the schema stays portable across
-     * Postgres (prod) and H2 (tests) — Hibernate's JSON type still maps sensibly on both.
+     * Postgres (prod) and H2 (tests) - Hibernate's JSON type still maps sensibly on both.
      */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "graph_json", nullable = false)
@@ -39,7 +39,7 @@ public class Project {
     private Instant updatedAt = Instant.now();
 
     /**
-     * Opt-in only — the owner explicitly chooses to list this in the public gallery.
+     * Opt-in only - the owner explicitly chooses to list this in the public gallery.
      * columnDefinition sets an explicit DEFAULT so ddl-auto=update's ALTER TABLE ADD COLUMN
      * backfills existing rows instead of violating the NOT NULL constraint on them.
      */

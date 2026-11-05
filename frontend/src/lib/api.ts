@@ -1,7 +1,7 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api'
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8081/api'
 
 /**
- * fetch() has no built-in timeout — without this, a slow backend (e.g. an AI call with no
+ * fetch() has no built-in timeout - without this, a slow backend (e.g. an AI call with no
  * server-side timeout of its own) leaves buttons stuck on "Analyzing…" indefinitely instead
  * of failing into the UI's existing error/fallback handling.
  */
@@ -75,7 +75,7 @@ export interface RunSimulationInput {
 }
 
 export async function runSimulation(input: RunSimulationInput): Promise<SimulationResult> {
-  const res = await fetch(`${API_BASE}/simulations/run`, {
+  const res = await fetchWithTimeout(`${API_BASE}/simulations/run`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -86,6 +86,8 @@ export async function runSimulation(input: RunSimulationInput): Promise<Simulati
         injectedFailures: input.injectedFailures ?? [],
       },
     }),
+  }, 60_000).catch(() => {
+    throw new Error('Simulation timed out - try reducing the duration or graph size')
   })
   if (!res.ok) {
     throw new Error(`Simulation request failed: ${res.status}`)
@@ -113,7 +115,7 @@ export interface SloEvaluationResult {
 
 /**
  * Evaluates SLO thresholds against an already-computed SimulationResult (e.g. the
- * response of `runSimulation`). Does NOT run a simulation itself — the backend
+ * response of `runSimulation`). Does NOT run a simulation itself - the backend
  * SloEvaluator only reads the existing SimulationSummary fields. The backend's
  * response is the sole source of truth for PASS/FAIL; nothing here evaluates it.
  */
@@ -159,7 +161,7 @@ export async function importSrs(file: File): Promise<SrsImportResult> {
   const formData = new FormData()
   formData.append('file', file)
   const res = await fetchWithTimeout(`${API_BASE}/srs/import`, { method: 'POST', body: formData }, 45_000).catch(() => {
-    throw new Error('SRS import timed out — the document may be too long or the AI service is slow right now')
+    throw new Error('SRS import timed out - the document may be too long or the AI service is slow right now')
   })
   if (!res.ok) {
     const body = await res.json().catch(() => null)
@@ -256,7 +258,7 @@ export async function compareMultiCloudCosts(
   targetRps?: number,
   simulationSummary?: SimulationSummary | null,
 ): Promise<PricingCompareResponse> {
-  const res = await fetch(`${API_BASE}/pricing/compare`, {
+  const res = await fetchWithTimeout(`${API_BASE}/pricing/compare`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -264,8 +266,23 @@ export async function compareMultiCloudCosts(
       targetRps,
       simulationSummary,
     }),
-  })
+  }, 30_000)
   if (!res.ok) throw new Error(`Multi-cloud pricing comparison failed: ${res.status}`)
+  return res.json()
+}
+
+export async function generateArchitecture(description: string): Promise<SrsImportResult> {
+  const res = await fetchWithTimeout(`${API_BASE}/ai/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ description }),
+  }, 30_000).catch(() => {
+    throw new Error('Generation timed out - try a simpler description')
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    throw new Error(body?.error ?? `Generation failed: ${res.status}`)
+  }
   return res.json()
 }
 
@@ -282,7 +299,7 @@ export async function analyzeGraph(
       lastSimulationSummary: lastSimulationSummary ?? null,
     }),
   }, 25_000).catch(() => {
-    throw new Error('Analysis timed out — the AI service may be slow right now')
+    throw new Error('Analysis timed out - the AI service may be slow right now')
   })
   if (!res.ok) {
     throw new Error(`Analyze request failed: ${res.status}`)
@@ -296,6 +313,8 @@ export interface InterviewPrompt {
   difficulty: string
   brief: string
   keyConsiderations: string[]
+  hldComponents: string[]
+  lldDetails: string[]
 }
 
 export interface InterviewGrade {
@@ -322,7 +341,7 @@ export async function gradeInterview(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ promptId, graphJson: { nodes, edges } }),
   }, 25_000).catch(() => {
-    throw new Error('Grading timed out — the AI service may be slow right now')
+    throw new Error('Grading timed out - the AI service may be slow right now')
   })
   if (!res.ok) {
     const body = await res.json().catch(() => null)

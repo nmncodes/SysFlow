@@ -20,6 +20,11 @@ public class JwtService {
             @Value("${jwt.secret}") String secret,
             @Value("${jwt.expiration-ms}") long expirationMs
     ) {
+        if (secret.length() < 32 || secret.contains("change-me")) {
+            throw new IllegalStateException(
+                    "JWT_SECRET must be at least 32 characters and not the default placeholder. "
+                    + "Generate one with: openssl rand -base64 32");
+        }
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expirationMs = expirationMs;
     }

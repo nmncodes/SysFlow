@@ -41,6 +41,9 @@ public class InterviewController {
         if (request.graphJson() == null || request.graphJson().nodes().isEmpty()) {
             throw new ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Build something before submitting for grading.");
         }
+        if (request.graphJson().nodes().size() > 200) {
+            throw new ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Graph exceeds maximum of 200 nodes");
+        }
         return grader.grade(prompt, request.graphJson());
     }
 }

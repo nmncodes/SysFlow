@@ -4,10 +4,26 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <title>SysFlow - Design, Simulate &amp; Cost Your System Architecture</title>
+    <meta name="description" content="Drag-and-drop system design editor with real-time simulation, multi-cloud cost estimation, AI-powered analysis, and interview practice." />
+    <meta property="og:title" content="SysFlow" />
+    <meta property="og:description" content="Design, simulate and cost your system architecture visually." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="SysFlow" />
+    <meta name="twitter:description" content="Design, simulate and cost your system architecture visually." />
+    <meta name="theme-color" content="#7c3aed" />
+    <link rel="manifest" href="/manifest.json" />
+    <style>
+      #root:empty{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#fafafa}
+      @media(prefers-color-scheme:dark){#root:empty{background:#18181b}}
+      #root:empty::after{content:'';width:28px;height:28px;border:3px solid #e4e4e7;border-top-color:#7c3aed;border-radius:50%;animation:sp .6s linear infinite}
+      @keyframes sp{to{transform:rotate(360deg)}}
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>SysFlow requires JavaScript to run. Please enable it in your browser settings.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

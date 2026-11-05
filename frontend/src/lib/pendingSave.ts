@@ -9,7 +9,7 @@ interface PendingSave {
 
 /**
  * Stashes the in-progress graph before redirecting an unauthenticated user
- * to /login so a "Save" click never silently loses their canvas — the
+ * to /login so a "Save" click never silently loses their canvas - the
  * editor restores this on the next mount, wherever the user lands.
  */
 export function stashPendingSave(name: string, graphJson: GraphJson) {

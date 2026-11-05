@@ -20,6 +20,7 @@ export interface ArchNodeData {
   connectionTarget?: boolean
   connectionSource?: boolean
   commentCount?: number
+  findingColor?: string
   onConfigure?: () => void
   onDuplicate?: () => void
   onDelete?: () => void
@@ -41,7 +42,7 @@ export default function ArchNode({ data, selected }: NodeProps<ArchNodeData>) {
   const ringColor = HEALTH_COLORS[health]
   const familyColor = def ? COMPONENT_FAMILY_COLORS[def.category] : '#64748b'
   const iconColor = health === 'idle' ? familyColor : ringColor
-  const pulsing = health === 'underLoad' || health === 'critical'
+  const pulseClass = health === 'critical' ? 'node-health-pulse-fast' : health === 'underLoad' ? 'node-health-pulse' : ''
   const metrics = data.metrics
   const borderColor = selected
     ? '#8b5cf6'
@@ -61,13 +62,13 @@ export default function ArchNode({ data, selected }: NodeProps<ArchNodeData>) {
 
   return (
     <div
-      className={`sysflow-node node-pop-in group relative flex min-w-[150px] flex-col rounded-2xl border-2 bg-white dark:bg-zinc-900 px-3 py-2.5 shadow-sm transition-all duration-200 ${
+      className={`sysflow-node node-pop-in group relative flex w-[180px] min-h-[145px] flex-col rounded-2xl border-2 bg-white dark:bg-zinc-900 px-3 py-2.5 shadow-sm transition-all duration-200 ${
         selected ? 'z-20 shadow-[0_0_0_3px_rgba(124,58,237,0.13),0_12px_28px_rgba(24,24,27,0.12)]' : 'hover:z-30 hover:-translate-y-0.5 hover:shadow-lg'
-      } ${data.connectionTarget ? 'connection-target' : ''} ${data.connectionSource ? 'connection-source' : ''} ${pulsing ? 'node-health-pulse' : ''}`}
-      style={{ borderColor, '--node-family-color': familyColor, '--node-border-color': borderColor } as CSSProperties}
+      } ${data.connectionTarget ? 'connection-target' : ''} ${data.connectionSource ? 'connection-source' : ''} ${pulseClass} ${data.findingColor ? 'node-finding-highlight' : ''}`}
+      style={{ borderColor, '--node-family-color': familyColor, '--node-border-color': borderColor, '--finding-color': data.findingColor } as CSSProperties}
     >
-      <Handle type="target" position={Position.Left} className="sysflow-handle !h-3 !w-3 !border-2 !border-white" style={{ backgroundColor: familyColor }} />
-      <Handle type="source" position={Position.Right} className="sysflow-handle !h-3 !w-3 !border-2 !border-white" style={{ backgroundColor: familyColor }} />
+      <Handle type="target" position={Position.Left} className="sysflow-handle !h-3 !w-3 !border-2 !border-white dark:!border-zinc-900" style={{ backgroundColor: familyColor }} />
+      <Handle type="source" position={Position.Right} className="sysflow-handle !h-3 !w-3 !border-2 !border-white dark:!border-zinc-900" style={{ backgroundColor: familyColor }} />
 
       <div className="node-topline" style={{ background: familyColor }} />
       <div className="mb-2 flex items-center justify-between gap-2">
@@ -102,12 +103,19 @@ export default function ArchNode({ data, selected }: NodeProps<ArchNodeData>) {
         </div>
       )}
 
-      {capacity > 0 && (
-        <div className="mt-3">
-          <div className="mb-1.5 flex items-center justify-between text-[8px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500"><span>Capacity</span><span style={{ color: capacityColor }}>{capacityPct}%</span></div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800"><div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(3, capacityPct)}%`, backgroundColor: capacityColor }} /></div>
-        </div>
-      )}
+      {capacity > 0 && (() => {
+        const r = 18, stroke = 4, circ = 2 * Math.PI * r, offset = circ - (circ * Math.min(capacityPct, 100)) / 100
+        return (
+          <div className="mt-3 flex items-center gap-2">
+            <svg width={48} height={48} viewBox="0 0 48 48" className="shrink-0">
+              <circle cx={24} cy={24} r={r} fill="none" strokeWidth={stroke} className="stroke-zinc-100 dark:stroke-zinc-800" />
+              <circle cx={24} cy={24} r={r} fill="none" strokeWidth={stroke} stroke={capacityColor} strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset} transform="rotate(-90 24 24)" style={{ transition: 'stroke-dashoffset .5s ease, stroke .3s' }} />
+              <text x={24} y={25} textAnchor="middle" dominantBaseline="central" fill={capacityColor} fontSize={11} fontWeight={700}>{capacityPct}%</text>
+            </svg>
+            <div className="text-[8px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Capacity<br /><span style={{ color: capacityColor }}>{Math.round(currentRps)}/{capacity}</span></div>
+          </div>
+        )
+      })()}
 
       {metrics && (metrics.cpu !== undefined || metrics.latency !== undefined || metrics.rps !== undefined) && (
         <div className="mt-3 grid grid-cols-3 gap-1 border-t border-zinc-100 dark:border-zinc-800 pt-2 text-[9px] text-zinc-500 dark:text-zinc-400">

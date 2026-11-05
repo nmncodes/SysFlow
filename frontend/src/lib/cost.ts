@@ -1,6 +1,6 @@
 import type { ComponentType } from '../components/nodes'
 
-/** Rough, illustrative monthly USD cost per instance — not a real cloud pricing model, just enough to make tradeoffs visible. */
+/** Rough, illustrative monthly USD cost per instance - not a real cloud pricing model, just enough to make tradeoffs visible. */
 export const MONTHLY_COST_USD: Record<ComponentType, number> = {
   client: 0,
   mobile: 0,

@@ -20,7 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * End-to-end (register -> create -> publish -> gallery -> unpublish -> delete) coverage for
- * the Phase 11 gallery feature — live-verified against production during development, this
+ * the Phase 11 gallery feature - live-verified against production during development, this
  * locks that behavior in as a repeatable, network-free test.
  */
 @SpringBootTest

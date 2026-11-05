@@ -24,7 +24,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * POST /api/srs/import — upload an SRS/requirements document, get back an
+ * POST /api/srs/import - upload an SRS/requirements document, get back an
  * auto-generated architecture graph (ready to drop into the editor, same
  * shape as a saved project) plus trade-off findings from the same rule
  * engine + Gemini pipeline the "Analyze" button uses.
@@ -56,10 +56,22 @@ public class SrsController {
         this.costModel = costModel;
     }
 
+    private static final long MAX_FILE_SIZE = 5_000_000;
+    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
+            "text/plain", "text/markdown", "application/pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+
     @PostMapping("/import")
     public SrsImportResponse importSrs(@RequestParam("file") MultipartFile file) throws Exception {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("Uploaded file is empty.");
+        }
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new IllegalArgumentException("File exceeds 5MB limit.");
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
+            throw new IllegalArgumentException("Unsupported file type. Accepted: .txt, .md, .pdf, .docx");
         }
 
         String text = textExtractor.extract(file);
@@ -114,7 +126,7 @@ public class SrsController {
 
     private static final Set<String> REPLICA_TYPES = Set.of("database", "searchIndex");
 
-    /** Only carries config the document actually stated — see RawExtraction.RawNode's javadoc. */
+    /** Only carries config the document actually stated - see RawExtraction.RawNode's javadoc. */
     private Map<String, Object> toConfig(RawExtraction.RawNode node) {
         Map<String, Object> config = new java.util.HashMap<>();
         if (REPLICA_TYPES.contains(node.type()) && node.replicaCount() != null) {
@@ -130,7 +142,7 @@ public class SrsController {
         return config;
     }
 
-    /** Mirrors SimulationEngine.capacityOf's per-type config key — null means this type isn't capacity-configurable via a single field. */
+    /** Mirrors SimulationEngine.capacityOf's per-type config key - null means this type isn't capacity-configurable via a single field. */
     private String capacityConfigKey(String type) {
         return switch (type) {
             case "cdn", "loadBalancer", "waf", "ingress", "queue", "objectStorage",

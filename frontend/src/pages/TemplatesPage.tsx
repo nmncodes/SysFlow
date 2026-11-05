@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   CacheIcon,
   CdnIcon,
@@ -139,10 +140,14 @@ function TemplatePreview({ template }: { template: Template }) {
   return (
     <div className="relative mt-7 h-[156px] overflow-hidden rounded-2xl border border-zinc-100 bg-[#fbfdfe] shadow-inner dark:border-zinc-800 dark:bg-zinc-950">
       <div className="absolute inset-x-5 top-4 flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <span className="h-[10px] w-[10px] rounded-full bg-[#ff5f57]" />
+          <span className="h-[10px] w-[10px] rounded-full bg-[#febc2e]" />
+          <span className="h-[10px] w-[10px] rounded-full bg-[#28c840]" />
+        </div>
         <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-zinc-300 dark:text-zinc-700">
-          Architecture preview
+          Preview
         </span>
-        <span className="h-2 w-2 rounded-full bg-emerald-500" />
       </div>
 
       <div className="absolute inset-x-5 bottom-5 flex items-center justify-center">
@@ -166,16 +171,21 @@ function TemplatePreview({ template }: { template: Template }) {
 }
 
 export default function TemplatesPage() {
+  const navigate = useNavigate()
+  useEffect(() => { window.scrollTo(0, 0) }, [])
   return (
     <div className="min-h-screen bg-[#fafdfe] text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-50">
       <header className="sticky top-0 z-50 border-b border-zinc-200/70 bg-white/88 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/88">
         <div className="mx-auto flex h-[76px] max-w-6xl items-center justify-between px-6">
-          <Link to="/" className="flex items-center gap-3" aria-label="SysFlow home">
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate(-1)} className="text-sm font-medium text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200 transition-colors">← Back</button>
+            <Link to="/" className="flex items-center gap-3" aria-label="SysFlow home">
             <img src={logo} alt="SysFlow" className="h-12 w-12 object-contain" />
             <span className="text-[23px] font-bold tracking-[-0.035em] text-[#0f172a] dark:text-zinc-50">
               SysFlow
             </span>
           </Link>
+          </div>
 
           <nav className="hidden items-center gap-9 sm:flex">
             <Link

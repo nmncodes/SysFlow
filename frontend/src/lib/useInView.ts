@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-/** Adds an "in-view" class once the element scrolls into the viewport — drives CSS reveal animations. */
+/** Adds an "in-view" class once the element scrolls into the viewport - drives CSS reveal animations. */
 export function useInView<T extends HTMLElement>() {
   const ref = useRef<T>(null)
   const [inView, setInView] = useState(false)

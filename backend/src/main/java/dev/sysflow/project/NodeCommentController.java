@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Lightweight per-node comment threads on a saved project — async review notes, not a
+ * Lightweight per-node comment threads on a saved project - async review notes, not a
  * chat. Nested under /api/projects/** so SecurityConfig's existing auth requirement covers
  * it automatically. Viewers can read comments; owners and editors can add or remove them.
  */

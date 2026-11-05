@@ -10,12 +10,18 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sysflow}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   backend:
     build: ./backend
     restart: unless-stopped
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-sysflow}
       POSTGRES_USER: ${POSTGRES_USER:-sysflow}

@@ -31,7 +31,7 @@ const CHECK_LABEL: Record<string, string> = {
 }
 
 // Matches the node/edge payload shape built inline at every other backend call site
-// in this codebase (CompareModal's toPayload, EditorPage's toggleRealPricing) — there is
+// in this codebase (CompareModal's toPayload, EditorPage's toggleRealPricing) - there is
 // no shared helper for it to reuse, so this mirrors the existing convention rather than
 // introducing a new one.
 function toPayload(nodes: Node<ArchNodeData>[]) {
@@ -73,7 +73,7 @@ export default function SloPanel({ nodes, edges, targetRps, failures, onClose }:
     try {
       const edgePayload = edges.map((e) => ({ id: e.id, source: e.source, target: e.target }))
 
-      // Authoritative simulation first — the backend SimulationEngine is the source of
+      // Authoritative simulation first - the backend SimulationEngine is the source of
       // truth for the metrics being checked, never the client-side useSimulation result.
       const simulationResult = await runSimulation({
         nodes: toPayload(nodes),
@@ -82,7 +82,7 @@ export default function SloPanel({ nodes, edges, targetRps, failures, onClose }:
         durationSeconds: 3,
         injectedFailures: failures,
       }).catch(() => {
-        throw new Error('Could not run the simulation — the backend may be unreachable.')
+        throw new Error('Could not run the simulation - the backend may be unreachable.')
       })
 
       const sloRequirement: SloRequirement = {
@@ -92,7 +92,7 @@ export default function SloPanel({ nodes, edges, targetRps, failures, onClose }:
       }
 
       const evaluation = await evaluateSlo(simulationResult, sloRequirement).catch(() => {
-        throw new Error('Simulation succeeded, but SLO evaluation failed — the backend may be unreachable.')
+        throw new Error('Simulation succeeded, but SLO evaluation failed - the backend may be unreachable.')
       })
 
       setResult(evaluation)

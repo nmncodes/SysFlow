@@ -33,7 +33,7 @@ function withSwappedType(nodes: Node<ArchNodeData>[], nodeId: string, newType: C
             ...n.data,
             componentType: newType,
             config: { ...(def?.defaultConfig ?? {}) },
-            // Stale tick-derived state from the old type must not leak into the hypothetical swap —
+            // Stale tick-derived state from the old type must not leak into the hypothetical swap -
             // e.g. a leftover live replica count from an autoScalingGroup would corrupt the cost/
             // capacity math for whatever type it gets swapped to.
             replicas: undefined,

@@ -5,7 +5,7 @@ import java.util.*;
 /**
  * Immutable view over a user-drawn architecture graph, with adjacency
  * helpers the simulation engine needs. Assumes the graph is a DAG from
- * Client nodes downward — cycles (e.g. retry loops) are out of scope for
+ * Client nodes downward - cycles (e.g. retry loops) are out of scope for
  * the MVP tick-based model (see docs/02-ARCHITECTURE.md §4).
  */
 public class SimulationGraph {
@@ -76,7 +76,7 @@ public class SimulationGraph {
                 if (updated == 0) queue.add(e.target());
             }
         }
-        // Anything left (cycles) — append in original insertion order so the engine doesn't drop nodes.
+        // Anything left (cycles) - append in original insertion order so the engine doesn't drop nodes.
         for (GraphNode n : nodesById.values()) {
             if (!visited.contains(n.id())) order.add(n);
         }

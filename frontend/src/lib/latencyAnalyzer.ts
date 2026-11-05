@@ -421,9 +421,9 @@ export function analyzeLatency(
   return {
     hasSimulation: true,
     sampleCount: simulation.ticks.length,
-    overallP50Ms: round(percentile(globalP50Samples, 0.5)),
+    overallP50Ms: round(simulation.summary.p50 || percentile(globalP50Samples, 0.5)),
     overallP95Ms: round(simulation.summary.p95 || percentile(globalP95Samples, 0.95)),
-    overallP99Ms: round(percentile(globalP99Samples, 0.99)),
+    overallP99Ms: round(simulation.summary.p99 || percentile(globalP99Samples, 0.99)),
     mainBottleneck,
     criticalPath: path.ids.map((id) => labels.get(id) ?? id),
     criticalPathLatencyMs: pathLatency === null ? null : round(pathLatency),

@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Deterministic static analysis over the graph structure — the "facts"
+ * Deterministic static analysis over the graph structure - the "facts"
  * stage of the two-stage AI pipeline described in
  * docs/02-ARCHITECTURE.md §5. Runs with no external dependency and no
  * simulation required, so it always produces something useful even
@@ -20,7 +20,7 @@ import java.util.Set;
 @Component
 public class RuleEngine {
 
-    // Types with an explicit replicaCount config — flagged as a SPOF only when that count is 0.
+    // Types with an explicit replicaCount config - flagged as a SPOF only when that count is 0.
     // Caches/queues/brokers are deliberately excluded: running unreplicated is common for them
     // and isn't inherently a SPOF the way an unreplicated database is.
     private static final Set<String> REPLICATED_DATA_STORES = Set.of("database", "searchIndex");
@@ -141,7 +141,7 @@ public class RuleEngine {
                     "Payment Gateway is directly reachable from a client",
                     List.of(node.id()),
                     "\"" + node.id() + "\" accepts traffic straight from a client with nothing enforcing auth, validation, or rate limiting in front of it.",
-                    "Put a Service (and ideally a WAF/API Gateway) between the client and the Payment Gateway — never call payment providers directly from client code."
+                    "Put a Service (and ideally a WAF/API Gateway) between the client and the Payment Gateway - never call payment providers directly from client code."
             ));
         }
         return out;
@@ -178,7 +178,7 @@ public class RuleEngine {
                 "info",
                 "Object storage with no CDN in front of it",
                 storageIds,
-                "Every request for a stored object round-trips all the way to object storage — no edge caching for static assets like images, videos, or downloads.",
+                "Every request for a stored object round-trips all the way to object storage - no edge caching for static assets like images, videos, or downloads.",
                 "Put a CDN in front of your object storage to cut latency and egress cost for frequently-requested objects."
         ));
     }

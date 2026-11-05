@@ -181,7 +181,7 @@ export default function FindingsPanel({ findings, aiEnabled, summary, simulation
 }
 
 function formatMs(value: number | null): string {
-  return value === null ? '—' : `${value.toFixed(value < 100 ? 1 : 0)} ms`
+  return value === null ? '-' : `${value.toFixed(value < 100 ? 1 : 0)} ms`
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
@@ -213,7 +213,7 @@ function LatencySummary({ finding, onFocusNode }: { finding: LatencyFinding; onF
       <div className="mt-2 grid grid-cols-3 gap-1.5">
         <Metric label="Node p95" value={formatMs(finding.p95LatencyMs)} />
         <Metric label="Peak load" value={`${finding.maxLoadPct.toFixed(1)}%`} />
-        <Metric label="Contribution" value={finding.latencyContributionPct === null ? '—' : `${finding.latencyContributionPct.toFixed(1)}%`} />
+        <Metric label="Contribution" value={finding.latencyContributionPct === null ? '-' : `${finding.latencyContributionPct.toFixed(1)}%`} />
       </div>
       <button type="button" onClick={() => onFocusNode(finding.nodeId)} className="mt-2 text-[10px] font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300">View on canvas →</button>
     </div>

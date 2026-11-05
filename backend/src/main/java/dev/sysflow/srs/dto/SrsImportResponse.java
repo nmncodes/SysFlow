@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Response for POST /api/srs/import — a graph auto-generated from an
+ * Response for POST /api/srs/import - a graph auto-generated from an
  * uploaded SRS/requirements document, ready to load straight into the
  * editor (same shape as a saved project's graphJson), plus the same
  * rule-engine + Gemini trade-off findings the "Analyze" button produces.

@@ -21,7 +21,7 @@ import java.util.Set;
 /**
  * Turns raw SRS/requirements text into a candidate architecture graph via
  * Gemini, constrained to SysFlow's known component types. This is the only
- * place in the SRS-import pipeline that invents structure — everything
+ * place in the SRS-import pipeline that invents structure - everything
  * downstream (layout, rule-based trade-off analysis) is deterministic.
  */
 @Component
@@ -154,7 +154,7 @@ public class SrsGraphExtractor {
         }
     }
 
-    /** Type names Gemini used that aren't in our known component set — surfaced to the user, not silently dropped. */
+    /** Type names Gemini used that aren't in our known component set - surfaced to the user, not silently dropped. */
     public Set<String> unrecognizedTerms(RawExtraction extraction) {
         Set<String> out = new HashSet<>();
         for (RawExtraction.RawNode node : extraction.nodes()) {
@@ -163,6 +163,64 @@ public class SrsGraphExtractor {
             }
         }
         return out;
+    }
+
+    public RawExtraction generateFromDescription(String description) {
+        if (!isEnabled()) {
+            throw new IllegalStateException("AI architecture generation requires a configured Gemini API key.");
+        }
+        String truncated = description.length() > MAX_INPUT_CHARS
+                ? description.substring(0, MAX_INPUT_CHARS)
+                : description;
+
+        try {
+            String prompt = buildGeneratePrompt(truncated);
+            Map<String, Object> body = Map.of(
+                    "contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))),
+                    "generationConfig", Map.of("temperature", 0.3, "responseMimeType", "application/json")
+            );
+            JsonNode response = requestExtraction(body);
+            String text = response
+                    .path("candidates").path(0)
+                    .path("content").path("parts").path(0)
+                    .path("text").asText(null);
+            if (text == null || text.isBlank()) {
+                throw new IllegalStateException("Gemini returned no architecture.");
+            }
+            return objectMapper.readValue(text, RawExtraction.class);
+        } catch (GeminiTemporarilyUnavailableException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("Architecture generation failed", e);
+            throw new IllegalStateException("Couldn't generate an architecture from this description. Try being more specific.", e);
+        }
+    }
+
+    private String buildGeneratePrompt(String description) {
+        String validTypes = String.join(", ", ComponentTypes.VALID_TYPES);
+        return """
+                You are an expert system architect. Given the user's description of what they want to build,
+                design a complete, production-ready architecture as a graph of components.
+
+                You MUST use ONLY these exact component type strings:
+                %s
+
+                Design principles:
+                - Include ALL components a real production system would need (load balancers, caches, queues, monitoring, etc.)
+                - Always include a "client" node representing the end user.
+                - Add caching where read-heavy patterns exist.
+                - Add load balancers in front of stateless services.
+                - Add message queues for async processing where appropriate.
+                - Include monitoring and logging.
+                - Set replicaCount on databases if HA is implied.
+                - Set reasonable capacityHint values based on the described scale.
+
+                Return ONLY JSON matching this exact shape, no prose, no markdown:
+                {"nodes": [{"id": "...", "type": "...", "label": "...", "sourceTerm": null, "replicaCount": null, "capacityHint": null, "cacheHitRatePct": null}], "edges": [{"source": "...", "target": "..."}]}
+
+                USER DESCRIPTION:
+                %s
+                """.formatted(validTypes, description);
     }
 
     private String buildPrompt(String documentText) {
@@ -190,11 +248,11 @@ public class SrsGraphExtractor {
                 - "replicaCount" applies ONLY to "database" or "searchIndex" nodes. Set it to a number ONLY
                   when the document explicitly states a replica, failover, or high-availability requirement
                   for that specific store (e.g. "must have at least one replica" -> 1, "3 read replicas" -> 3).
-                  Leave it null for every other case — do not guess or assume replication that isn't stated.
+                  Leave it null for every other case - do not guess or assume replication that isn't stated.
                 - "capacityHint" is a requests-per-second or throughput number ONLY when the document ties a
                   specific numeric capacity/throughput/RPS requirement to THIS EXACT component by name (e.g.
                   "the API gateway must handle 5,000 requests per second" -> capacityHint 5000 on that gateway
-                  node). A system-wide NFR that doesn't name a specific component does not count — leave null
+                  node). A system-wide NFR that doesn't name a specific component does not count - leave null
                   rather than guessing which component it meant.
                 - "cacheHitRatePct" applies ONLY to "cache" nodes, and ONLY when the document explicitly states
                   a target cache hit rate (e.g. "cache should serve 90%% of reads" -> 90). Leave null otherwise.

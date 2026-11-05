@@ -5,7 +5,7 @@ import { mergeGraphs, stableStringify, type GraphPayload } from './graphMerge'
 
 export type { GraphPayload } from './graphMerge'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api'
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8081/api'
 const GRAPH_BROADCAST_DEBOUNCE_MS = 400
 const CURSOR_BROADCAST_THROTTLE_MS = 80
 
@@ -257,7 +257,7 @@ export function useCollabSession(projectId: string | null, displayName: string |
     stompRef.current = client
 
     // Heartbeat: re-send our own presence-join periodically so peers can tell we're still
-    // here (see isNewPeer guard above — a known peer's heartbeat never triggers a re-announce
+    // here (see isNewPeer guard above - a known peer's heartbeat never triggers a re-announce
     // storm). This is what lets a peer purge us if we vanish without a clean unmount (tab
     // crash, force-quit, network drop) instead of showing us as "viewing" forever.
     const heartbeatId = window.setInterval(() => {

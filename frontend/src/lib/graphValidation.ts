@@ -211,7 +211,7 @@ const inDegree = (g: Graph, id: string) => g.incoming.get(id)?.length ?? 0
 const isOrphan = (g: Graph, id: string) => outDegree(g, id) === 0 && inDegree(g, id) === 0
 
 // ---------------------------------------------------------------------------
-// Rule 1 — orphan nodes
+// Rule 1 - orphan nodes
 // ---------------------------------------------------------------------------
 
 function checkOrphanNodes(g: Graph): ValidationResult[] {
@@ -221,7 +221,7 @@ function checkOrphanNodes(g: Graph): ValidationResult[] {
 }
 
 // ---------------------------------------------------------------------------
-// Rule 2 — unreachable nodes
+// Rule 2 - unreachable nodes
 // ---------------------------------------------------------------------------
 
 function reachableFromEntries(g: Graph, entryIds: string[]): Set<string> {
@@ -292,7 +292,7 @@ function checkUnreachableNodes(g: Graph): ValidationResult[] {
 }
 
 // ---------------------------------------------------------------------------
-// Rule 3 — invalid component connections
+// Rule 3 - invalid component connections
 // ---------------------------------------------------------------------------
 
 function checkInvalidConnections(g: Graph): ValidationResult[] {
@@ -310,7 +310,7 @@ function checkInvalidConnections(g: Graph): ValidationResult[] {
 }
 
 // ---------------------------------------------------------------------------
-// Rule 4 — missing connections
+// Rule 4 - missing connections
 // ---------------------------------------------------------------------------
 
 function checkMissingConnections(g: Graph): ValidationResult[] {
@@ -326,7 +326,7 @@ function checkMissingConnections(g: Graph): ValidationResult[] {
 }
 
 // ---------------------------------------------------------------------------
-// Rule 5 — cycles
+// Rule 5 - cycles
 // ---------------------------------------------------------------------------
 
 /** Iterative Tarjan SCC, so very deep graphs can't overflow the call stack. */

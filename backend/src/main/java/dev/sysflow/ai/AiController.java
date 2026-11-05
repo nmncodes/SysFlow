@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -37,6 +40,12 @@ public class AiController {
 
     @PostMapping("/analyze")
     public Map<String, Object> analyze(@RequestBody AnalyzeRequest request) {
+        if (request.graphJson() == null || request.graphJson().nodes() == null || request.graphJson().edges() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "graphJson with nodes and edges is required");
+        }
+        if (request.graphJson().nodes().size() > 200) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Graph exceeds maximum of 200 nodes");
+        }
         List<GraphNode> nodes = request.graphJson().nodes().stream()
                 .map(n -> new GraphNode(n.id(), n.type(), n.config()))
                 .toList();

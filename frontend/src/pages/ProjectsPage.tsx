@@ -112,41 +112,44 @@ export default function ProjectsPage() {
   if (!user) return null
 
   return (
-    <div className="min-h-screen bg-[#fafafa]">
-      <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur-sm">
+    <div className="min-h-screen bg-[#fafafa] dark:bg-zinc-900">
+      <header className="sticky top-0 z-10 border-b border-zinc-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
-          <Link to="/" className="flex items-center gap-2">
-            <img src={logo} alt="SysFlow" className="h-8 w-8 object-contain" />
-            <span className="text-[14px] font-semibold tracking-tight">SysFlow</span>
-          </Link>
-          <div className="flex items-center gap-4 text-sm text-zinc-500">
-            <Link to="/gallery" className="font-medium text-zinc-700 hover:text-zinc-900">Gallery</Link>
-            <Link to="/interview" className="font-medium text-zinc-700 hover:text-zinc-900">Interview Practice</Link>
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate(-1)} className="text-sm font-medium text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200 transition-colors">← Back</button>
+            <Link to="/" className="flex items-center gap-2">
+              <img src={logo} alt="SysFlow" className="h-8 w-8 object-contain" />
+              <span className="text-[14px] font-semibold tracking-tight dark:text-zinc-100">SysFlow</span>
+            </Link>
+          </div>
+          <div className="flex items-center gap-4 text-sm text-zinc-500 dark:text-zinc-400">
+            <Link to="/gallery" className="font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100">Gallery</Link>
+            <Link to="/interview" className="font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100">Interview Practice</Link>
             <span>{user.displayName ?? user.email}</span>
-            <button onClick={logout} className="font-medium text-zinc-700 hover:text-zinc-900">
+            <button onClick={logout} className="font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100">
               Log out
             </button>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-6 py-10">
+      <main className="mx-auto max-w-5xl px-6 py-10 page-enter">
         <div className="mb-10">
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Start from a template</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 page-enter-delay-1">Start from a template</h1>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {TEMPLATES.map((t) => (
+            {TEMPLATES.map((t, i) => (
               <button
                 key={t.id}
                 onClick={() => navigate(`/app?template=${t.id}`)}
-                className="hover-lift rounded-2xl border border-zinc-200 bg-white p-5 text-left transition hover:border-violet-200 hover:shadow-md"
+                className={`card-enter card-stagger-${i + 1} hover-lift rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-5 text-left transition hover:border-violet-200 dark:hover:border-violet-500 hover:shadow-md`}
               >
-                <h3 className="text-sm font-semibold text-zinc-900">{t.name}</h3>
-                <p className="mt-1.5 text-xs leading-relaxed text-zinc-500">{t.description}</p>
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.name}</h3>
+                <p className="mt-1.5 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">{t.description}</p>
               </button>
             ))}
             <button
               onClick={() => navigate('/app')}
-              className="rounded-2xl border border-dashed border-zinc-300 p-5 text-left text-zinc-400 transition hover:border-violet-300 hover:text-violet-600"
+              className="rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-600 p-5 text-left text-zinc-400 dark:text-zinc-500 transition hover:border-violet-300 dark:hover:border-violet-500 hover:text-violet-600 dark:hover:text-violet-400"
             >
               <h3 className="text-sm font-semibold">Blank canvas</h3>
               <p className="mt-1.5 text-xs leading-relaxed">Start from scratch.</p>
@@ -155,32 +158,34 @@ export default function ProjectsPage() {
         </div>
 
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">My Projects</h2>
+          <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">My Projects</h2>
         </div>
 
         {actionError && <p className="mt-4 text-sm text-red-500">{actionError}</p>}
 
         {loading ? (
-          <p className="mt-6 text-sm text-zinc-400">Loading…</p>
+          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[1,2,3].map(i => <div key={i} className="skeleton-shimmer h-28 rounded-2xl" />)}
+          </div>
         ) : error ? (
           <p className="mt-6 text-sm text-red-500">{error}</p>
         ) : projects.length === 0 ? (
-          <p className="mt-6 text-sm text-zinc-400">No saved projects yet — save one from the editor.</p>
+          <p className="mt-6 text-sm text-zinc-400 dark:text-zinc-500">No saved projects yet - save one from the editor.</p>
         ) : (
           <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.map((p) => (
+            {projects.map((p, i) => (
               <div
                 key={p.id}
-                className="hover-lift group relative rounded-2xl border border-zinc-200 bg-white p-5 transition hover:border-violet-200 hover:shadow-md"
+                className={`card-enter card-stagger-${Math.min(i + 1, 8)} hover-lift group relative rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-5 transition hover:border-violet-200 dark:hover:border-violet-500 hover:shadow-md`}
               >
                 <button onClick={() => navigate(`/app?projectId=${p.id}`)} className="block w-full text-left">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-zinc-900">{p.name}</h3>
-                    {p.isPublicTemplate && <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[9px] font-semibold uppercase text-violet-600">Published</span>}
-                  {p.isShared && <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[9px] font-semibold uppercase text-sky-600">Shared</span>}
+                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{p.name}</h3>
+                    {p.isPublicTemplate && <span className="rounded-full bg-violet-50 dark:bg-violet-900/30 px-2 py-0.5 text-[9px] font-semibold uppercase text-violet-600 dark:text-violet-400">Published</span>}
+                  {p.isShared && <span className="rounded-full bg-sky-50 dark:bg-sky-900/30 px-2 py-0.5 text-[9px] font-semibold uppercase text-sky-600 dark:text-sky-400">Shared</span>}
                   </div>
-                  {p.description && <p className="mt-1 text-xs text-zinc-500">{p.description}</p>}
-                  <p className="mt-3 text-[11px] text-zinc-400">Edited {new Date(p.updatedAt).toLocaleDateString()}</p>
+                  {p.description && <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{p.description}</p>}
+                  <p className="mt-3 text-[11px] text-zinc-400 dark:text-zinc-500">Edited {new Date(p.updatedAt).toLocaleDateString()}</p>
                 </button>
                 <div className="absolute right-3 top-3 hidden items-center gap-2 group-hover:flex">
                   <button
@@ -214,21 +219,21 @@ export default function ProjectsPage() {
         )}
 
         {sharedProjects.length > 0 && <section className="mt-10">
-          <h2 className="text-xl font-semibold tracking-tight text-zinc-900">Shared with me</h2>
+          <h2 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Shared with me</h2>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {sharedProjects.map((p) => <button key={p.id} onClick={() => navigate(`/app?projectId=${p.id}`)} className="rounded-2xl border border-sky-100 bg-white p-5 text-left hover:border-sky-300 hover:shadow-md">
-              <h3 className="text-sm font-semibold text-zinc-900">{p.name}</h3>
-              <p className="mt-2 text-xs text-sky-700">{p.accessRole === 'EDITOR' ? 'Can edit' : 'View only'}</p>
+            {sharedProjects.map((p) => <button key={p.id} onClick={() => navigate(`/app?projectId=${p.id}`)} className="rounded-2xl border border-sky-100 dark:border-sky-800 bg-white dark:bg-zinc-800 p-5 text-left hover:border-sky-300 dark:hover:border-sky-600 hover:shadow-md">
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{p.name}</h3>
+              <p className="mt-2 text-xs text-sky-700 dark:text-sky-400">{p.accessRole === 'EDITOR' ? 'Can edit' : 'View only'}</p>
             </button>)}
           </div>
         </section>}
       </main>
 
-      {teamProject && <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/30 p-4" onClick={() => setTeamProject(null)}>
-        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
-          <div className="flex items-start justify-between gap-3"><div><h2 className="text-lg font-semibold">Manage collaborators</h2><p className="mt-1 text-xs text-zinc-500">Invite existing SysFlow accounts by email.</p></div><button onClick={() => setTeamProject(null)} aria-label="Close collaborators" className="text-zinc-400 hover:text-zinc-700">✕</button></div>
-          <div className="mt-4 flex gap-2"><input type="email" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="name@example.com" className="min-w-0 flex-1 rounded-lg border border-zinc-200 px-3 py-2 text-sm" /><select value={inviteRole} onChange={(event) => setInviteRole(event.target.value as 'EDITOR' | 'VIEWER')} className="rounded-lg border border-zinc-200 px-2 text-sm"><option value="EDITOR">Editor</option><option value="VIEWER">Viewer</option></select><button onClick={invite} disabled={!inviteEmail.trim() || teamBusy} className="btn-dark rounded-lg px-3 text-sm disabled:opacity-50">Add</button></div>
-          <div className="mt-5 space-y-2">{members.map((member) => <div key={member.userId} className="flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2"><div><p className="text-sm font-medium">{member.displayName || member.email}</p><p className="text-[11px] text-zinc-500">{member.owner ? 'Owner' : member.role === 'EDITOR' ? 'Editor' : 'Viewer'}</p></div>{!member.owner && <button onClick={() => removeMember(member.userId)} disabled={teamBusy} className="text-xs text-red-500 disabled:opacity-50">Remove</button>}</div>)}</div>
+      {teamProject && <div className="modal-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/30 dark:bg-black/50 p-4" onClick={() => setTeamProject(null)}>
+        <div className="modal-content-enter w-full max-w-md rounded-2xl bg-white dark:bg-zinc-800 p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+          <div className="flex items-start justify-between gap-3"><div><h2 className="text-lg font-semibold dark:text-zinc-100">Manage collaborators</h2><p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Invite existing SysFlow accounts by email.</p></div><button onClick={() => setTeamProject(null)} aria-label="Close collaborators" className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200">✕</button></div>
+          <div className="mt-4 flex gap-2"><input type="email" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="name@example.com" className="min-w-0 flex-1 rounded-lg border border-zinc-200 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 px-3 py-2 text-sm" /><select value={inviteRole} onChange={(event) => setInviteRole(event.target.value as 'EDITOR' | 'VIEWER')} className="rounded-lg border border-zinc-200 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 px-2 text-sm"><option value="EDITOR">Editor</option><option value="VIEWER">Viewer</option></select><button onClick={invite} disabled={!inviteEmail.trim() || teamBusy} className="btn-dark rounded-lg px-3 text-sm disabled:opacity-50">Add</button></div>
+          <div className="mt-5 space-y-2">{members.map((member) => <div key={member.userId} className="flex items-center justify-between rounded-lg bg-zinc-50 dark:bg-zinc-700 px-3 py-2"><div><p className="text-sm font-medium dark:text-zinc-100">{member.displayName || member.email}</p><p className="text-[11px] text-zinc-500 dark:text-zinc-400">{member.owner ? 'Owner' : member.role === 'EDITOR' ? 'Editor' : 'Viewer'}</p></div>{!member.owner && <button onClick={() => removeMember(member.userId)} disabled={teamBusy} className="text-xs text-red-500 disabled:opacity-50">Remove</button>}</div>)}</div>
         </div>
       </div>}
     </div>

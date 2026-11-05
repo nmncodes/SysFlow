@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
-/** Pulls raw text out of an uploaded SRS document — PDF, DOCX, or plain text. */
+/** Pulls raw text out of an uploaded SRS document - PDF, DOCX, or plain text. */
 @Component
 public class TextExtractor {
 

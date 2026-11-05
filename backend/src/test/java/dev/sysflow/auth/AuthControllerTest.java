@@ -83,7 +83,7 @@ class AuthControllerTest {
     void projectsEndpointRequiresAuth() throws Exception {
         // Spring Security's default AccessDeniedHandler returns 403 for an
         // unauthenticated (anonymous) request when no custom AuthenticationEntryPoint
-        // is configured — see SecurityConfig.
+        // is configured - see SecurityConfig.
         mockMvc.perform(get("/api/projects")).andExpect(status().isForbidden());
     }
 }

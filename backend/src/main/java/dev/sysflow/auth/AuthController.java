@@ -26,7 +26,7 @@ public class AuthController {
     @PostMapping("/register")
     public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "An account with this email already exists");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Registration failed - please try again or log in");
         }
         User user = new User(request.email(), passwordEncoder.encode(request.password()), request.displayName());
         userRepository.save(user);

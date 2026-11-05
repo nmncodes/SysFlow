@@ -32,7 +32,7 @@ export type ComponentType =
   | 'thirdPartyApi'
   | 'paymentGateway'
 
-export type ComponentCategory = 'Client' | 'Traffic & Edge' | 'Compute' | 'Data' | 'Messaging' | 'Observability' | 'External'
+export type ComponentCategory = 'Client' | 'Traffic & Edge' | 'Compute' | 'Data' | 'Messaging' | 'Observability' | 'External' | 'Custom'
 
 export const COMPONENT_FAMILY_COLORS: Record<ComponentCategory, string> = {
   Client: '#16a34a',
@@ -42,6 +42,7 @@ export const COMPONENT_FAMILY_COLORS: Record<ComponentCategory, string> = {
   Messaging: '#d97706',
   Observability: '#64748b',
   External: '#db2777',
+  Custom: '#8b5cf6',
 }
 
 export function getComponentFamilyColor(componentType: string): string {
@@ -377,7 +378,7 @@ export const COMPONENT_LIBRARY: ComponentDef[] = [
   },
 ]
 
-export const COMPONENT_CATEGORIES: ComponentCategory[] = ['Client', 'Traffic & Edge', 'Compute', 'Data', 'Messaging', 'Observability', 'External']
+export const COMPONENT_CATEGORIES: ComponentCategory[] = ['Client', 'Traffic & Edge', 'Compute', 'Data', 'Messaging', 'Observability', 'External', 'Custom']
 
 export type HealthState = 'idle' | 'healthy' | 'underLoad' | 'critical' | 'down'
 

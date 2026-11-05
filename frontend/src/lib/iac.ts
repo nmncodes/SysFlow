@@ -13,7 +13,7 @@ interface GraphEdgeLike {
 }
 
 interface ServiceSpec {
-  /** 'image' pulls a real off-the-shelf image; 'build' means "you write the Dockerfile" — resolved to ./<serviceName> at generation time. */
+  /** 'image' pulls a real off-the-shelf image; 'build' means "you write the Dockerfile" - resolved to ./<serviceName> at generation time. */
   directive: 'image' | 'build'
   value?: string
   buildNote?: string
@@ -23,21 +23,21 @@ interface ServiceSpec {
 }
 
 /**
- * Best-effort docker-compose service per component type — a starting point to edit, not a
+ * Best-effort docker-compose service per component type - a starting point to edit, not a
  * production-ready deployment. Types with no sensible self-hosted equivalent (managed services,
  * client-side code, external providers, or things that aren't a single container) are called
- * out as comments instead of a service block — see MANAGED_ONLY_NOTE.
+ * out as comments instead of a service block - see MANAGED_ONLY_NOTE.
  */
 const SERVICE_SPECS: Partial<Record<ComponentType, ServiceSpec>> = {
   loadBalancer: { directive: 'image', value: 'nginx:1.27-alpine', ports: [{ published: 80, target: 80 }] },
   apiGateway: { directive: 'image', value: 'nginx:1.27-alpine', ports: [{ published: 8000, target: 80 }] },
   waf: { directive: 'image', value: 'owasp/modsecurity-crs:nginx' },
   ingress: { directive: 'image', value: 'nginx:1.27-alpine' },
-  service: { directive: 'build', buildNote: 'your application code — add a Dockerfile here' },
-  worker: { directive: 'build', buildNote: 'your background worker code — add a Dockerfile here' },
-  serverless: { directive: 'build', buildNote: 'your function code — most serverless platforms don\'t run from compose; this is a local stand-in' },
-  cronJob: { directive: 'build', buildNote: 'your scheduled job code — add a Dockerfile and your own cron/scheduler entrypoint' },
-  autoScalingGroup: { directive: 'build', buildNote: 'your application code — add "deploy: replicas: N" (swarm) or move to k8s for real autoscaling' },
+  service: { directive: 'build', buildNote: 'your application code - add a Dockerfile here' },
+  worker: { directive: 'build', buildNote: 'your background worker code - add a Dockerfile here' },
+  serverless: { directive: 'build', buildNote: 'your function code - most serverless platforms don\'t run from compose; this is a local stand-in' },
+  cronJob: { directive: 'build', buildNote: 'your scheduled job code - add a Dockerfile and your own cron/scheduler entrypoint' },
+  autoScalingGroup: { directive: 'build', buildNote: 'your application code - add "deploy: replicas: N" (swarm) or move to k8s for real autoscaling' },
   queue: { directive: 'image', value: 'rabbitmq:3-management-alpine', ports: [{ published: 5672, target: 5672 }, { published: 15672, target: 15672 }] },
   messageBroker: { directive: 'image', value: 'bitnami/kafka:3.7', ports: [{ published: 9092, target: 9092 }], environment: { KAFKA_CFG_NODE_ID: '0', KAFKA_CFG_PROCESS_ROLES: 'controller,broker' } },
   eventBus: { directive: 'image', value: 'nats:2.10-alpine', ports: [{ published: 4222, target: 4222 }] },
@@ -50,19 +50,19 @@ const SERVICE_SPECS: Partial<Record<ComponentType, ServiceSpec>> = {
 }
 
 const MANAGED_ONLY_NOTE: Partial<Record<ComponentType, string>> = {
-  client: 'runs on the end user\'s device — not a backend service',
-  mobile: 'runs on the end user\'s device — not a backend service',
-  webBrowser: 'runs on the end user\'s device — not a backend service',
-  desktopApp: 'runs on the end user\'s computer — not a backend service',
-  apiClient: 'calls the backend through an API — not a backend service',
-  dns: 'typically your registrar/DNS provider — not self-hosted',
-  cdn: 'typically a managed CDN (Cloudflare/CloudFront) — not self-hosted here',
-  containerOrchestrator: 'this IS the orchestrator (k8s/ECS/Swarm) — not something you run inside compose',
-  dataWarehouse: 'typically a managed warehouse (BigQuery/Snowflake/Redshift) — not self-hosted here',
-  dataLake: 'typically managed object storage + a catalog (S3+Glue, etc.) — not self-hosted here',
-  webhook: 'an inbound endpoint on one of your services — add a route, not a separate container',
-  thirdPartyApi: 'an external provider you call — nothing to deploy',
-  paymentGateway: 'an external provider (Stripe/etc.) — nothing to deploy',
+  client: 'runs on the end user\'s device - not a backend service',
+  mobile: 'runs on the end user\'s device - not a backend service',
+  webBrowser: 'runs on the end user\'s device - not a backend service',
+  desktopApp: 'runs on the end user\'s computer - not a backend service',
+  apiClient: 'calls the backend through an API - not a backend service',
+  dns: 'typically your registrar/DNS provider - not self-hosted',
+  cdn: 'typically a managed CDN (Cloudflare/CloudFront) - not self-hosted here',
+  containerOrchestrator: 'this IS the orchestrator (k8s/ECS/Swarm) - not something you run inside compose',
+  dataWarehouse: 'typically a managed warehouse (BigQuery/Snowflake/Redshift) - not self-hosted here',
+  dataLake: 'typically managed object storage + a catalog (S3+Glue, etc.) - not self-hosted here',
+  webhook: 'an inbound endpoint on one of your services - add a route, not a separate container',
+  thirdPartyApi: 'an external provider you call - nothing to deploy',
+  paymentGateway: 'an external provider (Stripe/etc.) - nothing to deploy',
 }
 
 function sanitizeServiceName(id: string): string {
@@ -148,7 +148,7 @@ export function generateDockerCompose(nodes: GraphNodeLike[], edges: GraphEdgeLi
   const skipped = nodes.filter((n) => !deployable.includes(n))
 
   const lines: string[] = [
-    '# Generated by SysFlow from your architecture diagram — a STARTING POINT, not a deployable',
+    '# Generated by SysFlow from your architecture diagram - a STARTING POINT, not a deployable',
     '# production stack. Placeholder images, secrets, and volumes all need real values.',
     '',
   ]

@@ -1,6 +1,6 @@
-import { authHeaders } from './auth'
+import { authHeaders, handleUnauthorized } from './auth'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api'
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8081/api'
 
 export interface GraphJson {
   nodes: { id: string; type: string; config: Record<string, unknown>; position?: { x: number; y: number }; label?: string }[]
@@ -43,6 +43,7 @@ export interface ProjectVersionDetail extends ProjectVersionSummary {
 
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
+    handleUnauthorized(res)
     if (res.status === 401 || res.status === 403) throw new Error('You need to log in to do that.')
     throw new Error(`Request failed: ${res.status}`)
   }
@@ -155,6 +156,11 @@ export async function revokeShareLink(projectId: string): Promise<void> {
 
 export async function listVersions(projectId: string): Promise<ProjectVersionSummary[]> {
   const res = await fetch(`${API_BASE}/projects/${projectId}/versions`, { headers: { ...authHeaders() } })
+  return handle(res)
+}
+
+export async function getVersion(projectId: string, versionId: string): Promise<ProjectVersionDetail> {
+  const res = await fetch(`${API_BASE}/projects/${projectId}/versions/${versionId}`, { headers: { ...authHeaders() } })
   return handle(res)
 }
 

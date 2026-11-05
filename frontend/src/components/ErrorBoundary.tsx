@@ -23,10 +23,14 @@ export default class ErrorBoundary extends Component<Props, State> {
     if (!this.state.error) return this.props.children
 
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#fafafa] px-6">
-        <div className="w-full max-w-sm rounded-2xl border border-zinc-100 bg-white p-7 text-center shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)]">
-          <h1 className="text-lg font-semibold text-zinc-900">Something went wrong</h1>
-          <p className="mt-1 text-sm text-zinc-500">An unexpected error occurred. Reloading usually fixes it.</p>
+      <div className="flex min-h-screen items-center justify-center bg-[#fafafa] dark:bg-zinc-900 px-6 page-enter">
+        <div className="w-full max-w-sm rounded-2xl border border-zinc-100 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-7 text-center shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)] page-enter-delay-1">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50 dark:bg-red-950/30 text-red-500 dark:text-red-400">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Something went wrong</h1>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">An unexpected error occurred. Reloading usually fixes it.</p>
+          <p className="mt-3 rounded-lg bg-zinc-50 dark:bg-zinc-900 px-3 py-2 text-xs font-mono text-zinc-400 dark:text-zinc-500 break-all">{this.state.error.message}</p>
           <button
             onClick={() => window.location.reload()}
             className="btn-dark mt-5 w-full rounded-lg py-2.5 text-sm font-medium"

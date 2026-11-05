@@ -21,7 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * The test profile has no GEMINI_API_KEY, so grading here always exercises
- * InterviewGrader's rule-based fallback path — deterministic and network-free,
+ * InterviewGrader's rule-based fallback path - deterministic and network-free,
  * unlike the Gemini-graded path already live-verified against production.
  */
 @SpringBootTest
@@ -59,7 +59,7 @@ class InterviewControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isNotFound())
-                .andExpect(status().reason("Unknown prompt: does-not-exist"));
+                .andExpect(jsonPath("$.message").value("Unknown prompt: does-not-exist"));
     }
 
     @Test

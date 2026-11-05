@@ -1,0 +1,12 @@
+{
+  "name": "SysFlow - System Architecture Designer",
+  "short_name": "SysFlow",
+  "description": "Design, simulate and cost your system architecture visually.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#7c3aed",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

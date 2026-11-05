@@ -8,14 +8,17 @@ import { validateArchitecture, type ValidationResult } from '../lib/graphValidat
 import type { ArchNodeData } from '../components/ArchNode'
 import { useSimulation } from '../lib/useSimulation'
 import { useAuth } from '../lib/AuthContext'
-import { analyzeGraph, compareMultiCloudCosts, estimateRealCost, getScaleTiers, gradeInterview, importSrs, listInterviewPrompts, type AnalyzeResult, type InjectedFailure, type InterviewGrade, type InterviewPrompt, type PricingCompareResponse, type PricingEstimate, type ScalePricingResponse, type SrsImportResult } from '../lib/api'
+import { analyzeGraph, compareMultiCloudCosts, estimateRealCost, generateArchitecture, getScaleTiers, gradeInterview, importSrs, listInterviewPrompts, type AnalyzeResult, type InjectedFailure, type InterviewGrade, type InterviewPrompt, type PricingCompareResponse, type PricingEstimate, type ScalePricingResponse, type SrsImportResult } from '../lib/api'
 import { ClockIcon, PacketDropIcon, SkullIcon, ThrottleIcon } from '../components/icons'
-import { createProject, createShareLink, getProject, getPublicProject, listVersions, restoreVersion, updateProject, type ProjectVersionSummary } from '../lib/projects'
+import { createProject, createShareLink, getProject, getPublicProject, getVersion, listVersions, restoreVersion, updateProject, type ProjectVersionSummary } from '../lib/projects'
 import { TEMPLATES } from '../lib/templates'
 import { useHistory } from '../lib/useHistory'
 import { stashPendingSave, takePendingSave } from '../lib/pendingSave'
 import { estimateTotalMonthlyCost, replicasOf } from '../lib/cost'
 import { generateDockerCompose } from '../lib/iac'
+import { estimateAllProviders } from '../lib/cloudPricing'
+import { generateTerraform } from '../lib/terraform'
+import { generatePulumi } from '../lib/pulumi'
 import { generateReport } from '../lib/report'
 import { createComment, deleteComment, listComments, type NodeComment } from '../lib/comments'
 import { useCollabSession } from '../lib/collab'
@@ -42,10 +45,11 @@ import {
   type ArchitectureSnapshot,
 } from '../lib/architectureComparison'
 import { buildObservabilityDashboard, type ObservabilityHealth } from '../lib/observabilityDashboard'
+import { findChallenge, markChallengeComplete } from '../lib/learningPaths'
     
 const SPEED_OPTIONS = [0.5, 1, 2, 4]
 const TRAFFIC_OPTIONS = [1, 2, 3, 4, 5]
-const COST_FEATURE_ENABLED = false
+const COST_FEATURE_ENABLED = true
 
 type ChaosType = InjectedFailure['type']
 
@@ -91,6 +95,7 @@ export default function EditorPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
     const [validation, setValidation] = useState<ValidationResult[] | null>(null)
       const [focusRequest, setFocusRequest] = useState<{ nodeId: string; token: number } | null>(null)
+  const [highlightedNodes, setHighlightedNodes] = useState<Record<string, string>>({})
   const [exportRequest, setExportRequest] = useState(0)
   const [brandedExportRequest, setBrandedExportRequest] = useState(0)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
@@ -109,6 +114,9 @@ export default function EditorPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isImportingSrs, setIsImportingSrs] = useState(false)
   const [srsUnrecognized, setSrsUnrecognized] = useState<string[]>([])
+  const [generateModalOpen, setGenerateModalOpen] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generateDescription, setGenerateDescription] = useState('')
   const srsFileInputRef = useRef<HTMLInputElement>(null)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [versions, setVersions] = useState<ProjectVersionSummary[]>([])
@@ -131,6 +139,10 @@ export default function EditorPage() {
   const [interviewGrade, setInterviewGrade] = useState<InterviewGrade | null>(null)
   const [isGrading, setIsGrading] = useState(false)
   const [gradingError, setGradingError] = useState<string | null>(null)
+  const [activeChallenge, setActiveChallenge] = useState<import('../lib/learningPaths').Challenge | null>(null)
+  const [challengeHintIdx, setChallengeHintIdx] = useState(0)
+  const [challengeChecking, setChallengeChecking] = useState(false)
+  const [challengeResult, setChallengeResult] = useState<{ pass: boolean; feedback: string } | null>(null)
   const [pendingSrsImport, setPendingSrsImport] = useState<{ result: SrsImportResult; fileName: string } | null>(null)
   const [chaosOpen, setChaosOpen] = useState(false)
     const [speedMenuOpen, setSpeedMenuOpen] = useState(false)
@@ -170,9 +182,18 @@ export default function EditorPage() {
   }, [])
 
   useEffect(() => {
-    const serialized = JSON.stringify(chaosHistory.slice(0, 12))
-    window.localStorage.setItem('sysflow-chaos-history', serialized)
+    try {
+      const serialized = JSON.stringify(chaosHistory.slice(0, 12))
+      window.localStorage.setItem('sysflow-chaos-history', serialized)
+    } catch { /* storage full or unavailable */ }
   }, [chaosHistory])
+
+  useEffect(() => {
+    if (!isDirty) return
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault() }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isDirty])
 
   useEffect(() => {
     const closeSimulationMenus = (event: MouseEvent) => {
@@ -232,7 +253,7 @@ export default function EditorPage() {
       setProjectName(pending.name)
       setSaveDraftName(pending.name === 'Untitled Project' ? '' : pending.name)
       setShowSaveDialog(true)
-      setToast('Welcome back — pick up where you left off and save')
+      setToast('Welcome back - pick up where you left off and save')
       return
     }
 
@@ -240,6 +261,27 @@ export default function EditorPage() {
     const loadProjectId = params.get('projectId')
     const galleryProjectId = params.get('galleryProjectId')
     const interviewPromptId = params.get('interviewPromptId')
+    const challengeId = params.get('challengeId')
+
+    if (challengeId) {
+      const found = findChallenge(challengeId)
+      if (found) {
+        setActiveChallenge(found.challenge)
+        setChallengeHintIdx(0)
+        setChallengeResult(null)
+        setProjectName(found.challenge.title)
+        if (found.challenge.starterGraph) {
+          setNodes(found.challenge.starterGraph.nodes.map((n) => ({
+            id: n.id, type: 'archNode',
+            position: n.position ?? { x: 0, y: 0 },
+            data: { componentType: n.type, label: n.label ?? n.type, config: n.config, health: 'idle' as const },
+          })))
+          setEdges(found.challenge.starterGraph.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: 'archEdge' })))
+        }
+      } else {
+        setToast("Couldn't find that challenge")
+      }
+    }
 
     if (interviewPromptId) {
       setProjectName('Interview practice')
@@ -260,7 +302,7 @@ export default function EditorPage() {
       setIsLoadingProject(true)
       getPublicProject(galleryProjectId)
         .then((project) => {
-          // Loaded as a fresh, unowned copy — projectId stays null so Save creates a new
+          // Loaded as a fresh, unowned copy - projectId stays null so Save creates a new
           // project instead of overwriting the original author's.
           setProjectName(project.name)
           setNodes(project.graphJson.nodes.map((n) => ({
@@ -271,7 +313,7 @@ export default function EditorPage() {
           })))
           setEdges(project.graphJson.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: 'archEdge' })))
           setIsDirty(true)
-          setToast(`Loaded "${project.name}" from the gallery — save to make your own copy`)
+          setToast(`Loaded "${project.name}" from the gallery - save to make your own copy`)
         })
         .catch(() => setToast("Couldn't load that gallery project"))
         .finally(() => setIsLoadingProject(false))
@@ -324,6 +366,10 @@ export default function EditorPage() {
   const estimatedMonthlyCost = estimateTotalMonthlyCost(
     nodes.map((n) => ({ type: n.data.componentType as ComponentType, replicas: replicasOf(n.data.componentType, n.data.config, n.data.replicas), config: n.data.config })),
   )
+  const cloudEstimates = useMemo(() => estimateAllProviders(
+    nodes.map((n) => ({ type: n.data.componentType, config: n.data.config, replicas: n.data.replicas })),
+  ), [nodes])
+
   const simulationState = sim.isBusted
     ? 'Busted'
     : sim.isRunning
@@ -417,7 +463,7 @@ export default function EditorPage() {
       setAnalysis(result)
     } catch {
       setAnalysis({ findings: [], aiEnabled: false })
-      setToast('Analysis service is unavailable — showing local checks')
+      setToast('Analysis service is unavailable - showing local checks')
     } finally {
       setIsAnalyzing(false)
     }
@@ -478,6 +524,7 @@ export default function EditorPage() {
     }
   }
 
+  const handleSaveRef = useRef<() => void>(() => {})
   const handleSaveClick = () => {
     if (collab.conflict) {
       setToast('Resolve the collaboration conflict before saving')
@@ -496,6 +543,7 @@ export default function EditorPage() {
       setShowSaveDialog(true)
     }
   }
+  handleSaveRef.current = handleSaveClick
 
   const copyShareLink = async () => {
     if (!projectId) {
@@ -579,6 +627,22 @@ export default function EditorPage() {
     } finally {
       setIsLoadingVersions(false)
     }
+  }
+
+  const handleCompareVersion = async (versionId: string) => {
+    if (!projectId) return
+    try {
+      const ver = await getVersion(projectId, versionId)
+      const versionSnapshot = createArchitectureSnapshot(
+        `Version ${new Date(ver.createdAt).toLocaleString()}`,
+        ver.graphJson.nodes.map((n) => ({ id: n.id, type: n.type, label: n.label ?? n.type, config: n.config, replicas: undefined })),
+        ver.graphJson.edges,
+        null,
+      )
+      setArchitectureBaseline(versionSnapshot)
+      setHistoryOpen(false)
+      setToast('Comparing with selected version - scroll down to see the diff')
+    } catch { setToast('Failed to load version for comparison') }
   }
 
   const handleRestoreVersion = async (versionId: string) => {
@@ -698,6 +762,25 @@ export default function EditorPage() {
     }
   }
 
+  const handleGenerate = async () => {
+    if (!generateDescription.trim()) return
+    setIsGenerating(true)
+    try {
+      const result = await generateArchitecture(generateDescription.trim())
+      if (nodes.length > 0) {
+        setPendingSrsImport({ result, fileName: 'AI Generated' })
+      } else {
+        applyImportedGraph(result, 'AI Generated')
+      }
+      setGenerateModalOpen(false)
+      setGenerateDescription('')
+    } catch (err) {
+      setToast(err instanceof Error ? err.message : 'Generation failed')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   const exportJson = () => {
     downloadText('sysflow-architecture.json', JSON.stringify({ projectName, nodes: toGraphNodes(nodes), edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target })) }, null, 2), 'application/json')
     setExportOpen(false)
@@ -729,6 +812,43 @@ export default function EditorPage() {
     } catch (error) {
       setToast(error instanceof Error ? error.message : 'Could not generate the Compose export.')
     }
+  }
+
+  const exportTerraform = () => {
+    try {
+      const tf = generateTerraform(
+        nodes.map((n) => ({ id: n.id, type: n.data.componentType, label: n.data.label, config: n.data.config })),
+        edges.map((e) => ({ source: e.source, target: e.target })),
+      )
+      downloadText('main.tf', tf, 'text/plain')
+      setExportOpen(false)
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'Could not generate Terraform export.')
+    }
+  }
+
+  const exportPulumiTs = () => {
+    try {
+      const code = generatePulumi(
+        nodes.map((n) => ({ id: n.id, type: n.data.componentType, label: n.data.label, config: n.data.config })),
+        edges.map((e) => ({ source: e.source, target: e.target })),
+      )
+      downloadText('index.ts', code, 'text/typescript')
+      setExportOpen(false)
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'Could not generate Pulumi export.')
+    }
+  }
+
+  const copyEmbedCode = async () => {
+    if (!projectId) { setToast('Save and share the project first'); return }
+    try {
+      const { token } = await createShareLink(projectId)
+      const snippet = `<iframe src="${window.location.origin}/embed/${token}" width="100%" height="500" frameborder="0" allow="fullscreen"></iframe>`
+      await navigator.clipboard.writeText(snippet)
+      setToast('Embed code copied')
+    } catch { setToast('Could not create embed code') }
+    setExportOpen(false)
   }
 
     const chaosScenarioDefinition = CHAOS_SCENARIOS.find((scenario) => scenario.id === chaosScenarioId) ?? CHAOS_SCENARIOS[0]
@@ -874,7 +994,7 @@ export default function EditorPage() {
         history.redo()
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault()
-        handleSaveClick()
+        handleSaveRef.current()
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
         e.preventDefault()
         setNodes((nds) => nds.map((node) => ({ ...node, selected: true })))
@@ -904,51 +1024,40 @@ export default function EditorPage() {
 
   return (
       <div className="editor-shell relative flex h-screen min-h-0 flex-col bg-[#f8fcfd] dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
-        <style>{`.editor-shell .sysflow-minimap { bottom: 78px !important; }`}</style>
-       <header className="editor-header relative z-30 flex min-h-[56px] items-center justify-between gap-2 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-1.5 shadow-[0_1px_0_rgba(0,0,0,0.02)] sm:px-4">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
-          <Link to="/" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white dark:bg-zinc-800 shadow-sm sm:h-9 sm:w-9">
-            <img src={logo} alt="SysFlow" className="h-7 w-7 object-contain sm:h-8 sm:w-8" />
+       <header className="editor-header relative z-30 flex h-11 items-center justify-between gap-3 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 sm:px-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <button onClick={() => navigate(-1)} className="shrink-0 flex h-6 w-6 items-center justify-center rounded-md text-[11px] text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition-colors" title="Back">←</button>
+          <Link to="/" className="flex h-7 w-7 shrink-0 items-center justify-center">
+            <img src={logo} alt="SysFlow" className="h-6 w-6 object-contain" />
           </Link>
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-sm">SysFlow</span>
-              <span className="hidden rounded-full bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-[8px] font-semibold uppercase text-zinc-400 dark:text-zinc-500 sm:inline">Editor</span>
+            <div className="flex items-center gap-1">
+              <span className="text-[11px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">SysFlow</span>
+              <span className="text-[8px] text-zinc-300 dark:text-zinc-600">/</span>
+              <input
+                value={projectName}
+                readOnly={isReadOnly}
+                onChange={(e) => { setProjectName(e.target.value); markDirty() }}
+                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                title="Edit project name"
+                className="w-20 truncate border-0 bg-transparent p-0 text-[11px] text-zinc-500 dark:text-zinc-400 outline-none hover:text-zinc-700 dark:hover:text-zinc-300 focus:text-zinc-800 dark:focus:text-zinc-100 sm:w-28"
+              />
             </div>
-            <input
-              value={projectName}
-              readOnly={isReadOnly}
-              onChange={(e) => { setProjectName(e.target.value); markDirty() }}
-              onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-              title="Edit project name"
-              className="w-24 truncate border-0 bg-transparent p-0 text-[11px] text-zinc-400 dark:text-zinc-500 outline-none hover:text-zinc-600 dark:hover:text-zinc-300 focus:text-zinc-800 dark:focus:text-zinc-100 sm:w-32 lg:w-36"
-            />
           </div>
 
-          <div className="hidden items-center gap-1.5 pl-1 lg:flex">
-            <span className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold ${isDirty ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400' : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400'}`}>
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" /> {isSaving ? 'Saving…' : isDirty ? 'Unsaved' : 'Saved'}
+          <span className={`hidden shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[9px] font-semibold lg:inline-flex ${isDirty ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400' : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400'}`}>
+            <span className="h-1 w-1 shrink-0 rounded-full bg-current" /> {isSaving ? 'Saving…' : isDirty ? 'Unsaved' : 'Saved'}
+          </span>
+          {isLoadingProject && <span className="hidden shrink-0 whitespace-nowrap text-[9px] text-zinc-400 dark:text-zinc-500 lg:inline">Loading…</span>}
+          {projectId && collab.collaborators.length > 0 && (
+            <span title={collab.collaborators.map((c) => c.name).join(', ') + ' also viewing this project'} className="hidden shrink-0 items-center -space-x-1.5 lg:flex">
+              {collab.collaborators.slice(0, 4).map((c) => (
+                <span key={c.clientId} className="flex h-4 w-4 items-center justify-center rounded-full border border-white text-[7px] font-bold text-white" style={{ background: c.color }}>
+                  {c.name.charAt(0).toUpperCase()}
+                </span>
+              ))}
             </span>
-            {COST_FEATURE_ENABLED && nodes.length > 0 && (
-              <button
-                onClick={toggleRealPricing}
-                title="Click to view full Multi-Cloud Cost Pipeline (AWS, GCP, Azure)"
-                className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-[10px] font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-              >
-                ~${estimatedMonthlyCost.toLocaleString()}/mo <span className="text-zinc-400 dark:text-zinc-500">▾</span>
-              </button>
-            )}
-            {isLoadingProject && <span className="shrink-0 whitespace-nowrap text-[10px] text-zinc-400 dark:text-zinc-500">Loading…</span>}
-            {projectId && collab.collaborators.length > 0 && (
-              <span title={collab.collaborators.map((c) => c.name).join(', ') + ' also viewing this project'} className="flex shrink-0 items-center -space-x-1.5">
-                {collab.collaborators.slice(0, 4).map((c) => (
-                  <span key={c.clientId} className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-white text-[9px] font-bold text-white" style={{ background: c.color }}>
-                    {c.name.charAt(0).toUpperCase()}
-                  </span>
-                ))}
-              </span>
-            )}
-          </div>
+          )}
         </div>
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
@@ -979,7 +1088,10 @@ export default function EditorPage() {
               <button onClick={() => { setBrandedExportRequest((v) => v + 1); setExportOpen(false) }}>Branded PNG (for sharing)</button>
               <button onClick={exportJson}>JSON graph</button>
               <button onClick={exportDockerCompose}>docker-compose.yml</button>
+              <button onClick={exportTerraform}>Terraform (AWS)</button>
+              <button onClick={exportPulumiTs}>Pulumi (AWS)</button>
               <button onClick={exportPdf}>PDF report</button>
+              <button onClick={copyEmbedCode}>Embed code</button>
             </div>}
           </div>
 
@@ -993,6 +1105,7 @@ export default function EditorPage() {
 
           {!isReadOnly && <input ref={srsFileInputRef} type="file" accept=".pdf,.docx,.txt,.md" className="hidden" onChange={handleSrsFileSelected} />}
           {!isReadOnly && <button onClick={() => srsFileInputRef.current?.click()} disabled={isImportingSrs} className="toolbar-button hidden whitespace-nowrap md:inline-flex disabled:opacity-50">{isImportingSrs ? 'Importing…' : 'Import SRS'}</button>}
+          {!isReadOnly && <button onClick={() => setGenerateModalOpen(true)} disabled={isGenerating} className="toolbar-button hidden whitespace-nowrap md:inline-flex disabled:opacity-50 !text-violet-600 dark:!text-violet-400">{isGenerating ? 'Generating…' : '✦ AI Generate'}</button>}
 
           {!isReadOnly && <div className="relative hidden md:block">
             <button onClick={() => { setTemplatesOpen((v) => !v); setExportOpen(false); setHistoryOpen(false) }} className="toolbar-button whitespace-nowrap">Templates</button>
@@ -1015,9 +1128,13 @@ export default function EditorPage() {
               <button onClick={() => { setBrandedExportRequest((v) => v + 1); setMobileMenuOpen(false) }}>Branded PNG (for sharing)</button>
               <button onClick={() => { exportJson(); setMobileMenuOpen(false) }}>JSON graph</button>
               <button onClick={() => { exportDockerCompose(); setMobileMenuOpen(false) }}>docker-compose.yml</button>
+              <button onClick={() => { exportTerraform(); setMobileMenuOpen(false) }}>Terraform (AWS)</button>
+              <button onClick={() => { exportPulumiTs(); setMobileMenuOpen(false) }}>Pulumi (AWS)</button>
               <button onClick={exportPdf}>PDF report</button>
+              <button onClick={() => { copyEmbedCode(); setMobileMenuOpen(false) }}>Embed code</button>
               <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
               {!isReadOnly && <button onClick={() => { srsFileInputRef.current?.click(); setMobileMenuOpen(false) }} disabled={isImportingSrs}>{isImportingSrs ? 'Importing…' : 'Import SRS'}</button>}
+              {!isReadOnly && <button onClick={() => { setGenerateModalOpen(true); setMobileMenuOpen(false) }} disabled={isGenerating}>{isGenerating ? 'Generating…' : '✦ AI Generate'}</button>}
               {projectId && <button onClick={() => { openHistory(); setMobileMenuOpen(false) }}>History</button>}
               <button onClick={() => { setArchitectureCompareOpen(true); setMobileMenuOpen(false) }} disabled={nodes.length === 0}>Architecture comparison</button>
               <button onClick={() => { setSloPanelOpen(true); setAnalysis(null); setValidation(null); setMobileMenuOpen(false) }} disabled={nodes.length === 0}>Evaluate SLOs</button>
@@ -1054,7 +1171,7 @@ export default function EditorPage() {
 
       {srsUnrecognized.length > 0 && (
         <div className="relative z-20 flex items-center justify-between gap-3 border-b border-amber-100 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 px-4 py-1.5 text-xs text-amber-700 dark:text-amber-400 sm:px-6">
-          <span>Couldn't confidently map: <b>{srsUnrecognized.join(', ')}</b> — placed as a generic Service. Review before running.</span>
+          <span>Couldn't confidently map: <b>{srsUnrecognized.join(', ')}</b> - placed as a generic Service. Review before running.</span>
           <button onClick={() => setSrsUnrecognized([])} className="shrink-0 text-amber-500 hover:text-amber-800 dark:hover:text-amber-300">✕</button>
         </div>
       )}
@@ -1096,8 +1213,83 @@ export default function EditorPage() {
         <div className="relative z-20 border-b border-red-100 dark:border-red-900 bg-red-50 dark:bg-red-950/40 px-4 py-1.5 text-xs text-red-600 dark:text-red-400 sm:px-6">{gradingError}</div>
       )}
 
+      {activeChallenge && (
+        <div className="relative z-20 border-b border-teal-100 dark:border-teal-900 bg-teal-50 dark:bg-teal-950/40 px-4 py-2 text-xs sm:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0">
+              <span className="font-semibold text-teal-800 dark:text-teal-200">{activeChallenge.title}</span>
+              <span className="ml-2 text-teal-600 dark:text-teal-400">Target: {activeChallenge.targetRps.toLocaleString()} RPS · p95 &lt; {activeChallenge.maxP95Ms}ms · Errors &lt; {activeChallenge.maxErrorRate}%</span>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              {challengeHintIdx < activeChallenge.hints.length && (
+                <button onClick={() => setChallengeHintIdx((i) => Math.min(i + 1, activeChallenge.hints.length))} className="rounded-lg border border-teal-200 dark:border-teal-800 px-2.5 py-1 text-[11px] font-medium text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/50">
+                  {challengeHintIdx === 0 ? 'Show hint' : 'Next hint'}
+                </button>
+              )}
+              <button
+                disabled={nodes.length === 0 || challengeChecking}
+                onClick={async () => {
+                  setChallengeChecking(true)
+                  setChallengeResult(null)
+                  const nodeTypes = nodes.map((n) => n.data.componentType)
+                  const missing = activeChallenge.requiredComponents.filter((t) => !nodeTypes.includes(t))
+                  if (missing.length > 0) {
+                    setChallengeResult({ pass: false, feedback: `Missing required components: ${missing.join(', ')}` })
+                    setChallengeChecking(false)
+                    return
+                  }
+                  try {
+                    const result = await import('../lib/api').then((m) => m.runSimulation({
+                      nodes: nodes.map((n) => ({ id: n.id, type: n.data.componentType, config: n.data.config })),
+                      edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target })),
+                      targetRps: activeChallenge.targetRps,
+                      durationSeconds: 20,
+                    }))
+                    const p95 = result.summary.p95
+                    const err = result.summary.avgErrorRatePct
+                    const issues: string[] = []
+                    if (p95 > activeChallenge.maxP95Ms) issues.push(`p95 latency ${Math.round(p95)}ms exceeds target ${activeChallenge.maxP95Ms}ms`)
+                    if (err > activeChallenge.maxErrorRate) issues.push(`Error rate ${err.toFixed(1)}% exceeds target ${activeChallenge.maxErrorRate}%`)
+                    if (issues.length === 0) {
+                      markChallengeComplete(activeChallenge.id)
+                      setChallengeResult({ pass: true, feedback: `Passed! p95: ${Math.round(p95)}ms, Error rate: ${err.toFixed(1)}%` })
+                    } else {
+                      setChallengeResult({ pass: false, feedback: issues.join('. ') })
+                    }
+                  } catch (e) {
+                    setChallengeResult({ pass: false, feedback: e instanceof Error ? e.message : 'Simulation failed' })
+                  } finally {
+                    setChallengeChecking(false)
+                  }
+                }}
+                className="rounded-lg bg-teal-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-teal-700 disabled:opacity-50"
+              >
+                {challengeChecking ? 'Checking…' : 'Check Solution'}
+              </button>
+              <button onClick={() => setActiveChallenge(null)} className="text-teal-400 hover:text-teal-700 dark:hover:text-teal-200">✕</button>
+            </div>
+          </div>
+          {challengeHintIdx > 0 && (
+            <div className="mt-1.5 rounded-lg bg-teal-100/60 dark:bg-teal-900/30 px-3 py-1.5 text-[11px] text-teal-700 dark:text-teal-300">
+              💡 {activeChallenge.hints[challengeHintIdx - 1]}
+            </div>
+          )}
+          <ul className="mt-1.5 flex flex-wrap gap-2">
+            {activeChallenge.objectives.map((obj) => (
+              <li key={obj} className="rounded-md bg-teal-100/50 dark:bg-teal-900/20 px-2 py-0.5 text-[10px] text-teal-700 dark:text-teal-400">{obj}</li>
+            ))}
+          </ul>
+          {challengeResult && (
+            <div className={`mt-2 rounded-lg px-3 py-2 text-[11px] font-medium ${challengeResult.pass ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'}`}>
+              {challengeResult.pass ? '🎉 ' : '❌ '}{challengeResult.feedback}
+              {challengeResult.pass && <Link to="/learn" className="ml-2 underline">Back to learning paths →</Link>}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex min-h-0 flex-1">
-        {isLoadingProject && <div className="absolute inset-0 z-40 flex items-center justify-center bg-white/60 dark:bg-zinc-950/60 backdrop-blur-sm"><div className="rounded-full bg-white dark:bg-zinc-800 px-4 py-2 text-sm text-zinc-500 dark:text-zinc-400 shadow-lg">Loading project…</div></div>}
+        {isLoadingProject && <div className="modal-backdrop-enter absolute inset-0 z-40 flex items-center justify-center bg-white/60 dark:bg-zinc-950/60 backdrop-blur-sm"><div className="toast-enter rounded-full bg-white dark:bg-zinc-800 px-5 py-2.5 text-sm font-medium text-zinc-500 dark:text-zinc-400 shadow-lg">Loading project…</div></div>}
         <Canvas
           nodes={nodes}
           edges={edges}
@@ -1110,6 +1302,7 @@ export default function EditorPage() {
           failures={failures}
           setFailures={setFailures}
           focusRequest={focusRequest}
+          highlightedNodes={highlightedNodes}
           exportRequest={exportRequest}
           brandedExportRequest={brandedExportRequest}
           projectName={projectName}
@@ -1126,6 +1319,7 @@ export default function EditorPage() {
           onLoadSample={isReadOnly ? undefined : () => applyTemplate('basic-3-tier')}
           onBrowseTemplates={isReadOnly ? undefined : () => setTemplatesOpen(true)}
           onImportSrs={isReadOnly ? undefined : () => srsFileInputRef.current?.click()}
+          onGenerate={isReadOnly ? undefined : () => setGenerateModalOpen(true)}
         />
           {analysis && (
           <FindingsPanel
@@ -1144,12 +1338,12 @@ export default function EditorPage() {
               source: edge.source,
               target: edge.target,
             }))}
-            onFocusNode={(nodeId) => setFocusRequest({ nodeId, token: Date.now() })}
+            onFocusNode={(nodeId) => { setFocusRequest({ nodeId, token: Date.now() }); setHighlightedNodes({ [nodeId]: '#8b5cf6' }); setTimeout(() => setHighlightedNodes({}), 3000) }}
             onSimulateFailure={simulateSPOFFailure}
             onClose={() => setAnalysis(null)}
           />
         )}
-        {!analysis && validation && <ValidationPanel results={validation} onFocusNode={(nodeId) => setFocusRequest({ nodeId, token: Date.now() })} onClose={() => setValidation(null)} />}
+        {!analysis && validation && <ValidationPanel results={validation} onFocusNode={(nodeId) => { setFocusRequest({ nodeId, token: Date.now() }); setHighlightedNodes({ [nodeId]: '#f97316' }); setTimeout(() => setHighlightedNodes({}), 3000) }} onClose={() => setValidation(null)} />}
         {!analysis && !validation && sloPanelOpen && (
           <SloPanel nodes={nodes} edges={edges} targetRps={baseRps * traffic} failures={failures} onClose={() => setSloPanelOpen(false)} />
         )}
@@ -1157,8 +1351,8 @@ export default function EditorPage() {
        </div>
 
       {interviewGrade && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 dark:bg-black/50 p-4 backdrop-blur-sm" onClick={() => setInterviewGrade(null)}>
-          <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 dark:bg-black/50 p-4 backdrop-blur-sm" onClick={() => setInterviewGrade(null)}>
+          <div className="modal-content-enter w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-violet-500 dark:text-violet-400">Grading result</p>
@@ -1167,7 +1361,7 @@ export default function EditorPage() {
               <button onClick={() => setInterviewGrade(null)} className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200">✕</button>
             </div>
             {!interviewGrade.aiEnabled && (
-              <p className="mt-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1.5 text-[11px] text-amber-700 dark:text-amber-400">Rule-based estimate only — AI grading wasn't available for this run.</p>
+              <p className="mt-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1.5 text-[11px] text-amber-700 dark:text-amber-400">Rule-based estimate only - AI grading wasn't available for this run.</p>
             )}
             <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">{interviewGrade.summary}</p>
 
@@ -1201,8 +1395,8 @@ export default function EditorPage() {
       )}
 
       {COST_FEATURE_ENABLED && realPricingOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 dark:bg-black/50 p-4 backdrop-blur-sm" onClick={() => setRealPricingOpen(false)}>
-          <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-2xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 dark:bg-black/50 p-4 backdrop-blur-sm" onClick={() => setRealPricingOpen(false)}>
+          <div className="modal-content-enter w-full max-w-2xl rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-2xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
               <div>
                 <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Multi-Cloud Cost Pipeline</h3>
@@ -1212,7 +1406,7 @@ export default function EditorPage() {
             </div>
 
             {isLoadingRealPricing && <p className="mt-6 text-sm text-zinc-400 dark:text-zinc-500 text-center py-8">Calculating multi-cloud pipeline pricing…</p>}
-            {realPricingError && <p className="mt-3 text-xs text-red-500 dark:text-red-400">{realPricingError} — showing illustrative only.</p>}
+            {realPricingError && <p className="mt-3 text-xs text-red-500 dark:text-red-400">{realPricingError} - showing illustrative only.</p>}
 
             {!isLoadingRealPricing && multiCloudPricing && (
               <div className="mt-4 space-y-4 overflow-y-auto pr-1">
@@ -1441,8 +1635,8 @@ export default function EditorPage() {
       )}
 
       {historyOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 dark:bg-black/50 p-4 backdrop-blur-sm" onClick={() => setHistoryOpen(false)}>
-          <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 dark:bg-black/50 p-4 backdrop-blur-sm" onClick={() => setHistoryOpen(false)}>
+          <div className="modal-content-enter w-full max-w-sm rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Version history</h3>
               <button onClick={() => setHistoryOpen(false)} className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200">✕</button>
@@ -1450,11 +1644,14 @@ export default function EditorPage() {
             <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">Every save keeps the last 10 versions. Restoring one is itself undoable.</p>
             <div className="mt-4 max-h-72 space-y-1 overflow-y-auto">
               {isLoadingVersions && <p className="py-2 text-xs text-zinc-400 dark:text-zinc-500">Loading…</p>}
-              {!isLoadingVersions && versions.length === 0 && <p className="py-2 text-xs text-zinc-400 dark:text-zinc-500">No previous versions yet — saves create one automatically.</p>}
+              {!isLoadingVersions && versions.length === 0 && <p className="py-2 text-xs text-zinc-400 dark:text-zinc-500">No previous versions yet - saves create one automatically.</p>}
               {!isLoadingVersions && versions.map((v) => (
                 <div key={v.id} className="flex items-center justify-between rounded-lg px-2 py-2 text-sm">
                   <span className="text-zinc-700 dark:text-zinc-300">{new Date(v.createdAt).toLocaleString()}</span>
-                  {!isReadOnly && <button onClick={() => handleRestoreVersion(v.id)} disabled={restoringVersionId === v.id} className="text-[10px] font-semibold text-violet-600 hover:underline dark:text-violet-400 disabled:opacity-50">{restoringVersionId === v.id ? 'Restoring…' : 'Restore'}</button>}
+                  <div className="flex gap-2">
+                    <button onClick={() => handleCompareVersion(v.id)} className="text-[10px] font-semibold text-zinc-500 hover:text-violet-600 hover:underline dark:text-zinc-400 dark:hover:text-violet-400">Diff</button>
+                    {!isReadOnly && <button onClick={() => handleRestoreVersion(v.id)} disabled={restoringVersionId === v.id} className="text-[10px] font-semibold text-violet-600 hover:underline dark:text-violet-400 disabled:opacity-50">{restoringVersionId === v.id ? 'Restoring…' : 'Restore'}</button>}
+                  </div>
                 </div>
               ))}
             </div>
@@ -1466,8 +1663,8 @@ export default function EditorPage() {
         const targetNode = nodes.find((n) => n.id === commentNodeId)
         const threadComments = comments.filter((c) => c.nodeId === commentNodeId)
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 dark:bg-black/50 p-4 backdrop-blur-sm" onClick={() => setCommentNodeId(null)}>
-            <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 dark:bg-black/50 p-4 backdrop-blur-sm" onClick={() => setCommentNodeId(null)}>
+            <div className="modal-content-enter w-full max-w-sm rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Comments</h3>
@@ -1477,7 +1674,7 @@ export default function EditorPage() {
               </div>
 
               <div className="mt-4 max-h-64 space-y-3 overflow-y-auto">
-                {threadComments.length === 0 && <p className="py-2 text-xs text-zinc-400 dark:text-zinc-500">No comments yet — leave a note for later, or for anyone reviewing this design.</p>}
+                {threadComments.length === 0 && <p className="py-2 text-xs text-zinc-400 dark:text-zinc-500">No comments yet - leave a note for later, or for anyone reviewing this design.</p>}
                 {threadComments.map((c) => (
                   <div key={c.id} className="group rounded-lg bg-zinc-50 dark:bg-zinc-800/60 px-3 py-2">
                     <div className="flex items-center justify-between">
@@ -1520,7 +1717,7 @@ export default function EditorPage() {
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-500">Observability</p>
                 <h3 className="mt-0.5 text-lg font-bold text-zinc-900 dark:text-zinc-50">Simulation Dashboard</h3>
-                <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">Historical telemetry from the existing simulation — no second simulation engine.</p>
+                <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">Historical telemetry from the existing simulation - no second simulation engine.</p>
               </div>
               <div className="flex items-center gap-3">
                 {observability.hasSimulation && <span className="text-[10px] text-zinc-400">{observability.sampleCount} ticks</span>}
@@ -1570,9 +1767,9 @@ export default function EditorPage() {
                             <polyline fill="none" stroke="currentColor" strokeWidth="2.5" className="text-cyan-500" points={toPoints('rps', maxRps)} />
                             <polyline fill="none" stroke="currentColor" strokeWidth="2.5" className="text-violet-500" points={toPoints('p95Ms', maxLatency)} />
                             <text x="12" y="16" className="fill-zinc-400" fontSize="10">RPS</text>
-                            <text x="42" y="16" className="fill-cyan-500" fontSize="10">—</text>
+                            <text x="42" y="16" className="fill-cyan-500" fontSize="10">-</text>
                             <text x="62" y="16" className="fill-zinc-400" fontSize="10">P95</text>
-                            <text x="88" y="16" className="fill-violet-500" fontSize="10">—</text>
+                            <text x="88" y="16" className="fill-violet-500" fontSize="10">-</text>
                           </>
                         })()}
                       </svg>
@@ -1610,7 +1807,7 @@ export default function EditorPage() {
                         <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                           {observability.nodes.map((node) => {
                             const healthClass: Record<ObservabilityHealth, string> = { Healthy: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300', Degraded: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300', Down: 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300' }
-                            return <tr key={node.nodeId} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30"><td className="px-4 py-2.5"><b className="block truncate max-w-[220px]">{node.label}</b><span className="text-[10px] text-zinc-400">{node.type}</span></td><td className="px-3 py-2.5 text-right"><span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${healthClass[node.health]}`}>{node.health}</span></td><td className="px-3 py-2.5 text-right">{node.peakLoadPct}%</td><td className="px-3 py-2.5 text-right">{node.p95LatencyMs} ms</td><td className="px-3 py-2.5 text-right">{node.peakErrorRatePct}%</td><td className="px-4 py-2.5 text-right">{node.latestReplicas ?? '—'}</td></tr>
+                            return <tr key={node.nodeId} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30"><td className="px-4 py-2.5"><b className="block truncate max-w-[220px]">{node.label}</b><span className="text-[10px] text-zinc-400">{node.type}</span></td><td className="px-3 py-2.5 text-right"><span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${healthClass[node.health]}`}>{node.health}</span></td><td className="px-3 py-2.5 text-right">{node.peakLoadPct}%</td><td className="px-3 py-2.5 text-right">{node.p95LatencyMs} ms</td><td className="px-3 py-2.5 text-right">{node.peakErrorRatePct}%</td><td className="px-4 py-2.5 text-right">{node.latestReplicas ?? '-'}</td></tr>
                           })}
                         </tbody>
                       </table>
@@ -1726,17 +1923,17 @@ export default function EditorPage() {
                               const b = baseline as number | null
                               const c = current as number | null
                               const d = b !== null && c !== null ? Number((c - b).toFixed(2)) : null
-                              return <tr key={String(label)} className="border-t border-zinc-100 dark:border-zinc-800"><td className="py-2 pr-3 font-medium">{String(label)}</td><td className="py-2 pr-3">{b === null ? '—' : `${b}${unit}`}</td><td className="py-2 pr-3">{c === null ? '—' : `${c}${unit}`}</td><td className="py-2">{d === null ? '—' : `${d >= 0 ? '+' : ''}${d}${unit}`}</td></tr>
+                              return <tr key={String(label)} className="border-t border-zinc-100 dark:border-zinc-800"><td className="py-2 pr-3 font-medium">{String(label)}</td><td className="py-2 pr-3">{b === null ? '-' : `${b}${unit}`}</td><td className="py-2 pr-3">{c === null ? '-' : `${c}${unit}`}</td><td className="py-2">{d === null ? '-' : `${d >= 0 ? '+' : ''}${d}${unit}`}</td></tr>
                             })}
                           </tbody>
                         </table>
                       </div>
-                      {(!architectureComparison.baseline.summary || !architectureComparison.current.summary) && <p className="mt-2 text-[11px] text-zinc-500">Performance rows show “—” when one side has no simulation summary. Structural and estimated-cost comparisons remain available.</p>}
+                      {(!architectureComparison.baseline.summary || !architectureComparison.current.summary) && <p className="mt-2 text-[11px] text-zinc-500">Performance rows show "-" when one side has no simulation summary. Structural and estimated-cost comparisons remain available.</p>}
                     </div>
 
                     <div className="mt-4 rounded-lg border border-zinc-100 dark:border-zinc-800 p-3">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Component changes</p>
-                      {architectureComparison.changes.length === 0 ? <p className="mt-2 text-xs text-zinc-500">No added, removed, or type-changed components detected.</p> : <div className="mt-2 space-y-1.5">{architectureComparison.changes.slice(0, 12).map((change) => <div key={`${change.change}-${change.nodeId}`} className="flex items-center justify-between gap-3 text-xs"><span className="truncate">{change.label}</span><span className="shrink-0 text-zinc-500">{change.fromType ?? '—'} → {change.toType ?? '—'} · {change.change}</span></div>)}</div>}
+                      {architectureComparison.changes.length === 0 ? <p className="mt-2 text-xs text-zinc-500">No added, removed, or type-changed components detected.</p> : <div className="mt-2 space-y-1.5">{architectureComparison.changes.slice(0, 12).map((change) => <div key={`${change.change}-${change.nodeId}`} className="flex items-center justify-between gap-3 text-xs"><span className="truncate">{change.label}</span><span className="shrink-0 text-zinc-500">{change.fromType ?? '-'} → {change.toType ?? '-'} · {change.change}</span></div>)}</div>}
                     </div>
 
                     <div className="mt-4 rounded-lg bg-violet-50 dark:bg-violet-950/20 p-3">
@@ -1860,6 +2057,32 @@ export default function EditorPage() {
         />
       )}
 
+      {generateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm modal-backdrop-enter" onClick={() => { if (!isGenerating) setGenerateModalOpen(false) }}>
+          <div className="w-full max-w-md rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 shadow-2xl modal-content-enter" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">✦ AI Architecture Generator</h2>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Describe the system you want to build and AI will design the architecture.</p>
+            <textarea
+              value={generateDescription}
+              onChange={(e) => setGenerateDescription(e.target.value)}
+              placeholder="A video streaming platform that handles 50k concurrent users with real-time chat, content recommendations, and payment processing..."
+              className="mt-4 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 p-3 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400/20"
+              rows={4}
+              maxLength={5000}
+              disabled={isGenerating}
+              autoFocus
+            />
+            <div className="mt-2 flex items-center justify-between">
+              <span className="text-[10px] text-zinc-400 dark:text-zinc-500">{generateDescription.length}/5000</span>
+              <div className="flex gap-2">
+                <button onClick={() => setGenerateModalOpen(false)} disabled={isGenerating} className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50">Cancel</button>
+                <button onClick={handleGenerate} disabled={isGenerating || !generateDescription.trim()} className="btn-dark rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50">{isGenerating ? 'Generating…' : 'Generate Architecture'}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {compareNodeId && (() => {
         const compareTarget = nodes.find((n) => n.id === compareNodeId)
         if (!compareTarget) return null
@@ -1886,10 +2109,10 @@ export default function EditorPage() {
         )
       })()}
 
-         <footer className="simulation-footer relative z-40 shrink-0 overflow-visible border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 !py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.04)] sm:px-4 !min-h-[58px]">
-        <div className="flex min-w-0 flex-nowrap items-center gap-2.5 overflow-visible">
+         <footer className={`simulation-footer relative z-40 shrink-0 overflow-visible border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.04)] sm:px-4 ${!(analysis || isReadOnly || collab.conflict) ? 'md:mr-[276px]' : ''}`}>
+        <div className="flex min-w-0 items-center gap-2 overflow-visible">
            <div className="flex items-center gap-2">
-            <button onClick={handleRun} disabled={!canRun} className={`run-button ${sim.isBusted ? '!bg-red-600 hover:!bg-red-700' : ''}`}><span>{sim.isPlaying ? '▶' : '▶'}</span> {sim.isBusted ? 'Restart' : sim.isPlaying ? 'Running' : sim.result ? 'Resume' : sim.isRunning ? 'Starting…' : 'Run'}<small>Ctrl + Enter</small></button>
+            <button onClick={handleRun} disabled={!canRun} className={`run-button ${sim.isBusted ? '!bg-red-600 hover:!bg-red-700' : ''}`} title="Ctrl + Enter"><span>{sim.isPlaying ? '▶' : '▶'}</span> {sim.isBusted ? 'Restart' : sim.isPlaying ? 'Running' : sim.result ? 'Resume' : sim.isRunning ? 'Starting…' : 'Run'}</button>
             {sim.isPlaying && <button onClick={sim.pause} className="simulation-secondary">Pause</button>}
             {sim.result && <button onClick={sim.reset} className="simulation-secondary danger">Stop</button>}
           </div>
@@ -1980,39 +2203,45 @@ export default function EditorPage() {
           </div>
 
 
-          <div className="live-metrics ml-auto flex min-w-0 shrink items-center gap-4 rounded-xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/40 px-4 py-2">
-             <div><span>RPS</span><b>{Math.round(global?.rps ?? 0).toLocaleString()}</b></div>
-            <div><span>p95 latency</span><b>{Math.round(global?.p95 ?? 0)}ms</b></div>
-            <div><span>Error rate</span><b className={(global?.errorRatePct ?? 0) >= 5 ? 'bad' : ''}>{(global?.errorRatePct ?? 0).toFixed(1)}%</b></div>
-            <div><span>Throughput</span><b>{((global?.rps ?? 0) / 100).toFixed(1)} MB/s</b></div>
-            {COST_FEATURE_ENABLED && nodes.length > 0 && (
-              <button
-                onClick={toggleRealPricing}
-                title="Click to open Multi-Cloud Cost Pipeline (AWS, GCP, Azure)"
-                className="flex items-center gap-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/70 dark:bg-emerald-950/40 px-2.5 py-1 text-left transition hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
-              >
-                <div>
-                  <span className="block text-[8px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Cloud Cost ▾</span>
-                  <b className="text-xs font-bold text-emerald-700 dark:text-emerald-300">~${estimatedMonthlyCost.toLocaleString()}/mo</b>
-                </div>
-              </button>
-            )}
+          {(sim.isRunning || sim.result) && (
+            <div className="live-metrics ml-auto flex min-w-0 shrink items-center gap-3 overflow-x-auto rounded-xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/40 px-3 py-1.5">
+               <div className="shrink-0"><span>RPS</span><b>{Math.round(global?.rps ?? 0).toLocaleString()}</b></div>
+              <div className="shrink-0"><span>p95</span><b>{Math.round(global?.p95 ?? 0)}ms</b></div>
+              <div className="shrink-0"><span>Errors</span><b className={(global?.errorRatePct ?? 0) >= 5 ? 'bad' : ''}>{(global?.errorRatePct ?? 0).toFixed(1)}%</b></div>
+              <div className="shrink-0"><span>Throughput</span><b>{((global?.rps ?? 0) / 100).toFixed(1)} MB/s</b></div>
+            </div>
+          )}
+
+          {COST_FEATURE_ENABLED && nodes.length > 0 && (
+            <button
+              onClick={toggleRealPricing}
+              title="Multi-Cloud Cost Pipeline"
+              className="shrink-0 flex items-center gap-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/70 dark:bg-emerald-950/40 px-2.5 py-1.5 text-left transition hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
+            >
+              <span className="text-[8px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Cost ▾</span>
+              <span className="flex gap-1.5 text-[10px] font-bold">
+                <span className="text-amber-700 dark:text-amber-400">${cloudEstimates.aws.total}</span>
+                <span className="text-blue-700 dark:text-blue-400">${cloudEstimates.gcp.total}</span>
+                <span className="text-sky-700 dark:text-sky-400">${cloudEstimates.azure.total}</span>
+              </span>
+            </button>
+          )}
+
+          <div className="ml-auto flex items-center gap-1.5">
+            <button onClick={handleValidate} disabled={nodes.length === 0} className="chaos-button shrink-0">🧩 Validate</button>
+            <button onClick={handleAnalyze} disabled={nodes.length === 0 || isAnalyzing} className="analyze-button shrink-0">✨ {isAnalyzing ? 'Analyzing…' : 'Analyze'}</button>
           </div>
-
-            <button onClick={handleValidate} disabled={nodes.length === 0} className="chaos-button shrink-0">🧩 <span>Validate</span></button>
-
-              <button onClick={handleAnalyze} disabled={nodes.length === 0 || isAnalyzing} className="analyze-button shrink-0">✨ <span>{isAnalyzing ? 'Analyzing…' : 'Analyze'}</span><small>AI Analysis</small></button>
         </div>
         {sim.error && <p className="mt-1 text-xs text-red-500 dark:text-red-400">{sim.error}</p>}
       </footer>
 
-           <div className="shortcut-strip hidden items-center justify-center gap-5 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-1.5 text-[9px] text-zinc-400 dark:text-zinc-500 lg:flex">
+           <div className={`shortcut-strip hidden items-center justify-center gap-5 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-1.5 text-[9px] text-zinc-400 dark:text-zinc-500 lg:flex ${!(analysis || isReadOnly || collab.conflict) ? 'md:mr-[276px]' : ''}`}>
         <span><kbd>Delete</kbd> Delete node</span><span><kbd>Ctrl + Z</kbd> Undo</span><span><kbd>Ctrl + Y</kbd> Redo</span><span><kbd>Ctrl + S</kbd> Save</span><span><kbd>Ctrl + A</kbd> Select all</span><span><kbd>Drag</kbd> Pan · <kbd>Scroll</kbd> Pan · <kbd>Ctrl + Scroll</kbd> Zoom</span><span><kbd>Esc</kbd> Cancel connection</span>
       </div>
  
       {showSaveDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 dark:bg-black/50 p-4 backdrop-blur-sm" onClick={() => setShowSaveDialog(false)}>
-          <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 dark:bg-black/50 p-4 backdrop-blur-sm" onClick={() => setShowSaveDialog(false)}>
+          <div className="modal-content-enter w-full max-w-sm rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Save project</h3>
             <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">Give this architecture a name so you can return to it later.</p>
             <input autoFocus type="text" placeholder="Project name" value={saveDraftName} onChange={(e) => setSaveDraftName(e.target.value)} className="mt-4 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2.5 text-sm text-zinc-800 dark:text-zinc-100 outline-none focus:border-violet-400 focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-900/40" />
@@ -2022,7 +2251,7 @@ export default function EditorPage() {
         </div>
       )}
 
-      {toast && <div className="fixed bottom-28 left-1/2 z-50 -translate-x-1/2 rounded-full bg-zinc-900 dark:bg-zinc-100 px-4 py-2 text-xs font-medium text-white dark:text-zinc-900 shadow-xl">{toast}</div>}
+      {toast && <div className="toast-enter fixed bottom-28 left-1/2 z-50 -translate-x-1/2 rounded-full bg-zinc-900 dark:bg-zinc-100 px-4 py-2 text-xs font-medium text-white dark:text-zinc-900 shadow-xl">{toast}</div>}
     </div>
   )
   }

@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Rough, illustrative monthly USD cost per component instance — not real cloud pricing,
+ * Rough, illustrative monthly USD cost per component instance - not real cloud pricing,
  * just enough to make cost trade-offs visible in AI findings. Mirrors
  * frontend/src/lib/cost.ts's MONTHLY_COST_USD; keep the two in sync manually.
  */
@@ -17,7 +17,7 @@ public class CostModel {
     private static final Set<String> REPLICATED_STORE_TYPES = Set.of("database", "searchIndex", "dataWarehouse");
     private static final Set<String> SCALING_GROUP_TYPES = Set.of("autoScalingGroup", "containerOrchestrator");
 
-    /** How many billable units (replicas/instances) a node represents — shared with real-pricing lookups. */
+    /** How many billable units (replicas/instances) a node represents - shared with real-pricing lookups. */
     public int unitsOf(GraphNode node) {
         if (SCALING_GROUP_TYPES.contains(node.type())) {
             return (int) Math.max(1, node.getNumber("minReplicas", 1));

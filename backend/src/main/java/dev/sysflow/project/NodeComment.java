@@ -16,7 +16,7 @@ public class NodeComment {
     @Column(name = "project_id", nullable = false)
     private UUID projectId;
 
-    /** The graph node id this comment is attached to — free-form, not a foreign key (nodes live inside project_json). */
+    /** The graph node id this comment is attached to - free-form, not a foreign key (nodes live inside project_json). */
     @Column(name = "node_id", nullable = false)
     private String nodeId;
 

@@ -22,7 +22,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 /**
  * Composes the raw canvas screenshot (from html-to-image) with a branded header/footer band
- * onto an offscreen <canvas>, then downloads the result — for sharing on a portfolio or with
+ * onto an offscreen <canvas>, then downloads the result - for sharing on a portfolio or with
  * an interviewer, distinct from the plain unbranded PNG export.
  */
 export async function exportBrandedImage(canvasScreenshotDataUrl: string, opts: BrandedExportOptions): Promise<void> {

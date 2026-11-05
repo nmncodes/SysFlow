@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Manual toggle (not just OS preference) — a `.dark` class on <html> flips every `dark:` utility. See lib/theme.ts. */
+/* Manual toggle (not just OS preference) - a `.dark` class on <html> flips every `dark:` utility. See lib/theme.ts. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
@@ -13,10 +13,11 @@
   --accent: #6d28d9;
   --accent-soft: #f3f0ff;
   --ease-apple: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
 }
 
-/* Scoped to the editor + landing page only this pass — see [[dark-mode-scope]] if you're wondering
-   why a page still looks light-only; other pages (Projects/Gallery/Interview/Auth) weren't converted. */
+/* Dark mode tokens - used by all pages via dark: Tailwind variants */
 .dark {
   color-scheme: dark;
   --bg: #18181b;
@@ -40,6 +41,7 @@ html {
 body {
   background: var(--bg);
   color: var(--text);
+  transition: background-color 0.3s var(--ease-apple), color 0.25s var(--ease-apple);
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', 'Segoe UI',
     system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -51,23 +53,51 @@ body {
   background: rgba(109, 40, 217, 0.15);
 }
 
+/* Smooth thin scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(113,113,122,0.25) transparent;
+}
+.dark * {
+  scrollbar-color: rgba(161,161,170,0.18) transparent;
+}
+*::-webkit-scrollbar { width: 6px; height: 6px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: rgba(113,113,122,0.25); border-radius: 3px; }
+*::-webkit-scrollbar-thumb:hover { background: rgba(113,113,122,0.4); }
+.dark *::-webkit-scrollbar-thumb { background: rgba(161,161,170,0.18); }
+
+/* Smooth input focus */
+input, textarea, select {
+  transition: border-color 0.2s var(--ease-apple), box-shadow 0.2s var(--ease-apple), background-color 0.2s var(--ease-apple);
+}
+
 /* Apple-style tactile press: every interactive control eases with the
    same spring-like curve and settles slightly on press. */
 button, a {
-  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
-  transition-duration: 0.18s;
+  transition-property: color, background-color, border-color, box-shadow, transform, opacity, filter;
+  transition-duration: 0.2s;
   transition-timing-function: var(--ease-apple);
 }
 
-button:active, a:active {
+button:active:not(:disabled), a:active {
   transform: scale(0.97);
+  transition-duration: 0.08s;
+}
+
+/* Smooth focus rings for keyboard accessibility */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+  transition: outline-offset 0.15s var(--ease-apple);
 }
 
 .react-flow__attribution {
   display: none;
 }
 
-/* Plain authored class for primary CTAs — a couple of Tailwind utility
+/* Plain authored class for primary CTAs - a couple of Tailwind utility
    combos on these buttons intermittently failed to apply their
    background/text color (verified via devtools: text renders fine,
    bg-zinc-900/text-white simply weren't taking effect). Rather than
@@ -76,33 +106,50 @@ button:active, a:active {
 .btn-dark {
   background-color: #18181b;
   color: #ffffff;
+  transition: background-color 0.2s var(--ease-apple), transform 0.2s var(--ease-apple), box-shadow 0.25s var(--ease-apple);
 }
 
 .btn-dark:hover {
   background-color: #3f3f46;
+  box-shadow: 0 8px 24px -8px rgba(15,23,42,0.35);
+}
+
+.dark .btn-dark {
+  background-color: #f4f4f5;
+  color: #18181b;
+}
+
+.dark .btn-dark:hover {
+  background-color: #e4e4e7;
+  box-shadow: 0 8px 24px -8px rgba(244,244,245,0.15);
 }
 
 /* Hero entrance: each element fades/slides up in sequence on page load. */
 @keyframes hero-rise {
-  from {
+  0% {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translateY(22px);
+    filter: blur(6px);
   }
-  to {
+  50% {
+    filter: blur(0);
+  }
+  100% {
     opacity: 1;
     transform: translateY(0);
+    filter: blur(0);
   }
 }
 
 .hero-in {
   opacity: 0;
-  animation: hero-rise 0.7s var(--ease-apple) forwards;
+  animation: hero-rise 0.8s var(--ease-apple) forwards;
 }
 
-.hero-in-delay-1 { animation-delay: 0.08s; }
-.hero-in-delay-2 { animation-delay: 0.16s; }
-.hero-in-delay-3 { animation-delay: 0.24s; }
-.hero-in-delay-4 { animation-delay: 0.34s; }
+.hero-in-delay-1 { animation-delay: 0.1s; }
+.hero-in-delay-2 { animation-delay: 0.2s; }
+.hero-in-delay-3 { animation-delay: 0.32s; }
+.hero-in-delay-4 { animation-delay: 0.44s; }
 
 @keyframes live-pulse {
   0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
@@ -120,7 +167,7 @@ button:active, a:active {
   }
 }
 
-/* Highlight-marker swipe behind the hero's emphasized phrase — a soft
+/* Highlight-marker swipe behind the hero's emphasized phrase - a soft
    tinted band growing in from the left, timed just after the headline
    fades in. Reads as a designed accent rather than a browser underline. */
 .underline-sweep {
@@ -149,24 +196,42 @@ button:active, a:active {
   }
 }
 
+/* Subtle float for landing page preview nodes */
+@keyframes node-float {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, -6px); }
+}
+
+.preview-node-float {
+  animation: node-float 4s ease-in-out infinite;
+}
+
 /* Scroll-triggered reveal, applied via useInView + an "in-view" class toggle. */
 .reveal {
   opacity: 0;
-  transform: translateY(18px);
-  transition: opacity 0.7s var(--ease-apple), transform 0.7s var(--ease-apple);
+  transform: translateY(28px) scale(0.98);
+  filter: blur(4px);
+  transition: opacity 0.8s var(--ease-out-expo), transform 0.8s var(--ease-out-expo), filter 0.6s var(--ease-apple);
 }
 
 .reveal.in-view {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
+  filter: blur(0);
 }
 
 .hover-lift {
-  transition: transform 0.25s var(--ease-apple), box-shadow 0.25s var(--ease-apple), border-color 0.25s var(--ease-apple);
+  transition: transform 0.3s var(--ease-apple), box-shadow 0.3s var(--ease-apple), border-color 0.3s var(--ease-apple);
+  will-change: transform;
 }
 
 .hover-lift:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0,0,0,.08);
+}
+
+.dark .hover-lift:hover {
+  box-shadow: 0 12px 28px rgba(0,0,0,.3);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -184,21 +249,22 @@ button:active, a:active {
    the empty-canvas hint breathes gently, and the live status pill
    fades/scales in when a simulation starts. */
 @keyframes node-pop-in {
-  from { opacity: 0; transform: scale(0.85); }
-  to { opacity: 1; transform: scale(1); }
+  0% { opacity: 0; transform: scale(0.8); filter: blur(2px); }
+  70% { transform: scale(1.03); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
 }
 
 .node-pop-in {
-  animation: node-pop-in 0.28s var(--ease-apple);
+  animation: node-pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes panel-slide-in {
-  from { opacity: 0; transform: translateX(-12px); }
-  to { opacity: 1; transform: translateX(0); }
+  0% { opacity: 0; transform: translateX(-16px); filter: blur(2px); }
+  100% { opacity: 1; transform: translateX(0); filter: blur(0); }
 }
 
 .panel-slide-in {
-  animation: panel-slide-in 0.25s var(--ease-apple);
+  animation: panel-slide-in 0.3s var(--ease-apple);
 }
 
 @keyframes empty-hint-float {
@@ -220,7 +286,7 @@ button:active, a:active {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .node-pop-in, .panel-slide-in, .empty-canvas-hint, .status-pill-in {
+  .node-pop-in, .panel-slide-in, .empty-canvas-hint, .status-pill-in, .node-health-pulse, .node-health-pulse-fast {
     animation: none;
   }
 }
@@ -279,8 +345,9 @@ button:active, a:active {
 .editor-canvas .react-flow { background: #fbfeff; }
 .editor-canvas .react-flow__pane { cursor: default; }
 .editor-canvas .react-flow__pane:active { cursor: grabbing; }
-.editor-canvas .react-flow__controls { left: 16px; bottom: 16px; border-radius: 11px; overflow: hidden; }
-.editor-canvas .react-flow__controls-button { width: 32px; height: 32px; }
+.editor-canvas .react-flow__controls { left: 12px; bottom: 12px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.editor-canvas .react-flow__controls-button { width: 24px; height: 24px; }
+.editor-canvas .react-flow__controls-button svg { width: 10px; height: 10px; }
 
 .sysflow-handle { opacity: .1; transition: opacity .15s, transform .15s, background-color .15s; }
 .sysflow-node:hover .sysflow-handle,
@@ -292,7 +359,12 @@ button:active, a:active {
 .node-actions { opacity: 0; pointer-events: none; transform: translateY(4px); transition: opacity .16s ease, transform .16s ease; }
 .sysflow-node:hover .node-actions, .sysflow-node:focus-within .node-actions { opacity: 1; pointer-events: auto; transform: translateY(0); }
 .node-health-pulse { animation: node-health-pulse 1.8s ease-in-out infinite; }
+.node-health-pulse-fast { animation: node-health-pulse .9s ease-in-out infinite, node-critical-shake .4s ease-in-out infinite; }
 @keyframes node-health-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(245,158,11,.08); } 50% { box-shadow: 0 0 0 5px rgba(245,158,11,.07); } }
+@keyframes node-critical-shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-1.5px); } 75% { transform: translateX(1.5px); } }
+.node-finding-highlight { box-shadow: 0 0 0 3px var(--finding-color, #8b5cf6), 0 0 12px 2px color-mix(in srgb, var(--finding-color, #8b5cf6) 25%, transparent) !important; border-style: dashed !important; }
+.sysflow-failed-particle { opacity: 0; }
+@keyframes failed-particle-fade { 0% { opacity: 1; r: 3.2; } 60% { opacity: .8; r: 4; } 100% { opacity: 0; r: 1; } }
 
 .empty-state-card { animation: empty-card-in .35s var(--ease-apple); }
 @keyframes empty-card-in { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
@@ -312,12 +384,12 @@ button:active, a:active {
 
 .config-sidebar, .analysis-sidebar { box-shadow: -8px 0 24px rgba(24,24,27,.035); }
 
-.simulation-footer { min-height: 74px; }
-.run-button { display:inline-flex; align-items:center; gap:8px; border-radius:11px; background:#10b981; color:white; padding:10px 16px; font-size:12px; font-weight:700; box-shadow:0 6px 16px rgba(16,185,129,.18); }
-.run-button:hover:not(:disabled) { background:#059669; transform:translateY(-1px); }
-.run-button small { font-size:8px; font-weight:600; opacity:.7; }
+.simulation-footer { min-height: 42px; }
+.run-button { display:inline-flex; align-items:center; gap:5px; border-radius:8px; background:#10b981; color:white; padding:6px 12px; font-size:11px; font-weight:700; box-shadow:0 2px 8px rgba(16,185,129,.15); }
+.run-button:hover:not(:disabled) { background:#059669; }
+.run-button small { display:none; }
 .run-button:disabled { cursor:not-allowed; opacity:.4; box-shadow:none; }
-.simulation-secondary { border:1px solid #e4e4e7; background:#fff; color:#71717a; border-radius:10px; padding:9px 12px; font-size:11px; font-weight:700; }
+.simulation-secondary { border:1px solid #e4e4e7; background:#fff; color:#71717a; border-radius:7px; padding:5px 10px; font-size:10px; font-weight:700; }
 .simulation-secondary:hover { background:#fafafa; color:#3f3f46; }
 .simulation-secondary.danger { color:#ef4444; border-color:#fee2e2; }
 .simulation-state { display:flex; align-items:center; gap:5px; white-space:nowrap; color:#a1a1aa; font-size:10px; }
@@ -333,7 +405,7 @@ button:active, a:active {
 .segmented-group button { min-width:31px; border:1px solid transparent; border-radius:8px; padding:7px 7px; color:#a1a1aa; font-size:10px; font-weight:700; }
 .segmented-group button:hover { background:#f8f8fa; color:#52525b; }
 .segmented-group button.active { border-color:#c4b5fd; background:#faf5ff; color:#7c3aed; }
-.chaos-button { display:inline-flex; align-items:center; gap:6px; border:1px solid #e4e4e7; border-radius:10px; background:white; padding:9px 12px; color:#71717a; font-size:11px; font-weight:700; }
+.chaos-button { display:inline-flex; align-items:center; gap:4px; border:1px solid #e4e4e7; border-radius:7px; background:white; padding:5px 10px; color:#71717a; font-size:10px; font-weight:700; }
 .chaos-button:hover, .chaos-button.active { border-color:#fca5a5; background:#fff7f7; color:#ef4444; }
 .chaos-button b { display:flex; height:16px; min-width:16px; align-items:center; justify-content:center; border-radius:999px; background:#ef4444; color:#fff; font-size:8px; }
 .chaos-popover { position:absolute; bottom:calc(100% + 10px); left:0; z-index:70; width:320px; border:1px solid #e4e4e7; border-radius:16px; background:white; padding:14px; box-shadow:0 18px 50px rgba(24,24,27,.16); }
@@ -345,9 +417,8 @@ button:active, a:active {
 .live-metrics span { display:block; color:#a1a1aa; font-size:8px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
 .live-metrics b { display:block; margin-top:2px; color:#0891b2; font-size:13px; font-weight:800; }
 .live-metrics b.bad { color:#ef4444; }
-.analyze-button { display:flex; min-width:102px; flex-direction:column; align-items:center; justify-content:center; border-radius:11px; background:linear-gradient(135deg,#8b5cf6,#6d28d9); color:white; padding:8px 14px; font-size:12px; font-weight:800; box-shadow:0 7px 18px rgba(109,40,217,.2); }
+.analyze-button { display:inline-flex; align-items:center; gap:4px; border-radius:7px; background:linear-gradient(135deg,#8b5cf6,#6d28d9); color:white; padding:5px 10px; font-size:10px; font-weight:700; box-shadow:0 2px 8px rgba(109,40,217,.15); white-space:nowrap; }
 .analyze-button:hover:not(:disabled) { transform:translateY(-1px); filter:brightness(1.03); }
-.analyze-button small { margin-top:2px; font-size:8px; font-weight:600; opacity:.75; }
 .analyze-button:disabled { opacity:.4; cursor:not-allowed; box-shadow:none; }
 .shortcut-strip kbd { border:1px solid #e4e4e7; border-radius:4px; background:#fafafa; padding:1px 4px; color:#71717a; font-size:8px; }
 
@@ -363,7 +434,7 @@ button:active, a:active {
 @media (max-width: 760px) {
   /* The side library becomes a sheet at this breakpoint, so the dock can reclaim the full width. */
   /* .component-sidebar/.config-sidebar/.analysis-sidebar go full-width bottom sheets below md (768px)
-     via Tailwind classes on the elements themselves — no width/position override needed here anymore. */
+     via Tailwind classes on the elements themselves - no width/position override needed here anymore. */
   .toolbar-button { padding:0 9px; }
   .chaos-popover { left:auto; right:0; }
 }
@@ -375,7 +446,7 @@ button:active, a:active {
 }
 
 /* ================================================================
-   SysFlow Visual Polish — premium light editor layer
+   SysFlow Visual Polish - premium light editor layer
    ================================================================ */
 .editor-shell {
   --sf-cyan: #12b7d2;
@@ -622,7 +693,7 @@ button:active, a:active {
   color: var(--card-family-color, #0891b2) !important;
 }
 
-/* Minimap — left side, below canvas controls and above simulation dock */
+/* Minimap - left side, below canvas controls and above simulation dock */
 .sysflow-minimap {
   left: 18px !important;
   right: auto !important;
@@ -716,8 +787,6 @@ button:active, a:active {
 .live-metrics div { min-width: 62px; }
 .live-metrics b { font-size: 14px; color: #0891b2; }
 .analyze-button {
-  min-width: 112px;
-  min-height: 48px;
   border-radius: 13px;
   background: linear-gradient(135deg,#8b5cf6 0%,#6d28d9 100%);
   box-shadow: 0 10px 25px rgba(109,40,217,.23), inset 0 1px 0 rgba(255,255,255,.16);
@@ -752,7 +821,7 @@ button:active, a:active {
   border: 1px solid #e4ebee;
 }
 
-/* Both scoped to min-width:768px (Tailwind's md) and up — below that, the sidebars are full-width
+/* Both scoped to min-width:768px (Tailwind's md) and up - below that, the sidebars are full-width
    bottom sheets (Tailwind classes on the elements) and must not have a width forced here. */
 @media (min-width: 768px) and (max-width: 1250px) {
   .component-sidebar { width: 270px !important; }
@@ -768,7 +837,7 @@ button:active, a:active {
 }
 
 /* ================================================================
-   Dark mode overrides — editor UI only (see [[dark-mode-scope]] above).
+   Dark mode overrides - editor UI only (see [[dark-mode-scope]] above).
    Additive: light rules above are untouched, these just override on top
    when the ancestor <html> has the `.dark` class (see lib/theme.ts).
    ================================================================ */
@@ -1053,7 +1122,7 @@ button:active, a:active {
 }
 
 /* ================================================================
-   SysFlow Command Dock — compact floating simulation console
+   SysFlow Command Dock - compact floating simulation console
    ================================================================ */
 .editor-shell .simulation-footer {
   position: absolute !important;
@@ -1153,16 +1222,16 @@ button:active, a:active {
 .editor-shell .simulation-select-trigger {
   display: inline-flex;
   align-items: center;
-  min-width: 88px;
-  height: 38px;
-  gap: 7px;
-  padding: 0 9px;
+  min-width: 72px;
+  height: 30px;
+  gap: 5px;
+  padding: 0 7px;
   border: 1px solid #e1eaee;
-  border-radius: 11px;
-  background: linear-gradient(180deg,#ffffff,#f8fbfc);
+  border-radius: 7px;
+  background: #fff;
   color: #536174;
-  box-shadow: 0 2px 7px rgba(15,23,42,.035), inset 0 1px 0 rgba(255,255,255,.9);
-  transition: border-color .16s ease, background .16s ease, box-shadow .16s ease, transform .16s ease;
+  box-shadow: 0 1px 3px rgba(15,23,42,.04);
+  transition: border-color .16s ease, background .16s ease, box-shadow .16s ease;
 }
 .editor-shell .simulation-select-trigger:hover,
 .editor-shell .simulation-select-trigger.open {
@@ -1348,10 +1417,6 @@ button:active, a:active {
   font-size: 10px !important;
   box-shadow: 0 9px 20px rgba(109,40,217,.20) !important;
 }
-.editor-shell .simulation-footer .analyze-button small {
-  margin-top: 1px !important;
-  font-size: 7px !important;
-}
 .editor-shell .simulation-footer .chaos-popover {
   bottom: calc(100% + 9px) !important;
   z-index: 80 !important;
@@ -1525,7 +1590,7 @@ button:active, a:active {
 .dark .editor-shell .simulation-footer .chaos-button.active { background: #2b1e20 !important; color: #f87171 !important; }
 
 /* ================================================================
-   SysFlow visual refresh — canvas controls, component library, header
+   SysFlow visual refresh - canvas controls, component library, header
    Functional markup/behaviour is unchanged; this layer only refines
    placement, hierarchy, glass surfaces, colour, depth and interaction.
    ================================================================ */
@@ -1561,7 +1626,7 @@ button:active, a:active {
 }
 
 /* ---------------------------------------------------------------
-   Top command header — glassy product-console treatment
+   Top command header - glassy product-console treatment
    --------------------------------------------------------------- */
 .editor-shell .editor-header {
   position: relative !important;
@@ -1727,7 +1792,7 @@ button:active, a:active {
 }
 
 /* ---------------------------------------------------------------
-   Component library — turn the plain rail into a designed glass panel
+   Component library - turn the plain rail into a designed glass panel
    --------------------------------------------------------------- */
 .editor-shell .component-sidebar {
   width: 320px !important;
@@ -1847,66 +1912,58 @@ button:active, a:active {
 /* Component cards: softer, more tactile, more visual differentiation. */
 .editor-shell .component-sidebar .component-card {
   position: relative;
-  min-height: 84px !important;
-  padding: 10px 6px 9px !important;
-  gap: 7px;
-  border: 1.5px solid var(--card-family-color, rgba(219,231,235,.94)) !important;
-  border-radius: 14px !important;
-  background:
-    linear-gradient(145deg, rgba(255,255,255,.96), rgba(246,250,252,.88)) !important;
+  min-height: 56px !important;
+  padding: 7px 5px 6px !important;
+  gap: 4px;
+  border: 1px solid var(--card-family-color, rgba(219,231,235,.94)) !important;
+  border-radius: 10px !important;
+  background: rgba(255,255,255,.96) !important;
   color: #5b6472;
-  box-shadow:
-    0 4px 10px rgba(15,23,42,.035),
-    inset 0 1px 0 rgba(255,255,255,.96) !important;
+  box-shadow: 0 2px 6px rgba(15,23,42,.03) !important;
   overflow: hidden;
 }
 .editor-shell .component-sidebar .component-card::after {
   content: '';
   position: absolute;
-  width: 42px;
-  height: 42px;
-  right: -19px;
-  top: -19px;
+  width: 28px;
+  height: 28px;
+  right: -12px;
+  top: -12px;
   border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--card-family-color, #12b7d2) 18%, transparent), transparent 68%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--card-family-color, #12b7d2) 12%, transparent), transparent 68%);
   pointer-events: none;
 }
 
 .editor-shell .component-sidebar .component-card:hover {
   border-color: var(--card-family-color, rgba(136,214,224,.95)) !important;
-  background:
-    linear-gradient(145deg, #ffffff, color-mix(in srgb, var(--card-family-color, #12b7d2) 8%, #ffffff)) !important;
+  background: color-mix(in srgb, var(--card-family-color, #12b7d2) 4%, #ffffff) !important;
   box-shadow:
-    0 12px 24px rgba(15,23,42,.085),
-    0 0 0 3px color-mix(in srgb, var(--card-family-color, #12b7d2) 14%, transparent),
-    inset 0 1px 0 rgba(255,255,255,.98) !important;
-  transform: translateY(-3px) !important;
+    0 6px 16px rgba(15,23,42,.06),
+    0 0 0 2px color-mix(in srgb, var(--card-family-color, #12b7d2) 10%, transparent) !important;
+  transform: translateY(-1px) !important;
 }
 .editor-shell .component-sidebar .component-icon {
-  width: 42px !important;
-  height: 42px !important;
-  min-width: 42px !important;
-  border: 1px solid color-mix(in srgb, var(--card-family-color, #0891b2) 32%, rgba(219,232,236,.96)) !important;
-  border-radius: 12px !important;
-  background: linear-gradient(145deg,#ffffff,color-mix(in srgb, var(--card-family-color, #0891b2) 10%, #f9fcfd)) !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  border: 1px solid color-mix(in srgb, var(--card-family-color, #0891b2) 25%, rgba(219,232,236,.96)) !important;
+  border-radius: 8px !important;
+  background: color-mix(in srgb, var(--card-family-color, #0891b2) 6%, #f9fcfd) !important;
   color: var(--card-family-color, #788493) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.96),
-    0 3px 8px rgba(15,23,42,.035) !important;
+  box-shadow: none !important;
 }
 .editor-shell .component-sidebar .component-card:hover .component-icon {
-  border-color: color-mix(in srgb, var(--card-family-color, #0891b2) 55%, rgba(157,225,233,.95)) !important;
-  background: linear-gradient(145deg,#ffffff,color-mix(in srgb, var(--card-family-color, #0891b2) 16%, #ffffff)) !important;
+  border-color: color-mix(in srgb, var(--card-family-color, #0891b2) 45%, rgba(157,225,233,.95)) !important;
+  background: color-mix(in srgb, var(--card-family-color, #0891b2) 12%, #ffffff) !important;
   color: var(--card-family-color, #0891b2) !important;
-  box-shadow: 0 5px 12px rgba(18,183,210,.10), inset 0 1px 0 rgba(255,255,255,.95) !important;
 }
 .editor-shell .component-sidebar .component-card > span:last-child {
   position: relative;
   z-index: 1;
   color: #334155 !important;
-  font-size: 11px !important;
+  font-size: 9px !important;
   line-height: 1.15 !important;
-  font-weight: 750 !important;
+  font-weight: 700 !important;
   letter-spacing: -.01em;
 }
 .editor-shell .component-sidebar .component-card:hover > span:last-child {
@@ -2043,7 +2100,7 @@ button:active, a:active {
   background: linear-gradient(145deg,#302c38,#28252d) !important;
 }
 
-/* Minimap alignment polish — keep the header truly centered and the collapse arrow prominent. */
+/* Minimap alignment polish - keep the header truly centered and the collapse arrow prominent. */
 .editor-shell .sysflow-minimap:not(.is-minimized) {
   height: 164px !important;
 }
@@ -2215,20 +2272,20 @@ button:active, a:active {
 
   .component-sidebar-toggle {
     position: absolute !important;
-    left: -17px !important;
+    left: -10px !important;
     top: 50% !important;
     transform: translateY(-50%) !important;
-    width: 34px !important;
-    height: 34px !important;
+    width: 20px !important;
+    height: 20px !important;
     align-items: center !important;
     justify-content: center !important;
-    border: 1px solid #cfe3e8 !important;
+    border: 1px solid #d4dee3 !important;
     border-radius: 999px !important;
     background: rgba(255,255,255,.98) !important;
-    color: #334155 !important;
-    box-shadow: 0 8px 22px rgba(15,23,42,.14), 0 0 0 4px rgba(255,255,255,.62) !important;
+    color: #64748b !important;
+    box-shadow: 0 2px 8px rgba(15,23,42,.1) !important;
     z-index: 60 !important;
-    font-size: 24px !important;
+    font-size: 11px !important;
     line-height: 1 !important;
     font-weight: 500 !important;
   }
@@ -2258,7 +2315,7 @@ button:active, a:active {
   border-color: #4a4a53 !important;
   background: #f8fafc !important;
   color: #111827 !important;
-  box-shadow: 0 8px 22px rgba(0,0,0,.45), 0 0 0 4px rgba(24,24,27,.75) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3) !important;
 }
 .dark .component-sidebar-toggle:hover {
   border-color: #67e8f9 !important;
@@ -2289,7 +2346,7 @@ button:active, a:active {
   opacity: .42 !important;
 }
 
-/* More expressive architecture nodes — no DOM/behavior changes. */
+/* More expressive architecture nodes - no DOM/behavior changes. */
 .sysflow-node {
   min-width: 172px !important;
   border-width: 2px !important;
@@ -2369,40 +2426,40 @@ button:active, a:active {
 
 /* Right panel card hierarchy and readable typography. */
 .component-sidebar .component-card {
-  min-height: 82px !important;
-  border-radius: 14px !important;
-  padding: 10px 6px !important;
-  gap: 7px !important;
-  border-width: 1.5px !important;
+  min-height: 56px !important;
+  border-radius: 10px !important;
+  padding: 6px 4px !important;
+  gap: 3px !important;
+  border-width: 1px !important;
   border-color: var(--card-family-color, #d7e7eb) !important;
-  background:
-    linear-gradient(145deg,#ffffff 0%,color-mix(in srgb, var(--card-family-color, #0891b2) 5%, #ffffff) 100%) !important;
-  box-shadow: 0 5px 14px rgba(15,23,42,.055), inset 0 1px 0 #fff !important;
+  background: #fff !important;
+  box-shadow: 0 2px 6px rgba(15,23,42,.04) !important;
 }
 .component-sidebar .component-card:hover {
   border-color: var(--card-family-color, #7dd3df) !important;
-  box-shadow: 0 12px 24px rgba(15,23,42,.11), 0 0 0 2px color-mix(in srgb, var(--card-family-color, #12b7d2) 15%, transparent) !important;
+  box-shadow: 0 4px 12px rgba(15,23,42,.08) !important;
+  transform: translateY(-1px);
 }
 .component-sidebar .component-icon {
-  width: 42px !important;
-  height: 42px !important;
-  border-radius: 13px !important;
-  border-color: color-mix(in srgb, var(--card-family-color, #0891b2) 35%, #d4e7eb) !important;
-  background: linear-gradient(145deg,#ffffff,color-mix(in srgb, var(--card-family-color, #0891b2) 12%, #f8fafc)) !important;
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 7px !important;
+  border-color: color-mix(in srgb, var(--card-family-color, #0891b2) 25%, #e4edf0) !important;
+  background: color-mix(in srgb, var(--card-family-color, #0891b2) 6%, #f8fafc) !important;
   color: var(--card-family-color, #0891b2) !important;
-  box-shadow: 0 4px 10px rgba(15,23,42,.05), inset 0 1px 0 #fff !important;
+  box-shadow: none !important;
 }
 .component-sidebar .component-card > span:last-child {
-  font-size: 11px !important;
-  line-height: 1.25 !important;
-  font-weight: 800 !important;
+  font-size: 9px !important;
+  line-height: 1.2 !important;
+  font-weight: 700 !important;
   color: #334155 !important;
 }
 .component-sidebar .text-\[10px\] {
-  font-size: 11px !important;
+  font-size: 10px !important;
 }
 .component-sidebar .text-\[9px\] {
-  font-size: 10px !important;
+  font-size: 9px !important;
 }
 .dark .component-sidebar {
   border-left-color: #3f4b53 !important;
@@ -2410,18 +2467,18 @@ button:active, a:active {
   box-shadow: -16px 0 38px rgba(0,0,0,.38) !important;
 }
 .dark .component-sidebar .component-card {
-  border-width: 1.5px !important;
+  border-width: 1px !important;
   border-color: var(--card-family-color, #44515a) !important;
-  background: linear-gradient(145deg,#242a2e,#20252a) !important;
-  box-shadow: 0 7px 18px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.035) !important;
+  background: #1e2428 !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,.2) !important;
 }
 .dark .component-sidebar .component-card:hover {
   border-color: var(--card-family-color, #67e8f9) !important;
-  box-shadow: 0 12px 26px rgba(0,0,0,.45), 0 0 0 2px color-mix(in srgb, var(--card-family-color, #67e8f9) 18%, transparent) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,.3) !important;
 }
 .dark .component-sidebar .component-icon {
-  border-color: color-mix(in srgb, var(--node-family-color, var(--card-family-color, #67e8f9)) 45%, #52616a) !important;
-  background: linear-gradient(145deg,#29383d,#312a40) !important;
+  border-color: color-mix(in srgb, var(--card-family-color, #67e8f9) 30%, #3a4a53) !important;
+  background: color-mix(in srgb, var(--card-family-color, #67e8f9) 8%, #1a2226) !important;
   color: var(--card-family-color, #e2e8f0) !important;
 }
 .dark .component-sidebar .component-card > span:last-child {
@@ -2438,4 +2495,81 @@ button:active, a:active {
 }
 .dark .component-sidebar input::placeholder {
   color: #94a3b8 !important;
+}
+
+/* ================================================================
+   Page-level animations - entrance, cards, loading, modals
+   ================================================================ */
+
+@keyframes page-fade-up {
+  0%   { opacity: 0; transform: translateY(20px); filter: blur(4px); }
+  60%  { filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+@keyframes card-rise {
+  0%   { opacity: 0; transform: translateY(24px) scale(.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+@keyframes modal-backdrop-in {
+  from { opacity: 0; backdrop-filter: blur(0); }
+  to   { opacity: 1; backdrop-filter: blur(4px); }
+}
+@keyframes modal-content-in {
+  0%   { opacity: 0; transform: translateY(24px) scale(.92); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes auth-form-switch {
+  0%   { opacity: 0; transform: translateY(12px) scale(.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.page-enter { animation: page-fade-up .55s var(--ease-apple) both; }
+.page-enter-delay-1 { animation: page-fade-up .55s var(--ease-apple) .1s both; }
+.page-enter-delay-2 { animation: page-fade-up .55s var(--ease-apple) .2s both; }
+
+.card-enter { animation: card-rise .5s var(--ease-apple) both; }
+.card-stagger-1 { animation-delay: .05s; }
+.card-stagger-2 { animation-delay: .10s; }
+.card-stagger-3 { animation-delay: .15s; }
+.card-stagger-4 { animation-delay: .20s; }
+.card-stagger-5 { animation-delay: .25s; }
+.card-stagger-6 { animation-delay: .30s; }
+.card-stagger-7 { animation-delay: .35s; }
+.card-stagger-8 { animation-delay: .40s; }
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.5s infinite linear;
+  border-radius: 12px;
+}
+.dark .skeleton-shimmer {
+  background: linear-gradient(90deg, #2a2a2e 25%, #333338 50%, #2a2a2e 75%);
+  background-size: 800px 100%;
+}
+
+.modal-backdrop-enter { animation: modal-backdrop-in .3s var(--ease-apple) both; }
+.modal-content-enter  { animation: modal-content-in .35s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+.auth-form-enter { animation: auth-form-switch .4s var(--ease-apple) both; }
+
+@keyframes toast-in {
+  0%   { opacity: 0; transform: translate(-50%, 12px) scale(.9); }
+  100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+.toast-enter { animation: toast-in .3s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter, .page-enter-delay-1, .page-enter-delay-2,
+  .card-enter, .skeleton-shimmer, .modal-backdrop-enter,
+  .modal-content-enter, .auth-form-enter, .toast-enter,
+  .preview-node-float {
+    animation: none !important;
+  }
+  .reveal { filter: none; }
+  .hero-in { filter: none; }
 }

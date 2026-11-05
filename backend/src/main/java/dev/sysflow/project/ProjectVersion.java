@@ -9,7 +9,7 @@ import java.util.UUID;
 
 /**
  * A snapshot of a project's graphJson taken just before it was overwritten,
- * so a save can be undone later. Phase 9 roadmap item — see docs/05-ROADMAP.md.
+ * so a save can be undone later. Phase 9 roadmap item - see docs/05-ROADMAP.md.
  * Pruned to the last MAX_VERSIONS_PER_PROJECT per project in ProjectController.
  */
 @Entity

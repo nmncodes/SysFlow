@@ -75,13 +75,13 @@ public class InterviewGrader {
         List<Finding> findings = ruleEngine.analyze(graph);
 
         if (!isEnabled()) {
-            return ruleBasedFallback(findings, "AI grading is not configured — this is a rule-based estimate only.");
+            return ruleBasedFallback(findings, "AI grading is not configured - this is a rule-based estimate only.");
         }
         try {
             return callGemini(prompt, nodes, findings);
         } catch (Exception e) {
             log.warn("Interview grading via Gemini failed, falling back to rule-based estimate", e);
-            return ruleBasedFallback(findings, "AI grading failed — this is a rule-based estimate only.");
+            return ruleBasedFallback(findings, "AI grading failed - this is a rule-based estimate only.");
         }
     }
 
@@ -112,7 +112,7 @@ public class InterviewGrader {
         }
     }
 
-    /** Clamps every score into [0, MAX_PER_CATEGORY] — never trust an LLM's arithmetic blindly. */
+    /** Clamps every score into [0, MAX_PER_CATEGORY] - never trust an LLM's arithmetic blindly. */
     private GradeResponse toResponse(RawGrade raw) {
         List<GradeResponse.CategoryScore> categories = raw.categories().stream()
                 .map(c -> new GradeResponse.CategoryScore(c.name(), clamp(c.score(), MAX_PER_CATEGORY), MAX_PER_CATEGORY, c.feedback()))
@@ -131,8 +131,8 @@ public class InterviewGrader {
             case "warning" -> 8;
             default -> 3;
         }).sum();
-        int overall = clamp(100 - deduction, 100);
-        int perCategory = clamp((int) Math.round(overall / 4.0), MAX_PER_CATEGORY);
+        int perCategory = clamp((int) Math.round((100 - deduction) / 4.0), MAX_PER_CATEGORY);
+        int overall = perCategory * 4;
 
         List<GradeResponse.CategoryScore> categories = RUBRIC.stream()
                 .map(name -> new GradeResponse.CategoryScore(name, perCategory, MAX_PER_CATEGORY, caveat))
@@ -167,11 +167,11 @@ public class InterviewGrader {
                 %s
 
                 Rules:
-                - Base your scoring on the actual components and connections present — do not invent
+                - Base your scoring on the actual components and connections present - do not invent
                   components that aren't in the graph, and do not assume capabilities (like caching or
                   auto-scaling) unless a component of that type is actually present.
                 - Weigh how well the design addresses THIS SPECIFIC problem's key considerations, not
-                  generic system design best practice alone — e.g. a well-built design that ignores the
+                  generic system design best practice alone - e.g. a well-built design that ignores the
                   brief's core challenge should score low on "Trade-off Awareness" even if it's otherwise sound.
                 - "feedback" per category should be 1-2 sentences, specific to what's actually in the graph.
                 - "summary" is 2-3 sentences overall.

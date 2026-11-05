@@ -15,7 +15,6 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import ArchNode, { type ArchNodeData } from './ArchNode'
 import ArchEdge, { type ArchEdgeData } from './ArchEdge'
-import ArchitectureOverview from './ArchitectureOverview'
 import Palette from './Palette'
 import ConfigPanel from './ConfigPanel'
 import ContextMenu, { type ContextMenuState } from './ContextMenu'
@@ -56,10 +55,12 @@ interface Props {
   onLoadSample?: () => void
   onBrowseTemplates?: () => void
   onImportSrs?: () => void
+  onGenerate?: () => void
   brandedExportRequest?: number
   projectName?: string
   estimatedMonthlyCost?: number
   readOnly?: boolean
+  highlightedNodes?: Record<string, string>
 }
 
 export default function Canvas({
@@ -86,10 +87,12 @@ export default function Canvas({
   onLoadSample,
   onBrowseTemplates,
   onImportSrs,
+  onGenerate,
   brandedExportRequest,
   projectName = 'Untitled Project',
   estimatedMonthlyCost,
   readOnly = false,
+  highlightedNodes,
 }: Props) {
   const [selectedNodeId, setSelectedNodeIdState] = useState<string | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
@@ -191,7 +194,7 @@ export default function Canvas({
     [rfInstance, addNodeAt, readOnly],
   )
 
-  /** Tap-to-add fallback for touch devices — HTML5 drag-and-drop doesn't fire on most mobile browsers. */
+  /** Tap-to-add fallback for touch devices - HTML5 drag-and-drop doesn't fire on most mobile browsers. */
   const onTapAdd = useCallback(
     (componentType: string) => {
       if (!rfInstance || !wrapperRef.current) return
@@ -375,6 +378,7 @@ export default function Canvas({
       onDelete: () => handleDelete(n.id),
       onComment: onCommentNode ? () => onCommentNode(n.id) : undefined,
       commentCount: commentCounts?.[n.id],
+      findingColor: highlightedNodes?.[n.id],
     },
   }))
 
@@ -447,11 +451,10 @@ export default function Canvas({
           proOptions={{ hideAttribution: true }}
         >
           <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} color="#d9edf1" className="dark:opacity-40" />
-          <Controls className="sysflow-controls !shadow-md [&>button]:!border-zinc-200 [&>button]:!bg-white dark:[&>button]:!border-zinc-700 dark:[&>button]:!bg-zinc-800" />
-          <ArchitectureOverview nodes={nodes} edges={edges} />
+          <Controls className="sysflow-controls !shadow-md [&>button]:!h-7 [&>button]:!w-7 [&>button]:!border-zinc-200 [&>button]:!bg-white dark:[&>button]:!border-zinc-700 dark:[&>button]:!bg-zinc-800" />
         </ReactFlow>
 
-        {/* viewportVersion isn't read directly — bumping it on pan/zoom (via onMove above) forces this
+        {/* viewportVersion isn't read directly - bumping it on pan/zoom (via onMove above) forces this
             component to re-render, which is what makes flowToScreenPosition below stay correct. */}
         {rfInstance && remoteCursors.map((cursor) => {
           const screenPos = rfInstance.flowToScreenPosition({ x: cursor.x, y: cursor.y })
@@ -479,8 +482,8 @@ export default function Canvas({
                   <path d="M5 12h14M12 5v14" />
                 </svg>
               </div>
-              <p className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Start building your architecture</p>
-              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Drag components from the library and connect them to model request flow.</p>
+              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Start building your architecture</p>
+              <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">Drag components from the library and connect them to model request flow.</p>
               <div className="mt-5 flex items-center justify-center gap-2 text-[10px] font-semibold text-zinc-600 dark:text-zinc-300">
                 {['Client', 'Load Balancer', 'Service', 'Database'].map((label, index) => (
                   <div key={label} className="flex items-center gap-2">
@@ -493,7 +496,7 @@ export default function Canvas({
                 <>
                   <button
                     onClick={onLoadSample}
-                    className="btn-dark mt-5 w-full rounded-xl py-2.5 text-sm font-semibold"
+                    className="btn-dark mt-4 w-full rounded-lg py-2 text-xs font-semibold"
                   >
                     Load a sample architecture
                   </button>
@@ -501,6 +504,7 @@ export default function Canvas({
                     {onBrowseTemplates && <button onClick={onBrowseTemplates} className="font-medium text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300">Browse templates</button>}
                     {onBrowseTemplates && onImportSrs && <span className="text-zinc-300 dark:text-zinc-600">·</span>}
                     {onImportSrs && <button onClick={onImportSrs} className="font-medium text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300">Import an SRS doc</button>}
+                    {onGenerate && <><span className="text-zinc-300 dark:text-zinc-600">·</span><button onClick={onGenerate} className="font-medium text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300">✦ AI Generate</button></>}
                   </div>
                 </>
               )}

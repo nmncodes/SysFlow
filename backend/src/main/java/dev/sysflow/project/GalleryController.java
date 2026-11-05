@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Read-only, unauthenticated list of community-published architectures — opt-in only
+ * Read-only, unauthenticated list of community-published architectures - opt-in only
  * (Project.isPublicTemplate), separate from the built-in starter templates in
  * frontend/src/lib/templates.ts. Detail fetch reuses PublicProjectController's
  * existing /api/public/projects/{id}, since a gallery-listed project is by

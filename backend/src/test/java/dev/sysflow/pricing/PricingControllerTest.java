@@ -21,11 +21,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * AzurePricingClient is mocked here deliberately — hitting the real Azure API from a test
+ * AzurePricingClient is mocked here deliberately - hitting the real Azure API from a test
  * would make CI flaky and slow, and the numbers can drift over time. What's actually worth
  * locking in as a test is PricingController's own logic: which types get a real-pricing
  * attempt, the fallback to illustrative when unavailable, and that the total is the sum of
- * the per-node costs — none of that needs a live price to verify.
+ * the per-node costs - none of that needs a live price to verify.
  */
 @SpringBootTest
 @AutoConfigureMockMvc

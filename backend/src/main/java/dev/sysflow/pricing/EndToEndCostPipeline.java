@@ -57,7 +57,7 @@ public class EndToEndCostPipeline {
         }
 
         // Monthly data transfer (in GB)
-        double rawEgressGb = (totalMonthlyRequests * AVG_PAYLOAD_KB) / (1024.0 * 1024.0);
+        double rawEgressGb = (totalMonthlyRequests * AVG_PAYLOAD_KB) / 1_000_000.0;
         double effectiveEgressGb = hasCdn ? (rawEgressGb * (1.0 - (cdnHitRate * 0.7))) : rawEgressGb;
 
         Map<String, PricingCompareResponse.ProviderCostSummary> providerSummaries = new LinkedHashMap<>();
@@ -193,7 +193,7 @@ public class EndToEndCostPipeline {
         // Illustrative fallback from costModel
         return new PricingCompareResponse.NodeCostDetail(
                 n.id(), n.type(), round2(costModel.monthlyCostOf(node)), "illustrative",
-                "Baseline baseline estimate for " + n.type()
+                "Baseline estimate for " + n.type()
         );
     }
 

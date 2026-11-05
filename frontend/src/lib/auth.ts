@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api'
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8081/api'
 const TOKEN_KEY = 'sysflow_token'
 const USER_KEY = 'sysflow_user'
 
@@ -50,19 +50,41 @@ export function clearSession() {
 }
 
 export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
+  const token = localStorage.getItem(TOKEN_KEY)
+  if (!token) return null
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      clearSession()
+      return null
+    }
+  } catch { /* malformed token - let backend reject it */ }
+  return token
 }
 
 export function getUser(): AuthUser | null {
   const raw = localStorage.getItem(USER_KEY)
-  return raw ? JSON.parse(raw) : null
+  if (!raw) return null
+  try {
+    return JSON.parse(raw)
+  } catch {
+    clearSession()
+    return null
+  }
 }
 
 export function isLoggedIn(): boolean {
-  return getToken() !== null
+  return getToken() !== null && getUser() !== null
 }
 
 export function authHeaders(): Record<string, string> {
   const token = getToken()
   return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+export function handleUnauthorized(res: Response): void {
+  if (res.status === 401 && getUser()) {
+    clearSession()
+    window.location.href = '/login?expired=1'
+  }
 }

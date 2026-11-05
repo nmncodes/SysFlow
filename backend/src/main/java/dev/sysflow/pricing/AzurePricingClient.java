@@ -1,6 +1,8 @@
 package dev.sysflow.pricing;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -26,6 +28,7 @@ public class AzurePricingClient implements CloudPricingProvider {
     private static final Duration CACHE_TTL = Duration.ofHours(24);
 
     private final RestClient restClient = buildRestClient();
+    private final CircuitBreaker circuitBreaker;
 
     private static RestClient buildRestClient() {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
@@ -35,6 +38,10 @@ public class AzurePricingClient implements CloudPricingProvider {
                 .baseUrl("https://prices.azure.com/api/retail/prices")
                 .requestFactory(requestFactory)
                 .build();
+    }
+
+    public AzurePricingClient(CircuitBreakerRegistry circuitBreakerRegistry) {
+        this.circuitBreaker = circuitBreakerRegistry.circuitBreaker("azurePricing");
     }
 
     private final Map<PricingCategory, CachedPrice> cache = new ConcurrentHashMap<>();
@@ -128,28 +135,33 @@ public class AzurePricingClient implements CloudPricingProvider {
 
     private Optional<Double> fetch(PricingCategory category) {
         try {
-            JsonNode response = restClient.get()
-                    .uri(uriBuilder -> uriBuilder.queryParam("$filter", category.filter).build())
-                    .retrieve()
-                    .body(JsonNode.class);
-
-            if (response == null) return Optional.empty();
-            for (JsonNode item : response.path("Items")) {
-                boolean productMatches = item.path("productName").asText("").contains(category.productNameMatch);
-                boolean meterMatches = category.exactMeterName == null || category.exactMeterName.equals(item.path("meterName").asText(""));
-                if (productMatches && meterMatches) {
-                    return Optional.of(item.path("retailPrice").asDouble());
-                }
-            }
-            JsonNode items = response.path("Items");
-            if (items.isArray() && items.size() > 0) {
-                return Optional.of(items.get(0).path("retailPrice").asDouble());
-            }
-            return Optional.empty();
+            return circuitBreaker.executeSupplier(() -> doFetch(category));
         } catch (Exception e) {
-            log.warn("Azure pricing lookup failed for {}: {}", category, e.getMessage());
+            log.warn("Azure pricing lookup failed for {} (circuit state: {}): {}",
+                    category, circuitBreaker.getState(), e.getMessage());
             return Optional.empty();
         }
+    }
+
+    private Optional<Double> doFetch(PricingCategory category) {
+        JsonNode response = restClient.get()
+                .uri(uriBuilder -> uriBuilder.queryParam("$filter", category.filter).build())
+                .retrieve()
+                .body(JsonNode.class);
+
+        if (response == null) return Optional.empty();
+        for (JsonNode item : response.path("Items")) {
+            boolean productMatches = item.path("productName").asText("").contains(category.productNameMatch);
+            boolean meterMatches = category.exactMeterName == null || category.exactMeterName.equals(item.path("meterName").asText(""));
+            if (productMatches && meterMatches) {
+                return Optional.of(item.path("retailPrice").asDouble());
+            }
+        }
+        JsonNode items = response.path("Items");
+        if (items.isArray() && !items.isEmpty()) {
+            return Optional.of(items.get(0).path("retailPrice").asDouble());
+        }
+        return Optional.empty();
     }
 
     @Override

@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   CacheIcon,
@@ -14,6 +15,30 @@ import logo from '../assets/logo.png'
 import ThemeToggle from '../components/ThemeToggle'
 
 const BLUE = '#12b8d4'
+
+function CountUp({ end, suffix = '', duration = 2000 }: { end: number; suffix?: string; duration?: number }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const counted = useRef(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting || counted.current) return
+      counted.current = true
+      const start = performance.now()
+      const step = (now: number) => {
+        const t = Math.min((now - start) / duration, 1)
+        const ease = 1 - Math.pow(1 - t, 3)
+        el.textContent = `${Math.round(ease * end)}${suffix}`
+        if (t < 1) requestAnimationFrame(step)
+      }
+      requestAnimationFrame(step)
+    }, { threshold: 0.3 })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [end, suffix, duration])
+  return <span ref={ref}>0{suffix}</span>
+}
 
 const FEATURES = [
   {
@@ -53,12 +78,15 @@ const NAV_LINK =
 function CircuitBackdrop({
   variant = 'grid',
   className = '',
+  glowRef,
 }: {
   variant?: 'grid' | 'glow'
   className?: string
+  glowRef?: React.RefObject<HTMLDivElement | null>
 }) {
   return (
-    <div aria-hidden className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}>
+    <div aria-hidden className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`} style={{ willChange: 'transform' }}>
+      {glowRef && <div ref={glowRef} className="absolute inset-0 z-[1]" />}
       {/* Keep the center calm so headings, cards and the architecture preview stay dominant. */}
       <div
         className="absolute inset-0"
@@ -107,66 +135,65 @@ function CircuitBackdrop({
 
       {/* Large, low-contrast technical linework. The decorations stay at the edges. */}
       <svg
-        className="absolute inset-0 h-full w-full opacity-[0.72] dark:opacity-[0.82]"
-        style={{ filter: 'drop-shadow(0 0 3px rgba(18,184,212,0.22)) drop-shadow(0 0 7px rgba(255,255,255,0.10))' }}
+        className="absolute inset-0 h-full w-full opacity-[0.45] dark:opacity-[0.55]"
         viewBox="0 0 1440 760"
         fill="none"
         preserveAspectRatio="none"
       >
-        <g className="dark:hidden" stroke="#61d7e8" strokeWidth="1.75">
+        <g className="dark:hidden" stroke="#61d7e8" strokeWidth="1.5">
           <path d="M0 176H92V116H174V76H250" />
           <path d="M0 326H118V272H198V218H288" />
-          <path d="M1440 164H1348V106H1268V72H1192" />
-          <path d="M1440 334H1322V276H1240V222H1150" />
+          <path d="M1440 164H1348V106H1266V76H1190" />
+          <path d="M1440 326H1322V272H1242V218H1152" />
           <path d="M74 760V700H150V640H242V592" />
-          <path d="M1366 760V700H1290V638H1198V590" />
+          <path d="M1366 760V700H1290V640H1198V592" />
           <path d="M344 0V52H392V96H448" />
           <path d="M1096 0V52H1048V96H992" />
         </g>
-        <g className="dark:hidden" stroke="#b4eaf1" strokeWidth="1.45">
-          <circle cx="188" cy="188" r="64" />
-          <circle cx="188" cy="188" r="91" />
-          <circle cx="1252" cy="206" r="70" />
-          <circle cx="1252" cy="206" r="99" />
-          <circle cx="92" cy="570" r="42" />
-          <circle cx="1348" cy="574" r="46" />
+        <g className="dark:hidden" stroke="#b4eaf1" strokeWidth="1.3">
+          <circle cx="148" cy="208" r="64" />
+          <circle cx="148" cy="208" r="91" />
+          <circle cx="1292" cy="208" r="64" />
+          <circle cx="1292" cy="208" r="91" />
+          <circle cx="72" cy="592" r="42" />
+          <circle cx="1368" cy="592" r="42" />
         </g>
         <g className="dark:hidden" fill="#12b8d4">
-          <circle cx="174" cy="76" r="3.5" />
-          <circle cx="198" cy="272" r="3.5" />
-          <circle cx="1268" cy="72" r="3.5" />
-          <circle cx="1240" cy="276" r="3.5" />
-          <circle cx="150" cy="700" r="3.5" />
-          <circle cx="1290" cy="700" r="3.5" />
-          <circle cx="392" cy="52" r="3" />
-          <circle cx="1048" cy="52" r="3" />
+          <circle cx="174" cy="76" r="3" />
+          <circle cx="198" cy="272" r="3" />
+          <circle cx="1266" cy="76" r="3" />
+          <circle cx="1242" cy="272" r="3" />
+          <circle cx="150" cy="700" r="3" />
+          <circle cx="1290" cy="700" r="3" />
+          <circle cx="392" cy="52" r="2.5" />
+          <circle cx="1048" cy="52" r="2.5" />
         </g>
 
-        <g className="hidden dark:block" stroke="#16c7e7" strokeWidth="1.35" style={{ filter: "drop-shadow(0 0 1.5px rgba(255,255,255,0.32)) drop-shadow(0 0 4px rgba(76,207,235,0.30))" }}>
+        <g className="hidden dark:block" stroke="#16c7e7" strokeWidth="1.2">
           <path d="M0 176H92V116H174V76H250" />
           <path d="M0 326H118V272H198V218H288" />
-          <path d="M1440 164H1348V106H1268V72H1192" />
-          <path d="M1440 334H1322V276H1240V222H1150" />
+          <path d="M1440 164H1348V106H1266V76H1190" />
+          <path d="M1440 326H1322V272H1242V218H1152" />
           <path d="M74 760V700H150V640H242V592" />
-          <path d="M1366 760V700H1290V638H1198V590" />
+          <path d="M1366 760V700H1290V640H1198V592" />
           <path d="M344 0V52H392V96H448" />
           <path d="M1096 0V52H1048V96H992" />
         </g>
-        <g className="hidden dark:block" stroke="#63dceb" strokeWidth="1.15" opacity="0.9" style={{ filter: "drop-shadow(0 0 1.5px rgba(255,255,255,0.28)) drop-shadow(0 0 4px rgba(76,207,235,0.28))" }}>
-          <circle cx="188" cy="188" r="64" />
-          <circle cx="188" cy="188" r="91" />
-          <circle cx="1252" cy="206" r="70" />
-          <circle cx="1252" cy="206" r="99" />
-          <circle cx="92" cy="570" r="42" />
-          <circle cx="1348" cy="574" r="46" />
+        <g className="hidden dark:block" stroke="#63dceb" strokeWidth="1.0" opacity="0.8">
+          <circle cx="148" cy="208" r="64" />
+          <circle cx="148" cy="208" r="91" />
+          <circle cx="1292" cy="208" r="64" />
+          <circle cx="1292" cy="208" r="91" />
+          <circle cx="72" cy="592" r="42" />
+          <circle cx="1368" cy="592" r="42" />
         </g>
         <g className="hidden dark:block" fill="#12b8d4">
-          <circle cx="174" cy="76" r="3.5" />
-          <circle cx="198" cy="272" r="3.5" />
-          <circle cx="1268" cy="72" r="3.5" />
-          <circle cx="1240" cy="276" r="3.5" />
-          <circle cx="150" cy="700" r="3.5" />
-          <circle cx="1290" cy="700" r="3.5" />
+          <circle cx="174" cy="76" r="3" />
+          <circle cx="198" cy="272" r="3" />
+          <circle cx="1266" cy="76" r="3" />
+          <circle cx="1242" cy="272" r="3" />
+          <circle cx="150" cy="700" r="3" />
+          <circle cx="1290" cy="700" r="3" />
           <circle cx="392" cy="52" r="3" />
           <circle cx="1048" cy="52" r="3" />
         </g>
@@ -175,7 +202,6 @@ function CircuitBackdrop({
       {/* Small technical markers add depth without filling the page. */}
       <svg
         className="absolute inset-0 h-full w-full opacity-[0.48] dark:opacity-[0.58]"
-        style={{ filter: 'drop-shadow(0 0 3px rgba(18,184,212,0.18)) drop-shadow(0 0 6px rgba(255,255,255,0.08))' }}
         viewBox="0 0 1440 760"
         fill="none"
         preserveAspectRatio="none"
@@ -209,17 +235,28 @@ function FlowPath({
 
   return (
     <g aria-hidden>
-      <path
-        d={d}
-        fill="none"
-        stroke={critical ? '#fecaca' : '#cdeff4'}
-        strokeWidth="2.8"
-        strokeLinecap="round"
-      />
+      <path d={d} fill="none" stroke={critical ? '#fecaca' : '#cdeff4'} strokeWidth="2" strokeLinecap="round" className="dark:opacity-60" />
 
-      <circle r="4.5" fill={color}>
+      <circle r="8" fill={color} opacity="0.15">
         <animateMotion dur={`${duration}s`} repeatCount="indefinite" path={d} />
       </circle>
+      <circle r="4" fill={color}>
+        <animateMotion dur={`${duration}s`} repeatCount="indefinite" path={d} />
+      </circle>
+      <circle r="1.5" fill="white" opacity="0.8">
+        <animateMotion dur={`${duration}s`} repeatCount="indefinite" path={d} />
+      </circle>
+
+      {critical && (
+        <>
+          <circle r="8" fill={color} opacity="0.15">
+            <animateMotion dur={`${duration}s`} begin={`${duration * 0.5}s`} repeatCount="indefinite" path={d} />
+          </circle>
+          <circle r="4" fill={color}>
+            <animateMotion dur={`${duration}s`} begin={`${duration * 0.5}s`} repeatCount="indefinite" path={d} />
+          </circle>
+        </>
+      )}
     </g>
   )
 }
@@ -243,14 +280,14 @@ function PreviewNode({
 }) {
   return (
     <div
-      className={`absolute z-10 w-[132px] -translate-x-1/2 rounded-2xl border bg-white/96 dark:bg-zinc-900/96 p-4 shadow-[0_14px_32px_-16px_rgba(15,23,42,0.35)] backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1 ${
+      className={`preview-node-float absolute z-10 w-[132px] rounded-2xl border bg-white/96 dark:bg-zinc-900/96 p-4 shadow-[0_14px_32px_-16px_rgba(15,23,42,0.35)] backdrop-blur-sm transition-shadow duration-300 hover:shadow-[0_20px_40px_-16px_rgba(15,23,42,0.45)] ${
         critical
           ? 'border-red-200 dark:border-red-800 shadow-[0_16px_36px_-16px_rgba(239,68,68,0.25)]'
           : accent
             ? 'border-[#8de3ee] dark:border-[#1f5b66] shadow-[0_16px_36px_-18px_rgba(18,184,212,0.22)]'
             : 'border-zinc-200 dark:border-zinc-700'
       }`}
-      style={{ left, top }}
+      style={{ left, top, animationDelay: `${parseInt(left) * 40}ms` }}
     >
       <div className="flex items-center justify-between">
         <span
@@ -265,11 +302,11 @@ function PreviewNode({
           <Icon width={22} height={22} />
         </span>
 
-        <span
-          className={`h-3 w-3 rounded-full border-2 border-white dark:border-zinc-900 ${
-            critical ? 'live-dot bg-red-500' : 'bg-emerald-500'
-          }`}
-        />
+        <span className="relative flex h-3 w-3">
+          {critical && <span className="absolute inset-0 animate-ping rounded-full bg-red-400 opacity-75" />}
+          {!critical && <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400 opacity-40" style={{ animationDuration: '2s' }} />}
+          <span className={`relative h-3 w-3 rounded-full border-2 border-white dark:border-zinc-900 ${critical ? 'bg-red-500' : 'bg-emerald-500'}`} />
+        </span>
       </div>
 
       <div className="mt-3 truncate text-[14px] font-bold text-zinc-800 dark:text-zinc-100">
@@ -288,6 +325,15 @@ export default function LandingPage() {
   const howItWorks = useInView<HTMLDivElement>()
   const templates = useInView<HTMLDivElement>()
   const cta = useInView<HTMLDivElement>()
+  const heroGlowRef = useRef<HTMLDivElement>(null)
+  const handleHeroMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    if (!heroGlowRef.current) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    heroGlowRef.current.style.background = `radial-gradient(600px circle at ${e.clientX - rect.left}px ${e.clientY - rect.top}px, rgba(18,184,212,0.15), transparent 40%)`
+  }, [])
+  const handleHeroMouseLeave = useCallback(() => {
+    if (heroGlowRef.current) heroGlowRef.current.style.background = 'none'
+  }, [])
 
   return (
     <div className="min-h-screen bg-[#f7fafb] dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 antialiased">
@@ -325,6 +371,11 @@ export default function LandingPage() {
               Interview Practice
               <span className="absolute -bottom-2 left-0 h-[2px] w-0 rounded-full bg-[#12b8d4] transition-all duration-200 group-hover:w-full" />
             </Link>
+
+            <Link to="/learn" className={NAV_LINK}>
+              Learn
+              <span className="absolute -bottom-2 left-0 h-[2px] w-0 rounded-full bg-[#12b8d4] transition-all duration-200 group-hover:w-full" />
+            </Link>
           </nav>
 
           <div className="flex items-center gap-4">
@@ -341,8 +392,8 @@ export default function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-[#f7fafb] dark:bg-zinc-950 px-6 pb-20 pt-14 sm:pt-16">
-        <CircuitBackdrop variant="grid" className="opacity-90" />
+      <section className="relative overflow-hidden bg-[#f7fafb] dark:bg-zinc-950 px-6 pb-20 pt-14 sm:pt-16" onMouseMove={handleHeroMouseMove} onMouseLeave={handleHeroMouseLeave}>
+        <CircuitBackdrop variant="grid" className="opacity-90" glowRef={heroGlowRef} />
 
         <div className="relative z-10 mx-auto max-w-6xl text-center">
           <div className="hero-in inline-flex items-center gap-2 rounded-full border border-[#b8edf4] dark:border-[#1f5b66] bg-white/85 dark:bg-zinc-900/85 px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.13em] text-[#079fbb] dark:text-[#5fd2e6] shadow-[0_8px_24px_-18px_rgba(18,184,212,0.8)] backdrop-blur-sm">
@@ -351,13 +402,12 @@ export default function LandingPage() {
           </div>
 
           <h1 className="hero-in hero-in-delay-1 mx-auto mt-7 max-w-4xl text-[44px] font-semibold leading-[1.02] tracking-[-0.045em] text-[#0f172a] dark:text-zinc-50 sm:text-[64px]">
-            Design your system.
-            <br />
-            <span className="relative inline-block pb-3 text-[#079fbb] dark:text-[#5fd2e6]">
+            <span className="block text-center">Design your system.</span>
+            <span className="relative block text-center pb-3 text-[#079fbb] dark:text-[#5fd2e6]">
               Find what breaks.
               <span
                 aria-hidden
-                className="absolute -bottom-1 left-1/2 h-2.5 w-[92%] -translate-x-1/2 rounded-full bg-[#bff2f7] dark:bg-[#1f5b66] opacity-95"
+                className="absolute -bottom-1 left-1/2 h-2.5 w-[60%] -translate-x-1/2 rounded-full bg-[#bff2f7] dark:bg-[#1f5b66] opacity-95"
               />
             </span>
           </h1>
@@ -371,7 +421,7 @@ export default function LandingPage() {
               to="/app"
               className="btn-dark rounded-full px-7 py-3.5 text-[16px] font-semibold transition-all shadow-[0_12px_28px_-14px_rgba(15,23,42,0.55)] hover:-translate-y-0.5"
             >
-              Start building — it's free
+              Start building - it's free
             </Link>
 
             <a
@@ -382,6 +432,21 @@ export default function LandingPage() {
             </a>
           </div>
 
+          {/* Stats */}
+          <div className="hero-in hero-in-delay-3 mt-12 flex items-center justify-center gap-8 sm:gap-14">
+            {[
+              { end: 12, suffix: '+', label: 'Component types' },
+              { end: 50, suffix: 'k+', label: 'Max simulated RPS' },
+              { end: 6, suffix: '', label: 'Cloud providers' },
+              { end: 100, suffix: '%', label: 'Open source' },
+            ].map(({ end, suffix, label }) => (
+              <div key={label} className="text-center">
+                <div className="text-2xl font-bold tracking-tight text-[#079fbb] dark:text-[#5fd2e6] sm:text-3xl"><CountUp end={end} suffix={suffix} /></div>
+                <div className="mt-1 text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">{label}</div>
+              </div>
+            ))}
+          </div>
+
           {/* Live system preview */}
           <div className="hero-in hero-in-delay-4 relative mx-auto mt-14 max-w-[1080px] overflow-hidden rounded-[28px] border border-zinc-200/80 dark:border-zinc-800 bg-white/96 dark:bg-zinc-900/96 text-left shadow-[0_30px_80px_-30px_rgba(15,23,42,0.28)] backdrop-blur-xl">
             <CircuitBackdrop variant="glow" className="opacity-35" />
@@ -389,9 +454,9 @@ export default function LandingPage() {
             <div className="relative z-10 flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 px-5 py-3.5 sm:px-6">
               <div className="flex items-center gap-3">
                 <div className="flex gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-200 dark:bg-zinc-700" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-200 dark:bg-zinc-700" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-200 dark:bg-zinc-700" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
                 </div>
 
                 <span className="hidden text-[12px] font-medium text-zinc-400 dark:text-zinc-500 sm:inline">
@@ -444,10 +509,19 @@ export default function LandingPage() {
               <div className="relative mx-auto h-[390px] w-full overflow-hidden rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-white/88 dark:bg-zinc-900/88 shadow-[inset_0_1px_8px_rgba(15,23,42,0.025)]">
                 <div
                   aria-hidden
-                  className="pointer-events-none absolute inset-0 opacity-75"
+                  className="pointer-events-none absolute inset-0 dark:hidden"
                   style={{
                     backgroundImage:
-                      'linear-gradient(rgba(15,23,42,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,0.035) 1px, transparent 1px)',
+                      'radial-gradient(circle, rgba(15,23,42,0.08) 1px, transparent 1px)',
+                    backgroundSize: '24px 24px',
+                  }}
+                />
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 hidden dark:block"
+                  style={{
+                    backgroundImage:
+                      'radial-gradient(circle, rgba(148,163,184,0.12) 1px, transparent 1px)',
                     backgroundSize: '24px 24px',
                   }}
                 />
@@ -575,8 +649,7 @@ export default function LandingPage() {
         id="features"
         className="relative overflow-hidden border-t border-zinc-200/60 dark:border-zinc-800 bg-[#f5f8fa] dark:bg-zinc-950 px-6 py-20 sm:py-24"
       >
-        <CircuitBackdrop variant="grid" className="opacity-72" />
-
+        <CircuitBackdrop variant="glow" className="opacity-40" />
         <div className="relative z-10 mx-auto max-w-6xl">
           <div
             ref={features.ref}
@@ -628,8 +701,7 @@ export default function LandingPage() {
         id="templates"
         className="relative overflow-hidden border-y border-zinc-200/70 dark:border-zinc-800 bg-[#f4f8fa] dark:bg-zinc-900 py-20 sm:py-24"
       >
-        <CircuitBackdrop variant="glow" className="opacity-58 dark:opacity-42" />
-
+        <CircuitBackdrop variant="glow" className="opacity-30" />
         <div className="relative z-10 mx-auto max-w-6xl px-6">
           <div
             ref={templates.ref}
@@ -719,8 +791,7 @@ export default function LandingPage() {
         id="how-it-works"
         className="relative overflow-hidden border-b border-zinc-200/70 dark:border-zinc-800 bg-[#f7fafb] dark:bg-zinc-950 py-20 sm:py-24"
       >
-        <CircuitBackdrop variant="grid" className="opacity-58" />
-
+        <CircuitBackdrop variant="glow" className="opacity-30" />
         <div className="relative z-10 mx-auto max-w-6xl px-6">
           <div
             ref={howItWorks.ref}
@@ -765,8 +836,6 @@ export default function LandingPage() {
 
       {/* CTA */}
       <section className="relative overflow-hidden px-6 py-24 text-center sm:py-28 bg-[#f7fafb] dark:bg-zinc-950">
-        <CircuitBackdrop variant="glow" className="opacity-52" />
-
         <div
           ref={cta.ref}
           className={`relative z-10 reveal ${cta.inView ? 'in-view' : ''} mx-auto max-w-3xl`}
@@ -790,14 +859,41 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-zinc-200/70 dark:border-zinc-800 bg-[#f7fafb] dark:bg-zinc-950 py-8">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 text-[13px] text-zinc-400 dark:text-zinc-500 sm:flex-row">
-          <div className="flex items-center gap-2">
-            <img src={logo} alt="" className="h-7 w-7 object-contain" />
-            <span>© 2026 SysFlow</span>
+      <footer className="border-t border-zinc-200/70 dark:border-zinc-800 bg-[#f0f4f6] dark:bg-zinc-950 py-12">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="flex flex-col gap-10 sm:flex-row sm:justify-between">
+            <div className="max-w-xs">
+              <div className="flex items-center gap-2">
+                <img src={logo} alt="" className="h-8 w-8 object-contain" />
+                <span className="text-[16px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">SysFlow</span>
+              </div>
+              <p className="mt-3 text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">Design, simulate, and stress-test distributed systems before they hit production.</p>
+            </div>
+
+            <div className="flex gap-16">
+              <div>
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Product</h4>
+                <ul className="mt-3 space-y-2 text-[13px]">
+                  <li><Link to="/app" className="text-zinc-600 dark:text-zinc-400 hover:text-[#079fbb] dark:hover:text-[#5fd2e6] transition-colors">Editor</Link></li>
+                  <li><Link to="/templates" className="text-zinc-600 dark:text-zinc-400 hover:text-[#079fbb] dark:hover:text-[#5fd2e6] transition-colors">Templates</Link></li>
+                  <li><Link to="/gallery" className="text-zinc-600 dark:text-zinc-400 hover:text-[#079fbb] dark:hover:text-[#5fd2e6] transition-colors">Gallery</Link></li>
+                  <li><Link to="/interview" className="text-zinc-600 dark:text-zinc-400 hover:text-[#079fbb] dark:hover:text-[#5fd2e6] transition-colors">Interview Practice</Link></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Learn</h4>
+                <ul className="mt-3 space-y-2 text-[13px]">
+                  <li><Link to="/learn" className="text-zinc-600 dark:text-zinc-400 hover:text-[#079fbb] dark:hover:text-[#5fd2e6] transition-colors">Learning Paths</Link></li>
+                  <li><a href="#how-it-works" className="text-zinc-600 dark:text-zinc-400 hover:text-[#079fbb] dark:hover:text-[#5fd2e6] transition-colors">How it works</a></li>
+                  <li><a href="#features" className="text-zinc-600 dark:text-zinc-400 hover:text-[#079fbb] dark:hover:text-[#5fd2e6] transition-colors">Features</a></li>
+                </ul>
+              </div>
+            </div>
           </div>
 
-          <span>Built by Aryan, Naman, Aditya, Isha, Debojyoti</span>
+          <div className="mt-10 border-t border-zinc-200/70 dark:border-zinc-800 pt-6 text-center text-[12px] text-zinc-400 dark:text-zinc-500">
+            © {new Date().getFullYear()} SysFlow. All rights reserved.
+          </div>
         </div>
       </footer>
     </div>

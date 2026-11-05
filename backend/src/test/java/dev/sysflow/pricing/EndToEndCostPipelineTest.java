@@ -20,7 +20,7 @@ class EndToEndCostPipelineTest {
         CostModel costModel = new CostModel();
         AwsPricingClient aws = new AwsPricingClient();
         GcpPricingClient gcp = new GcpPricingClient();
-        AzurePricingClient azure = new AzurePricingClient();
+        AzurePricingClient azure = new AzurePricingClient(io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry.ofDefaults());
         pipeline = new EndToEndCostPipeline(costModel, List.of(aws, gcp, azure));
     }
 

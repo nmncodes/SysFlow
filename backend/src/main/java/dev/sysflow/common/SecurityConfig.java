@@ -19,7 +19,7 @@ import java.util.List;
 
 /**
  * /api/projects/** requires a valid JWT (issued by /api/auth/login or
- * /api/auth/register). Everything else — health, simulation, AI advisory —
+ * /api/auth/register). Everything else - health, simulation, AI advisory -
  * stays open so the editor works for anonymous trial use per the PRD;
  * only saving/loading projects requires an account.
  */
@@ -51,8 +51,13 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .headers(headers -> headers
+                        .contentTypeOptions(opt -> {})
+                        .frameOptions(frame -> frame.deny())
+                        .httpStrictTransportSecurity(hsts -> hsts.maxAgeInSeconds(31536000).includeSubDomains(true)))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/projects/**").authenticated()
+                        .requestMatchers("/api/workspaces/**").authenticated()
                         .anyRequest().permitAll())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(rateLimitFilter, JwtAuthenticationFilter.class);
@@ -66,7 +71,9 @@ public class SecurityConfig {
                 .filter(s -> !s.isEmpty())
                 .toList());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "X-Request-Id"));
+        config.setExposedHeaders(List.of("X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset", "Retry-After", "X-Request-Id"));
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

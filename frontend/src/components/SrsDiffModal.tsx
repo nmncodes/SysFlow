@@ -69,7 +69,7 @@ export default function SrsDiffModal({ currentNodes, currentEdges, imported, fil
           )}
         </div>
 
-        <p className="mt-3 text-[11px] text-zinc-400 dark:text-zinc-500">This can't be undone from here — but if the canvas is a saved project, its version history will still have the old state.</p>
+        <p className="mt-3 text-[11px] text-zinc-400 dark:text-zinc-500">This can't be undone from here - but if the canvas is a saved project, its version history will still have the old state.</p>
 
         <div className="mt-4 flex justify-end gap-2">
           <button onClick={onCancel} className="rounded-xl px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800">Keep current diagram</button>

@@ -2,7 +2,7 @@ package dev.sysflow.srs;
 
 import java.util.Set;
 
-/** Mirrors frontend/src/components/nodes.ts ComponentType — kept in sync manually. */
+/** Mirrors frontend/src/components/nodes.ts ComponentType - kept in sync manually. */
 public final class ComponentTypes {
 
     public static final Set<String> VALID_TYPES = Set.of(

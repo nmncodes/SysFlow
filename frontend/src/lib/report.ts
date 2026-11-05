@@ -149,7 +149,7 @@ export function generateReport(input: ReportInput): void {
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(10)
     doc.setTextColor(120, 120, 130)
-    doc.text('No findings — no analysis was run, or the design has no flagged issues.', margin, y)
+    doc.text('No findings - no analysis was run, or the design has no flagged issues.', margin, y)
     y += 16
   }
 

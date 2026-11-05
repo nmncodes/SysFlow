@@ -19,15 +19,15 @@ import java.util.Set;
 
 /**
  * Pricing API:
- * - POST /api/pricing/estimate — real Azure Retail Prices with illustrative fallback (legacy)
- * - POST /api/pricing/compare — full multi-cloud end-to-end pricing pipeline (AWS, GCP, Azure)
+ * - POST /api/pricing/estimate - real Azure Retail Prices with illustrative fallback (legacy)
+ * - POST /api/pricing/compare - full multi-cloud end-to-end pricing pipeline (AWS, GCP, Azure)
  *   with both provisioned instance costs and dynamic simulation-derived traffic/egress costs.
  */
 @RestController
 @RequestMapping("/api/pricing")
 public class PricingController {
 
-    /** Assumed data volume for object storage nodes — storage is priced per GB/month, not per instance. */
+    /** Assumed data volume for object storage nodes - storage is priced per GB/month, not per instance. */
     private static final double ASSUMED_STORAGE_GB = 100;
 
     private static final Set<String> GENERIC_COMPUTE_TYPES = Set.of(
@@ -38,20 +38,31 @@ public class PricingController {
     private final CostModel costModel;
     private final AzurePricingClient pricingClient;
     private final EndToEndCostPipeline endToEndPipeline;
+    private final List<CloudPricingProvider> allProviders;
 
-    public PricingController(CostModel costModel, AzurePricingClient pricingClient, EndToEndCostPipeline endToEndPipeline) {
+    public PricingController(CostModel costModel, AzurePricingClient pricingClient,
+                             EndToEndCostPipeline endToEndPipeline, List<CloudPricingProvider> allProviders) {
         this.costModel = costModel;
         this.pricingClient = pricingClient;
         this.endToEndPipeline = endToEndPipeline;
+        this.allProviders = allProviders;
     }
 
     @PostMapping("/compare")
     public PricingCompareResponse compare(@RequestBody PricingCompareRequest request) {
+        if (request.graphJson() == null || request.graphJson().nodes() == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "graphJson with nodes is required");
+        }
         return endToEndPipeline.compare(request);
     }
 
     @PostMapping("/estimate")
     public PricingEstimateResponse estimate(@RequestBody PricingEstimateRequest request) {
+        if (request.graphJson() == null || request.graphJson().nodes() == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "graphJson with nodes is required");
+        }
         List<PricingEstimateResponse.NodeCost> nodeCosts = request.graphJson().nodes().stream()
                 .map(this::costOf)
                 .toList();
@@ -63,7 +74,7 @@ public class PricingController {
     public ScalePricingResponse getScaleTiers() {
         Map<String, ScalePricingResponse.ProviderScalePricing> providersMap = new java.util.LinkedHashMap<>();
         
-        for (CloudPricingProvider provider : List.of(new AwsPricingClient(), new GcpPricingClient(), pricingClient)) {
+        for (CloudPricingProvider provider : allProviders) {
             Map<String, ScalePricingResponse.CategoryPricing> categories = new java.util.LinkedHashMap<>();
             
             categories.put("compute", mapCategory(provider.allComputePrices()));

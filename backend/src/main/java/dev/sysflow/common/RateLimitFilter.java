@@ -30,7 +30,8 @@ import java.util.function.LongSupplier;
 public class RateLimitFilter extends OncePerRequestFilter {
 
     private static final Set<String> LIMITED_PATHS = Set.of(
-            "/api/ai/analyze", "/api/srs/import", "/api/pricing/estimate", "/api/pricing/compare", "/api/interview/grade");
+            "/api/ai/analyze", "/api/ai/generate", "/api/srs/import", "/api/pricing/estimate", "/api/pricing/compare",
+            "/api/interview/grade", "/api/auth/login", "/api/auth/register", "/api/simulations/run");
     private static final int MAX_REQUESTS_PER_WINDOW = 20;
     private static final long WINDOW_MILLIS = 60_000;
     private static final int MAX_BUCKETS = 10_000;
@@ -78,7 +79,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             response.setHeader("Retry-After", String.valueOf(Math.max(1, decision.resetInSeconds())));
             response.setStatus(429);
             response.setContentType("application/json");
-            response.getWriter().write("{\"error\":\"Too many requests — please wait a moment and try again.\"}");
+            response.getWriter().write("{\"error\":\"Too many requests - please wait a moment and try again.\"}");
             return;
         }
 

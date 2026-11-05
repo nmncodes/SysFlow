@@ -113,7 +113,7 @@ export default function ArchitectureOverview({
 
   return (
     <div
-      className={`sysflow-minimap absolute z-10 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg transition-all duration-200 ${
+      className={`sysflow-minimap absolute z-10 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg transition-all duration-200 ${
         isMinimized ? 'cursor-pointer select-none is-minimized' : ''
       }`}
       style={{

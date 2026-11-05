@@ -26,7 +26,7 @@ import java.util.UUID;
 @RequestMapping("/api/projects")
 public class ProjectController {
 
-    /** How many prior snapshots we keep per project — see docs/05-ROADMAP.md Phase 9. */
+    /** How many prior snapshots we keep per project - see docs/05-ROADMAP.md Phase 9. */
     private static final int MAX_VERSIONS_PER_PROJECT = 10;
 
     private final ProjectRepository projectRepository;
@@ -230,9 +230,17 @@ public class ProjectController {
         return UUID.fromString(auth.getName());
     }
 
+    private static final int MAX_GRAPH_JSON_BYTES = 2_000_000;
+
     private String writeJson(JsonNode node) {
         try {
-            return objectMapper.writeValueAsString(node);
+            String json = objectMapper.writeValueAsString(node);
+            if (json.length() > MAX_GRAPH_JSON_BYTES) {
+                throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "graphJson exceeds 2MB limit");
+            }
+            return json;
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid graphJson");
         }

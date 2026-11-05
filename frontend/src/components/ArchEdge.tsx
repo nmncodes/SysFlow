@@ -93,6 +93,21 @@ export default function ArchEdge({
             />
           </circle>
         ))}
+      {active && hasFailure &&
+        Array.from({ length: 2 }).map((_, i) => (
+          <circle key={`fail-${i}`} r={3.2} fill="#ef4444" pointerEvents="none" className="sysflow-failed-particle">
+            <animateMotion
+              dur={`${latencyToDuration(latency) * 1.4}s`}
+              begin={`${i * 1.2}s`}
+              repeatCount="indefinite"
+              path={path}
+              keyPoints="0;0.65"
+              keyTimes="0;1"
+            />
+            <animate attributeName="opacity" values="1;1;0.8;0" keyTimes="0;0.5;0.8;1" dur={`${latencyToDuration(latency) * 1.4}s`} begin={`${i * 1.2}s`} repeatCount="indefinite" />
+            <animate attributeName="r" values="3.2;3.2;4.5;1" keyTimes="0;0.5;0.8;1" dur={`${latencyToDuration(latency) * 1.4}s`} begin={`${i * 1.2}s`} repeatCount="indefinite" />
+          </circle>
+        ))}
       {(hasFailure || (active && rps > 0.5)) && (
         <EdgeLabelRenderer>
           <div

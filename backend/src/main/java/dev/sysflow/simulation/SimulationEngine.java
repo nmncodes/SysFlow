@@ -59,7 +59,6 @@ public class SimulationEngine {
 
             double totalAttempted = 0;
             double totalFailed = 0;
-            double totalLatencyWeighted = 0;
             double totalSucceeded = 0;
             // Stores latency observations completed during this tick only.
             // Used for calculating tick-level p50, p95 and p99.
@@ -144,8 +143,6 @@ public class SimulationEngine {
                     totalAttempted += arriving + arrivingFailed;
                     totalFailed += failedHere;
                     totalSucceeded += accepted;
-                    totalLatencyWeighted += accepted * nodeLatency;
-
                     // Each successful request gets its own latency observation,
                     // sampled independently from this node's configured latency
                     // model. Previously a single latency value (nodeLatency) was
@@ -252,7 +249,7 @@ public class SimulationEngine {
                                 new EdgeTickStats(round2(forwarded), round2(nodeLatency)));
                     }
                 } else if (!isClient) {
-                    // terminal node — nothing to forward
+                    // terminal node - nothing to forward
                 }
             }
 
@@ -341,7 +338,7 @@ public class SimulationEngine {
 
     private boolean hasMultipleDependents(SimulationGraph graph, GraphNode node) {
         // A node fed by a load balancer/gateway (i.e. has upstream fan-in) is presumed
-        // to be the sole handler for that traffic — flag it unless it's explicitly
+        // to be the sole handler for that traffic - flag it unless it's explicitly
         // replicated.
         return !graph.incoming(node.id()).isEmpty();
     }
@@ -460,7 +457,9 @@ public class SimulationEngine {
     }
 
     private double clampPct(double v) {
-        return Math.max(0, Math.min(1, v > 1 ? v / 100.0 : v));
+        if (v < 0) return 0;
+        if (v > 1) return Math.min(1, v / 100.0);
+        return v;
     }
 
     private double round2(double v) {

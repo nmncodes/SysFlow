@@ -16,7 +16,7 @@ import java.util.Map;
 /**
  * Synthesis stage of the AI pipeline (docs/02-ARCHITECTURE.md §5).
  * Takes the RuleEngine's grounded facts and asks Gemini to rewrite them
- * as clearer, prioritized natural-language findings — the LLM's job is
+ * as clearer, prioritized natural-language findings - the LLM's job is
  * explanation and prioritization only, never inventing new facts about
  * the graph. Any failure here (missing key, network error, bad
  * response) falls back to the rule findings unmodified, so /api/ai/analyze
@@ -40,7 +40,7 @@ public class GeminiClient {
         this.objectMapper = objectMapper;
         this.apiKey = apiKey;
         this.model = model;
-        // Spring's default request factory has NO timeout — a slow or hung Gemini call would
+        // Spring's default request factory has NO timeout - a slow or hung Gemini call would
         // block the request thread (and the frontend's "Analyzing…" button) indefinitely
         // instead of falling back to rule-based findings like the catch block below intends.
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
@@ -60,7 +60,7 @@ public class GeminiClient {
         return synthesize(ruleFindings, Map.of());
     }
 
-    /** nodeCostsById: rough monthly USD cost per node (see CostModel) — lets Gemini reference cost in its recommendations. */
+    /** nodeCostsById: rough monthly USD cost per node (see CostModel) - lets Gemini reference cost in its recommendations. */
     public List<Finding> synthesize(List<Finding> ruleFindings, Map<String, Double> nodeCostsById) {
         if (!isEnabled() || ruleFindings.isEmpty()) {
             return ruleFindings;
@@ -112,9 +112,9 @@ public class GeminiClient {
                   cost figure is available for the relevant node(s), weave in an approximate cost trade-off
                   in one short clause (e.g. "for roughly $15/mo" or "at a small added cost"). Do not fabricate
                   a number for a component that isn't in MONTHLY_COST_USD, and do not force a cost mention
-                  into every finding — only where it's actually informative.
+                  into every finding - only where it's actually informative.
                 - Order the array with the most severe/important finding first.
-                - Return ONLY a JSON array with the exact same shape as the input — no prose, no markdown.
+                - Return ONLY a JSON array with the exact same shape as the input - no prose, no markdown.
 
                 MONTHLY_COST_USD:
                 %s

@@ -76,7 +76,7 @@ export default function ContextMenu({ state, hasFailure, onKill, onLatency, onTh
       )}
       {hasFailure && (
         <>
-          <div className="my-1 h-px bg-zinc-100" />
+          <div className="my-1 h-px bg-zinc-100 dark:bg-zinc-800" />
           <button onClick={onClear} className={itemClass}>
             Restore to healthy
           </button>

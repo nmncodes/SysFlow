@@ -27,7 +27,7 @@ describe('generateDockerCompose', () => {
       { source: 'worker', target: 'api' },
     ])
 
-    expect(compose).toContain('#   - Browser (webBrowser): runs on the end user\'s device — not a backend service')
+    expect(compose).toContain('#   - Browser (webBrowser): runs on the end user\'s device - not a backend service')
     expect(compose).toContain('# Dependencies omitted to keep the Compose service graph acyclic:')
     expect((compose.match(/    depends_on:/g) ?? []).length).toBe(1)
   })

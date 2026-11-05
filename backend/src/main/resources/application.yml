@@ -2,23 +2,50 @@ spring:
   application:
     name: sysflow-backend
   datasource:
-    url: jdbc:postgresql://ep-blue-dew-azwsyfoz-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
-    username: neondb_owner
-    password: npg_0LipC8vdxMmY
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/sysflow}
+    username: ${POSTGRES_USER:sysflow}
+    password: ${POSTGRES_PASSWORD:sysflow}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 300000
+      connection-timeout: 5000
+      max-lifetime: 1800000
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
     open-in-view: false
 
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: '0'
+    locations: classpath:db/migration
+
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+      max-file-size: 5MB
+      max-request-size: 5MB
 
 server:
-  port: 8080
+  port: 8081
+  compression:
+    enabled: true
+    min-response-size: 1024
+    mime-types: application/json,application/javascript,text/html,text/css,text/plain
+  tomcat:
+    connection-timeout: 10s
+    keep-alive-timeout: 30s
+    max-connections: 200
+    threads:
+      max: 50
+      min-spare: 5
+  shutdown: graceful
   error:
     # Spring's default suppresses the exception message from error responses entirely -
     # every ResponseStatusException(..., "some useful reason") across the app was silently
@@ -32,7 +59,7 @@ jwt:
 
 gemini:
   api-key: ${GEMINI_API_KEY:}
-  model: ${GEMINI_MODEL:gemini-3.6-flash}
+  model: ${GEMINI_MODEL:gemini-2.0-flash}
 
 cors:
   # Comma-separated list. Defaults cover local dev + the deployed Vercel frontend so the app
@@ -43,3 +70,14 @@ rate-limit:
   # Forwarded client addresses are ignored unless the immediate peer matches one
   # of these trusted proxy CIDRs. Leave empty when the app is reached directly.
   trusted-proxies: ${RATE_LIMIT_TRUSTED_PROXIES:}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      azurePricing:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        slow-call-duration-threshold: 8s
+        slow-call-rate-threshold: 80
