@@ -15,6 +15,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The server assigns ordered graph revisions and merges stale snapshots by stable node and edge
@@ -84,12 +85,26 @@ public class LiveUpdateController {
         }
     }
 
+    // ponytail: 10s TTL cache, per-project ConcurrentHashMap if contention matters
+    private record CachedMembers(Set<UUID> members, long expiresAt) {}
+    private final ConcurrentHashMap<UUID, CachedMembers> memberCache = new ConcurrentHashMap<>();
+    private static final long MEMBER_CACHE_TTL_MS = 10_000;
+
     private void broadcastToMembers(UUID projectId, Object message) {
-        Project project = projectRepository.findById(projectId).orElseThrow();
-        Set<UUID> members = new LinkedHashSet<>();
-        members.add(project.getUserId());
-        collaboratorRepository.findByProjectIdOrderByCreatedAtAsc(projectId)
-                .forEach(collaborator -> members.add(collaborator.getUserId()));
+        long now = System.currentTimeMillis();
+        CachedMembers cached = memberCache.get(projectId);
+        Set<UUID> members;
+        if (cached != null && now < cached.expiresAt()) {
+            members = cached.members();
+        } else {
+            Project project = projectRepository.findById(projectId).orElse(null);
+            if (project == null) return;
+            members = new LinkedHashSet<>();
+            members.add(project.getUserId());
+            collaboratorRepository.findByProjectIdOrderByCreatedAtAsc(projectId)
+                    .forEach(collaborator -> members.add(collaborator.getUserId()));
+            memberCache.put(projectId, new CachedMembers(Set.copyOf(members), now + MEMBER_CACHE_TTL_MS));
+        }
         for (UUID userId : members) {
             messagingTemplate.convertAndSendToUser(userId.toString(), "/queue/project/" + projectId, message);
         }

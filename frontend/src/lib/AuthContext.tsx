@@ -26,7 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = () => {
-    authApi.clearSession()
+    authApi.logout()
     setUser(null)
   }
 

@@ -40,8 +40,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final int maxBuckets;
     private final long windowMillis;
     private final LongSupplier clock;
+    // ponytail: synchronized + LRU LinkedHashMap — fine at <10k rate-limited RPM; ConcurrentHashMap if it matters
     private final Map<String, Window> windows = new LinkedHashMap<>(128, 0.75f, true);
-    private long lastCleanupAt;
+    private volatile long lastCleanupAt;
 
     @Autowired
     public RateLimitFilter(@Value("${rate-limit.trusted-proxies:}") String trustedProxyCidrs) {
@@ -62,7 +63,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String path = request.getRequestURI();
-        if (!LIMITED_PATHS.contains(path)) {
+        if (!LIMITED_PATHS.contains(path) && !path.startsWith("/api/public/projects/share/")) {
             filterChain.doFilter(request, response);
             return;
         }

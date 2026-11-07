@@ -1,4 +1,8 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8081/api'
+
+if (import.meta.env.PROD && API_BASE.startsWith('http://') && !API_BASE.includes('localhost')) {
+  console.warn('[SysFlow] API_BASE uses HTTP in production — set VITE_API_BASE_URL to an HTTPS origin')
+}
 const TOKEN_KEY = 'sysflow_token'
 const USER_KEY = 'sysflow_user'
 
@@ -16,7 +20,7 @@ export interface AuthResult {
 async function handle(res: Response): Promise<AuthResult> {
   if (!res.ok) {
     const body = await res.json().catch(() => null)
-    throw new Error(body?.message ?? (res.status === 401 ? 'Invalid email or password' : res.status === 409 ? 'An account with this email already exists' : 'Request failed'))
+    throw new Error(body?.message ?? (res.status === 401 ? 'Invalid email or password' : 'Request failed'))
   }
   return res.json()
 }
@@ -25,6 +29,7 @@ export async function register(email: string, password: string, displayName: str
   const res = await fetch(`${API_BASE}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ email, password, displayName }),
   })
   return handle(res)
@@ -34,9 +39,17 @@ export async function login(email: string, password: string): Promise<AuthResult
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ email, password }),
   })
   return handle(res)
+}
+
+export async function logout(): Promise<void> {
+  try {
+    await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' })
+  } catch { /* best-effort */ }
+  clearSession()
 }
 
 export function saveSession(result: AuthResult) {

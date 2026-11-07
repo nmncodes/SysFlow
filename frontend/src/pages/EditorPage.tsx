@@ -168,6 +168,7 @@ export default function EditorPage() {
   const [commentDraft, setCommentDraft] = useState('')
   const [isPostingComment, setIsPostingComment] = useState(false)
   const [commentsError, setCommentsError] = useState<string | null>(null)
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
 
   const sim = useSimulation()
   const auth = useAuth()
@@ -515,6 +516,7 @@ export default function EditorPage() {
       }
       setProjectName(name)
       setIsDirty(false)
+      setLastSavedAt(new Date())
       setToast('Project saved')
       setShowSaveDialog(false)
     } catch (e) {
@@ -562,6 +564,7 @@ export default function EditorPage() {
   const applyTemplate = (templateId: string) => {
     const template = TEMPLATES.find((item) => item.id === templateId)
     if (!template) return
+    if (nodes.length > 0 && !window.confirm(`Replace your current architecture with "${template.name}"?`)) return
     setNodes(template.graph.nodes.map((n) => ({
       id: n.id,
       type: 'archNode',
@@ -685,7 +688,7 @@ export default function EditorPage() {
       setComments([])
       return
     }
-    listComments(projectId).then(setComments).catch(() => {})
+    listComments(projectId).then(setComments).catch(() => { setComments([]); setCommentsError('Could not load comments') })
   }, [projectId])
 
   const openCommentsFor = (nodeId: string) => {
@@ -1118,7 +1121,7 @@ export default function EditorPage() {
           <ThemeToggle className="hidden md:inline-flex" />
 
           {auth.user ? <Link to="/projects" className="toolbar-button hidden whitespace-nowrap lg:inline-flex">Projects</Link> : <Link to="/login" className="toolbar-button hidden whitespace-nowrap lg:inline-flex">Log in</Link>}
-          {!isReadOnly && <button onClick={handleSaveClick} disabled={isSaving || !!collab.conflict} title="Save (Ctrl+S)" className="btn-dark shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50">{isSaving ? 'Saving…' : 'Save'}</button>}
+          {!isReadOnly && <span className="flex items-center gap-2 shrink-0">{lastSavedAt && <span className="hidden text-[10px] text-zinc-400 dark:text-zinc-500 sm:inline">Saved {lastSavedAt.toLocaleTimeString()}</span>}<button onClick={handleSaveClick} disabled={isSaving || !!collab.conflict} title="Save (Ctrl+S)" className="btn-dark whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50">{isSaving ? 'Saving…' : 'Save'}</button></span>}
 
           <div className="relative lg:hidden">
             <button onClick={() => setMobileMenuOpen((v) => !v)} className="toolbar-icon shrink-0" aria-label="More options">⋯</button>

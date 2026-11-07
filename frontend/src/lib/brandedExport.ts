@@ -27,6 +27,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
  */
 export async function exportBrandedImage(canvasScreenshotDataUrl: string, opts: BrandedExportOptions): Promise<void> {
   const [shot, logo] = await Promise.all([loadImage(canvasScreenshotDataUrl), loadImage(logoUrl)])
+  const isDark = document.documentElement.classList.contains('dark')
 
   const scale = 2
   const width = shot.width
@@ -38,7 +39,7 @@ export async function exportBrandedImage(canvasScreenshotDataUrl: string, opts: 
   const ctx = canvas.getContext('2d')
   if (!ctx) return
 
-  ctx.fillStyle = '#ffffff'
+  ctx.fillStyle = isDark ? '#18181b' : '#ffffff'
   ctx.fillRect(0, 0, width, height)
 
   // Header
@@ -47,18 +48,18 @@ export async function exportBrandedImage(canvasScreenshotDataUrl: string, opts: 
   const logoSize = 40 * scale
   ctx.drawImage(logo, padX, (headerH - logoSize) / 2, logoSize, logoSize)
 
-  ctx.fillStyle = '#18181b'
+  ctx.fillStyle = isDark ? '#fafafa' : '#18181b'
   ctx.font = `${22 * scale}px -apple-system, "Segoe UI", sans-serif`
   ctx.textBaseline = 'alphabetic'
   ctx.fillText(opts.projectName, padX + logoSize + 16 * scale, headerH / 2 - 2 * scale)
 
-  ctx.fillStyle = '#71717a'
+  ctx.fillStyle = isDark ? '#a1a1aa' : '#71717a'
   ctx.font = `${13 * scale}px -apple-system, "Segoe UI", sans-serif`
   const subtitleParts = [`${opts.nodeCount} components`, `${opts.edgeCount} connections`]
   if (opts.estimatedMonthlyCost !== undefined) subtitleParts.push(`~$${opts.estimatedMonthlyCost.toLocaleString()}/mo`)
   ctx.fillText(subtitleParts.join('  ·  '), padX + logoSize + 16 * scale, headerH / 2 + 18 * scale)
 
-  ctx.strokeStyle = '#e4e4e7'
+  ctx.strokeStyle = isDark ? '#3f3f46' : '#e4e4e7'
   ctx.lineWidth = 1 * scale
   ctx.beginPath()
   ctx.moveTo(0, headerH)
@@ -70,13 +71,13 @@ export async function exportBrandedImage(canvasScreenshotDataUrl: string, opts: 
 
   // Footer
   const footerY = headerH + shot.height
-  ctx.strokeStyle = '#e4e4e7'
+  ctx.strokeStyle = isDark ? '#3f3f46' : '#e4e4e7'
   ctx.beginPath()
   ctx.moveTo(0, footerY)
   ctx.lineTo(width, footerY)
   ctx.stroke()
 
-  ctx.fillStyle = '#a1a1aa'
+  ctx.fillStyle = isDark ? '#71717a' : '#a1a1aa'
   ctx.font = `${11 * scale}px -apple-system, "Segoe UI", sans-serif`
   ctx.fillText('Designed with SysFlow', padX, footerY + FOOTER_HEIGHT * scale / 2 + 4 * scale)
 

@@ -68,11 +68,12 @@ public class ProjectController {
 
     @GetMapping("/shared-with-me")
     public List<ProjectSummaryResponse> sharedWithMe(Authentication auth) {
-        return collaboratorRepository.findByUserId(userId(auth)).stream()
-                .map(member -> projectRepository.findById(member.getProjectId())
-                        .map(project -> summary(project, member.getRole()))
-                        .orElse(null))
-                .filter(java.util.Objects::nonNull)
+        List<ProjectCollaborator> memberships = collaboratorRepository.findByUserId(userId(auth));
+        if (memberships.isEmpty()) return List.of();
+        Map<UUID, CollaboratorRole> roleByProject = memberships.stream()
+                .collect(java.util.stream.Collectors.toMap(ProjectCollaborator::getProjectId, ProjectCollaborator::getRole));
+        return projectRepository.findAllById(roleByProject.keySet()).stream()
+                .map(project -> summary(project, roleByProject.getOrDefault(project.getId(), CollaboratorRole.VIEWER)))
                 .toList();
     }
 
@@ -128,7 +129,7 @@ public class ProjectController {
         CollaborativeGraphService.Result graphUpdate = null;
         if (request.graphJson() != null) {
             JsonNode submittedGraph = request.graphJson();
-            long baseRevision = request.collaborationRevision() == null ? 0L : request.collaborationRevision();
+            long baseRevision = request.collaborationRevision() != null ? request.collaborationRevision() : 0L;
             graphUpdate = collaborativeGraphService.apply(id, baseRevision, submittedGraph);
             if (!graphUpdate.accepted()) {
                 if (request.collaborationClientId() != null) {
@@ -149,8 +150,8 @@ public class ProjectController {
                 project.setGraphJson(canonicalGraphJson);
             }
         }
-        project.setName(request.name());
-        project.setDescription(request.description());
+        if (request.name() != null) project.setName(request.name());
+        if (request.description() != null) project.setDescription(request.description());
         projectRepository.save(project);
         if (graphUpdate != null) broadcastGraphUpdate(project, graphUpdate);
         return toResponse(project, access.roleFor(project, userId(auth)), graphUpdate == null ? null : graphUpdate.revision());
@@ -162,7 +163,7 @@ public class ProjectController {
         access.requireOwner(id, userId(auth));
         Project project = projectRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
-        projectVersionRepository.deleteAll(projectVersionRepository.findByProjectIdOrderByCreatedAtDesc(project.getId()));
+        projectVersionRepository.deleteByProjectId(project.getId());
         nodeCommentRepository.deleteByProjectId(project.getId());
         collaboratorRepository.deleteByProjectId(project.getId());
         collaborativeGraphService.remove(project.getId());

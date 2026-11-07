@@ -1,4 +1,4 @@
-import { authHeaders } from './auth'
+import { authHeaders, handleUnauthorized } from './auth'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8081/api'
 
@@ -12,6 +12,7 @@ export interface NodeComment {
 
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
+    handleUnauthorized(res)
     if (res.status === 401 || res.status === 403) throw new Error('You need to log in to do that.')
     throw new Error(`Request failed: ${res.status}`)
   }
@@ -37,5 +38,5 @@ export async function deleteComment(projectId: string, commentId: string): Promi
     method: 'DELETE',
     headers: { ...authHeaders() },
   })
-  if (!res.ok) throw new Error('Failed to delete comment')
+  if (!res.ok) { handleUnauthorized(res); throw new Error('Failed to delete comment') }
 }

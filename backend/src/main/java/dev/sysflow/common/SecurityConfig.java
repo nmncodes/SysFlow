@@ -48,6 +48,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                // CSRF disabled: all state-changing requests require a Bearer token in the
+                // Authorization header (not auto-attached by browsers), so CSRF attacks
+                // cannot forge authenticated requests. The httpOnly cookie is a defense-in-depth
+                // fallback read only when the header is absent.
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

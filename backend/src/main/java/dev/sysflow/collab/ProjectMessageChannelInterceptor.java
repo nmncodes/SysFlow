@@ -41,9 +41,16 @@ final class ProjectMessageChannelInterceptor implements ChannelInterceptor {
     }
 
     private void authenticate(StompHeaderAccessor accessor) {
+        String token = null;
         String authorization = accessor.getFirstNativeHeader("Authorization");
-        UUID userId = authorization != null && authorization.startsWith("Bearer ")
-                ? jwtService.validateAndGetUserId(authorization.substring(7)) : null;
+        if (authorization != null && authorization.startsWith("Bearer ")) {
+            token = authorization.substring(7);
+        }
+        if (token == null) {
+            String cookieToken = accessor.getFirstNativeHeader("X-Auth-Token");
+            if (cookieToken != null && !cookieToken.isBlank()) token = cookieToken;
+        }
+        UUID userId = token != null ? jwtService.validateAndGetUserId(token) : null;
         if (userId == null) throw new AccessDeniedException("Authentication required");
         accessor.setUser(new UsernamePasswordAuthenticationToken(userId.toString(), null, List.of()));
     }

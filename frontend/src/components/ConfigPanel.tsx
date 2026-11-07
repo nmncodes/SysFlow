@@ -39,7 +39,7 @@ export default function ConfigPanel({ node, onChange, onDelete, onClose }: Props
     setDraft({ ...config, __label: node.data.label })
     setTab('configure')
     setAdvancedOpen(false)
-  }, [node?.id])
+  }, [node?.id, config])
 
   if (!node) return null
 

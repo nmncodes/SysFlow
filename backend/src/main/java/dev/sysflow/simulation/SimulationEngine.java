@@ -28,6 +28,7 @@ public class SimulationEngine {
         double sumRps = 0, sumErrorRate = 0;
         Map<String, Double> maxLoadByNode = new HashMap<>();
         Map<String, Integer> asgReplicas = new HashMap<>();
+        int maxSamples = 100_000;
         List<Double> latencySamples = new ArrayList<>();
         for (int t = 0; t < config.totalTicks(); t++) {
             Map<String, InjectedFailure> activeNodeFailures = activeFailuresByNode(config, t);
@@ -46,7 +47,7 @@ public class SimulationEngine {
             double totalConfiguredClientRps = clients.stream()
                     .mapToDouble(c -> Math.max(1.0, c.getNumber("targetRps", 100.0)))
                     .sum();
-            double totalTickArrival = config.targetRps() / SimulationConfig.TICKS_PER_SECOND;
+            double totalTickArrival = config.clampedTargetRps() / SimulationConfig.TICKS_PER_SECOND;
             for (GraphNode client : clients) {
                 double clientWeight = totalConfiguredClientRps > 0
                         ? Math.max(1.0, client.getNumber("targetRps", 100.0)) / totalConfiguredClientRps
@@ -166,8 +167,13 @@ public class SimulationEngine {
                         // Keep the sample for the current tick.
                         tickLatencySamples.add(requestLatency);
 
-                        // Keep the sample for the complete simulation run.
-                        latencySamples.add(requestLatency);
+                        // ponytail: reservoir sampling, upgrade to t-digest if percentile accuracy matters
+                        if (latencySamples.size() < maxSamples) {
+                            latencySamples.add(requestLatency);
+                        } else {
+                            int idx = random.nextInt(latencySamples.size() + 1);
+                            if (idx < maxSamples) latencySamples.set(idx, requestLatency);
+                        }
                     }
                 }
 

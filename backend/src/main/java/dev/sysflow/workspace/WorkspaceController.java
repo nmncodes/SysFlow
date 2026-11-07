@@ -26,9 +26,7 @@ public class WorkspaceController {
     }
 
     private UUID userId(Authentication auth) {
-        return userRepo.findByEmail(auth.getName())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED))
-                .getId();
+        return UUID.fromString(auth.getName());
     }
 
     record CreateRequest(String name) {}
@@ -40,9 +38,10 @@ public class WorkspaceController {
     @Transactional
     public WorkspaceResponse create(@RequestBody CreateRequest req, Authentication auth) {
         UUID uid = userId(auth);
-        String slug = req.name.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
-        if (slug.isEmpty()) slug = "workspace";
-        if (workspaceRepo.findBySlug(slug).isPresent()) slug = slug + "-" + UUID.randomUUID().toString().substring(0, 6);
+        String base = req.name.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
+        if (base.isEmpty()) base = "workspace";
+        // ponytail: always append random suffix to avoid TOCTOU slug collision
+        String slug = base + "-" + UUID.randomUUID().toString().substring(0, 6);
 
         Workspace ws = new Workspace(req.name, slug, uid);
         workspaceRepo.save(ws);
@@ -54,11 +53,14 @@ public class WorkspaceController {
     public List<WorkspaceResponse> list(Authentication auth) {
         UUID uid = userId(auth);
         List<WorkspaceMember> memberships = memberRepo.findByUserId(uid);
+        if (memberships.isEmpty()) return List.of();
+        Set<UUID> wsIds = memberships.stream().map(WorkspaceMember::getWorkspaceId).collect(Collectors.toSet());
+        Map<UUID, Workspace> wsById = workspaceRepo.findAllById(wsIds).stream()
+                .collect(Collectors.toMap(Workspace::getId, w -> w));
         return memberships.stream().map(m -> {
-            Workspace ws = workspaceRepo.findById(m.getWorkspaceId()).orElse(null);
+            Workspace ws = wsById.get(m.getWorkspaceId());
             if (ws == null) return null;
-            int count = memberRepo.findByWorkspaceId(ws.getId()).size();
-            return new WorkspaceResponse(ws.getId(), ws.getName(), ws.getSlug(), ws.getPlan(), m.getRole().name(), count);
+            return new WorkspaceResponse(ws.getId(), ws.getName(), ws.getSlug(), ws.getPlan(), m.getRole().name(), 0);
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
@@ -67,8 +69,12 @@ public class WorkspaceController {
         UUID uid = userId(auth);
         memberRepo.findByWorkspaceIdAndUserId(id, uid)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
-        return memberRepo.findByWorkspaceId(id).stream().map(m -> {
-            User u = userRepo.findById(m.getUserId()).orElse(null);
+        List<WorkspaceMember> wsMembers = memberRepo.findByWorkspaceId(id);
+        Set<UUID> userIds = wsMembers.stream().map(WorkspaceMember::getUserId).collect(Collectors.toSet());
+        Map<UUID, User> usersById = userRepo.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+        return wsMembers.stream().map(m -> {
+            User u = usersById.get(m.getUserId());
             return u == null ? null : new MemberResponse(u.getId(), u.getEmail(), u.getDisplayName(), m.getRole().name());
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
@@ -82,10 +88,13 @@ public class WorkspaceController {
         if (caller.getRole() != WorkspaceMember.MemberRole.OWNER && caller.getRole() != WorkspaceMember.MemberRole.ADMIN) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only owners and admins can invite members");
         }
-        User invitee = userRepo.findByEmail(req.email)
+        User invitee = userRepo.findByEmail(req.email.trim().toLowerCase(java.util.Locale.ROOT))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No user with that email"));
         WorkspaceMember.MemberRole role;
         try { role = WorkspaceMember.MemberRole.valueOf(req.role.toUpperCase()); } catch (Exception e) { role = WorkspaceMember.MemberRole.MEMBER; }
+        if (role == WorkspaceMember.MemberRole.OWNER) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "OWNER role cannot be granted via invite");
+        }
         if (memberRepo.findByWorkspaceIdAndUserId(id, invitee.getId()).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Already a member");
         }
@@ -102,6 +111,11 @@ public class WorkspaceController {
         if (caller.getRole() != WorkspaceMember.MemberRole.OWNER && caller.getRole() != WorkspaceMember.MemberRole.ADMIN) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
-        memberRepo.deleteByWorkspaceIdAndUserId(id, memberId);
+        WorkspaceMember target = memberRepo.findByWorkspaceIdAndUserId(id, memberId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Member not found"));
+        if (target.getRole() == WorkspaceMember.MemberRole.OWNER) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot remove the workspace owner");
+        }
+        memberRepo.delete(target);
     }
 }
