@@ -1127,7 +1127,7 @@ button:active:not(:disabled), a:active {
 .editor-shell .simulation-footer {
   position: absolute !important;
   left: 16px !important;
-  right: 338px !important;
+  right: 16px !important;
   bottom: 14px !important;
   width: auto !important;
   min-height: 0 !important;
@@ -1430,7 +1430,7 @@ button:active:not(:disabled), a:active {
 .editor-shell .shortcut-strip { display: none !important; }
 
 @media (max-width: 1250px) {
-  .editor-shell .simulation-footer { right: 310px !important; }
+  .editor-shell .simulation-footer { right: 16px !important; }
   .editor-shell .simulation-toolbar-brand { display: none; }
   .editor-shell .simulation-footer .simulation-state { padding-left: 4px !important; }
   .editor-shell .simulation-footer .live-metrics { flex-basis: 250px !important; }
@@ -1438,12 +1438,12 @@ button:active:not(:disabled), a:active {
 }
 
 @media (max-width: 1050px) {
-  .editor-shell .simulation-footer { right: 292px !important; left: 12px !important; }
+  .editor-shell .simulation-footer { right: 16px !important; left: 12px !important; }
   .editor-shell .simulation-footer .simulation-toolbar-inner { gap: 5px !important; }
 }
 
 @media (max-width: 900px) {
-  .editor-shell .simulation-footer { right: 282px !important; }
+  .editor-shell .simulation-footer { right: 16px !important; }
   .editor-shell .simulation-footer .live-metrics { flex-basis: 220px !important; }
   .editor-shell .simulation-footer .live-metrics > div { min-width: 44px !important; }
 }
@@ -1489,12 +1489,12 @@ button:active:not(:disabled), a:active {
   }
 
   .editor-shell .simulation-footer {
-    right: min(338px, 34vw) !important;
+    right: 16px !important;
   }
 
   .editor-shell .simulation-footer > div:first-child {
-    flex-wrap: wrap;
-    row-gap: 6px !important;
+    flex-wrap: nowrap;
+    overflow-x: auto;
   }
 
   .editor-shell .simulation-footer .live-metrics {

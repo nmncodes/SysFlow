@@ -1710,7 +1710,7 @@ export default function EditorPage() {
                   value={commentDraft}
                   onChange={(e) => setCommentDraft(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && submitComment()}
-                  className="flex-1 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-800 dark:text-zinc-100 outline-none focus:border-violet-400 focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-900/40"
+                  className="flex-1 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-800 dark:text-zinc-100 outline-none focus:border-[#5fd2e6] focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-[#b8edf4] dark:focus:ring-[#1f5b66]"
                 />
                 <button onClick={submitComment} disabled={!commentDraft.trim() || isPostingComment} className="btn-dark rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-50">
                   {isPostingComment ? '…' : 'Post'}
@@ -2121,9 +2121,9 @@ export default function EditorPage() {
       })()}
 
          <footer className={`simulation-footer relative z-40 shrink-0 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.04)] sm:px-4 ${!(analysis || isReadOnly || collab.conflict) ? 'md:mr-[276px]' : ''}`}>
-        <div className="flex min-w-0 items-center gap-2 overflow-x-auto">
+        <div className="flex min-w-0 items-center gap-2 overflow-x-auto flex-nowrap">
            <div className="flex items-center gap-2">
-            <button onClick={handleRun} disabled={!canRun} className={`run-button ${sim.isBusted ? '!bg-red-600 hover:!bg-red-700' : ''}`} title="Ctrl + Enter"><span>{sim.isPlaying ? '▶' : '▶'}</span> {sim.isBusted ? 'Restart' : sim.isPlaying ? 'Running' : sim.result ? 'Resume' : sim.isRunning ? 'Starting…' : 'Run'}</button>
+            <button onClick={handleRun} disabled={!canRun} className={`run-button ${sim.isBusted ? '!bg-red-600 hover:!bg-red-700' : ''}`} title="Ctrl + Enter"><span>▶</span> {sim.isBusted ? 'Restart' : sim.isPlaying ? 'Running' : sim.result ? 'Resume' : sim.isRunning ? 'Starting…' : 'Run'}</button>
             {sim.isPlaying && <button onClick={sim.pause} className="simulation-secondary">Pause</button>}
             {sim.result && <button onClick={sim.reset} className="simulation-secondary danger">Stop</button>}
           </div>
@@ -2255,7 +2255,7 @@ export default function EditorPage() {
           <div className="modal-content-enter w-full max-w-sm rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Save project</h3>
             <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">Give this architecture a name so you can return to it later.</p>
-            <input autoFocus type="text" placeholder="Project name" value={saveDraftName} onChange={(e) => setSaveDraftName(e.target.value)} className="mt-4 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2.5 text-sm text-zinc-800 dark:text-zinc-100 outline-none focus:border-violet-400 focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-900/40" />
+            <input autoFocus type="text" placeholder="Project name" value={saveDraftName} onChange={(e) => setSaveDraftName(e.target.value)} className="mt-4 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2.5 text-sm text-zinc-800 dark:text-zinc-100 outline-none focus:border-[#5fd2e6] focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-[#b8edf4] dark:focus:ring-[#1f5b66]" />
             {saveError && <p className="mt-2 text-xs text-red-500 dark:text-red-400">{saveError}</p>}
             <div className="mt-4 flex justify-end gap-2"><button onClick={() => setShowSaveDialog(false)} className="rounded-xl px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800">Cancel</button><button onClick={() => saveDraftName.trim() && performSave(saveDraftName.trim())} disabled={!saveDraftName.trim() || isSaving} className="btn-dark rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-50">{isSaving ? 'Saving…' : 'Save'}</button></div>
           </div>
