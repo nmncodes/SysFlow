@@ -42,9 +42,9 @@ const SERVICE_SPECS: Partial<Record<ComponentType, ServiceSpec>> = {
   messageBroker: { directive: 'image', value: 'bitnami/kafka:3.7', ports: [{ published: 9092, target: 9092 }], environment: { KAFKA_CFG_NODE_ID: '0', KAFKA_CFG_PROCESS_ROLES: 'controller,broker' } },
   eventBus: { directive: 'image', value: 'nats:2.10-alpine', ports: [{ published: 4222, target: 4222 }] },
   cache: { directive: 'image', value: 'redis:7-alpine', ports: [{ published: 6379, target: 6379 }] },
-  database: { directive: 'image', value: 'postgres:16-alpine', ports: [{ published: 5432, target: 5432 }], environment: { POSTGRES_PASSWORD: 'change-me' }, volumes: ['pgdata:/var/lib/postgresql/data'] },
+  database: { directive: 'image', value: 'postgres:16-alpine', ports: [{ published: 5432, target: 5432 }], environment: { POSTGRES_PASSWORD: '${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}' }, volumes: ['pgdata:/var/lib/postgresql/data'] },
   searchIndex: { directive: 'image', value: 'opensearchproject/opensearch:2', ports: [{ published: 9200, target: 9200 }], environment: { 'discovery.type': 'single-node' } },
-  objectStorage: { directive: 'image', value: 'minio/minio:latest', ports: [{ published: 9000, target: 9000 }, { published: 9001, target: 9001 }], environment: { MINIO_ROOT_USER: 'minioadmin', MINIO_ROOT_PASSWORD: 'change-me' }, volumes: ['objectdata:/data'] },
+  objectStorage: { directive: 'image', value: 'minio/minio:latest', ports: [{ published: 9000, target: 9000 }, { published: 9001, target: 9001 }], environment: { MINIO_ROOT_USER: 'minioadmin', MINIO_ROOT_PASSWORD: '${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}' }, volumes: ['objectdata:/data'] },
   monitoring: { directive: 'image', value: 'prom/prometheus:latest', ports: [{ published: 9090, target: 9090 }] },
   logging: { directive: 'image', value: 'grafana/loki:latest', ports: [{ published: 3100, target: 3100 }] },
 }

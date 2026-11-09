@@ -19,10 +19,12 @@ export function stashPendingSave(name: string, graphJson: GraphJson) {
 export function takePendingSave(): PendingSave | null {
   const raw = sessionStorage.getItem(KEY)
   if (!raw) return null
-  sessionStorage.removeItem(KEY)
   try {
-    return JSON.parse(raw)
+    const parsed: PendingSave = JSON.parse(raw)
+    sessionStorage.removeItem(KEY)
+    return parsed
   } catch {
+    sessionStorage.removeItem(KEY)
     return null
   }
 }

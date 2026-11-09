@@ -14,6 +14,7 @@ export default function ProjectsPage() {
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const [publishingId, setPublishingId] = useState<string | null>(null)
   const [revokingShareId, setRevokingShareId] = useState<string | null>(null)
   const [teamProject, setTeamProject] = useState<ProjectSummary | null>(null)
@@ -157,8 +158,9 @@ export default function ProjectsPage() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">My Projects</h2>
+          {projects.length > 3 && <input type="text" placeholder="Search projects…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="rounded-lg border border-zinc-200 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 px-3 py-1.5 text-sm w-48 placeholder:text-zinc-400" />}
         </div>
 
         {actionError && <p className="mt-4 text-sm text-red-500">{actionError}</p>}
@@ -169,11 +171,13 @@ export default function ProjectsPage() {
           </div>
         ) : error ? (
           <p className="mt-6 text-sm text-red-500">{error}</p>
+        ) : projects.filter((p) => !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && projects.length > 0 ? (
+          <p className="mt-6 text-sm text-zinc-400 dark:text-zinc-500">No projects match "{searchQuery}"</p>
         ) : projects.length === 0 ? (
           <p className="mt-6 text-sm text-zinc-400 dark:text-zinc-500">No saved projects yet - save one from the editor.</p>
         ) : (
           <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.map((p, i) => (
+            {projects.filter((p) => !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase())).map((p, i) => (
               <div
                 key={p.id}
                 className={`card-enter card-stagger-${Math.min(i + 1, 8)} hover-lift group relative rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-5 transition hover:border-violet-200 dark:hover:border-violet-500 hover:shadow-md`}

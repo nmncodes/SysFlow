@@ -1,4 +1,4 @@
-import { Link, Route, Routes } from 'react-router-dom'
+import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
 import TemplatesPage from './pages/TemplatesPage'
 import EditorPage from './pages/EditorPage'
@@ -10,8 +10,14 @@ import ShareViewPage from './pages/ShareViewPage'
 import LearnPage from './pages/LearnPage'
 import EmbedPage from './pages/EmbedPage'
 import WorkspacesPage from './pages/WorkspacesPage'
-import { AuthProvider } from './lib/AuthContext'
+import { AuthProvider, useAuth } from './lib/AuthContext'
 import ErrorBoundary from './components/ErrorBoundary'
+
+function PrivateRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth()
+  if (!user) return <Navigate to="/login" replace />
+  return <>{children}</>
+}
 
 function NotFoundPage() {
   return (
@@ -34,14 +40,14 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/app" element={<EditorPage />} />
           <Route path="/login" element={<AuthPage />} />
-          <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/projects" element={<PrivateRoute><ProjectsPage /></PrivateRoute>} />
           <Route path="/gallery" element={<GalleryPage />} />
           <Route path="/templates" element={<TemplatesPage />} />
           <Route path="/interview" element={<InterviewPage />} />
           <Route path="/share/:id" element={<ShareViewPage />} />
           <Route path="/embed/:id" element={<EmbedPage />} />
           <Route path="/learn" element={<LearnPage />} />
-          <Route path="/workspaces" element={<WorkspacesPage />} />
+          <Route path="/workspaces" element={<PrivateRoute><WorkspacesPage /></PrivateRoute>} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AuthProvider>

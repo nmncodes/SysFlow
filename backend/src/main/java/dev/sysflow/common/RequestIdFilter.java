@@ -24,7 +24,9 @@ public class RequestIdFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String requestId = request.getHeader(HEADER);
-        if (requestId == null || requestId.isBlank()) {
+        if (requestId == null || requestId.isBlank()
+                || requestId.length() > 36
+                || !requestId.matches("[a-zA-Z0-9\\-]+")) {
             requestId = UUID.randomUUID().toString().substring(0, 8);
         }
         MDC.put(MDC_KEY, requestId);

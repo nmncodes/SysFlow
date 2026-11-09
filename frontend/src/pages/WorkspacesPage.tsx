@@ -17,7 +17,7 @@ export default function WorkspacesPage() {
   const [creating, setCreating] = useState(false)
 
   useEffect(() => {
-    if (user) listWorkspaces().then(setWorkspaces).catch(() => {})
+    if (user) listWorkspaces().then(setWorkspaces).catch(() => setError('Failed to load workspaces'))
   }, [user])
 
   useEffect(() => {

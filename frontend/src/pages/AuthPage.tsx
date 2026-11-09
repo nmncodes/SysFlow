@@ -14,7 +14,8 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false)
   const auth = useAuth()
   const navigate = useNavigate()
-  const redirectTo = params.get('redirect') ?? '/app'
+  const rawRedirect = params.get('redirect')
+  const redirectTo = rawRedirect && rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/app'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

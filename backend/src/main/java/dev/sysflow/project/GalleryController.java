@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Read-only, unauthenticated list of community-published architectures - opt-in only
@@ -32,9 +34,12 @@ public class GalleryController {
         this.objectMapper = objectMapper;
     }
 
+    private static final int MAX_GALLERY_ITEMS = 100;
+
     @GetMapping
     public List<GalleryItemResponse> list() {
         return projectRepository.findByIsPublicTemplateTrueOrderByUpdatedAtDesc().stream()
+                .limit(MAX_GALLERY_ITEMS)
                 .map(this::toItem)
                 .toList();
     }

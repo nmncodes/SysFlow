@@ -29,7 +29,7 @@ const edgeTypes = { archEdge: ArchEdge }
 const SNAP_GRID: [number, number] = [20, 20]
 
 let idCounter = 1
-const nextId = () => `node_${idCounter++}`
+const nextId = () => `node_${Date.now()}_${idCounter++}`
 
 interface Props {
   nodes: Node<ArchNodeData>[]
@@ -325,7 +325,8 @@ export default function Canvas({
     if (!exportRequest || !wrapperRef.current) return
     const el = wrapperRef.current
     import('html-to-image').then(({ toPng }) => {
-      toPng(el, { backgroundColor: '#f8fcfd', pixelRatio: 2 }).then((dataUrl) => {
+      const isDark = document.documentElement.classList.contains('dark')
+      toPng(el, { backgroundColor: isDark ? '#18181b' : '#f8fcfd', pixelRatio: 2 }).then((dataUrl) => {
         const link = document.createElement('a')
         link.download = 'sysflow-architecture.png'
         link.href = dataUrl
@@ -339,7 +340,8 @@ export default function Canvas({
     if (!brandedExportRequest || !wrapperRef.current) return
     const el = wrapperRef.current
     import('html-to-image').then(({ toPng }) => {
-      toPng(el, { backgroundColor: '#f8fcfd', pixelRatio: 2 }).then((dataUrl) => {
+      const isDarkBranded = document.documentElement.classList.contains('dark')
+      toPng(el, { backgroundColor: isDarkBranded ? '#18181b' : '#f8fcfd', pixelRatio: 2 }).then((dataUrl) => {
         exportBrandedImage(dataUrl, { projectName, nodeCount: nodes.length, edgeCount: edges.length, estimatedMonthlyCost })
       })
     })

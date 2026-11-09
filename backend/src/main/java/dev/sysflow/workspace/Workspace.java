@@ -1,6 +1,7 @@
 package dev.sysflow.workspace;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -21,8 +22,9 @@ public class Workspace {
     @Column(name = "owner_id", nullable = false)
     private UUID ownerId;
 
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt = Instant.now();
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 
     @Column(nullable = false)
     private String plan = "free";

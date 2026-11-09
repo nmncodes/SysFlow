@@ -1,6 +1,7 @@
 package dev.sysflow.auth;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -22,8 +23,9 @@ public class User {
     @Column(name = "display_name")
     private String displayName;
 
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt = Instant.now();
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 
     protected User() {
     }

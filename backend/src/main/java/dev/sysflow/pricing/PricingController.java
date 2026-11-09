@@ -48,11 +48,17 @@ public class PricingController {
         this.allProviders = allProviders;
     }
 
+    private static final int MAX_PRICING_NODES = 200;
+
     @PostMapping("/compare")
     public PricingCompareResponse compare(@RequestBody PricingCompareRequest request) {
         if (request.graphJson() == null || request.graphJson().nodes() == null) {
             throw new org.springframework.web.server.ResponseStatusException(
                     org.springframework.http.HttpStatus.BAD_REQUEST, "graphJson with nodes is required");
+        }
+        if (request.graphJson().nodes().size() > MAX_PRICING_NODES) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Graph exceeds maximum of " + MAX_PRICING_NODES + " nodes");
         }
         return endToEndPipeline.compare(request);
     }
@@ -62,6 +68,10 @@ public class PricingController {
         if (request.graphJson() == null || request.graphJson().nodes() == null) {
             throw new org.springframework.web.server.ResponseStatusException(
                     org.springframework.http.HttpStatus.BAD_REQUEST, "graphJson with nodes is required");
+        }
+        if (request.graphJson().nodes().size() > MAX_PRICING_NODES) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Graph exceeds maximum of " + MAX_PRICING_NODES + " nodes");
         }
         List<PricingEstimateResponse.NodeCost> nodeCosts = request.graphJson().nodes().stream()
                 .map(this::costOf)

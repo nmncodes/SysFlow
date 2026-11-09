@@ -1,6 +1,7 @@
 package dev.sysflow.project;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -20,21 +21,26 @@ public class NodeComment {
     @Column(name = "node_id", nullable = false)
     private String nodeId;
 
+    @Column(name = "author_id", nullable = false)
+    private UUID authorId;
+
     @Column(name = "author_name", nullable = false)
     private String authorName;
 
     @Column(nullable = false, length = 2000)
     private String text;
 
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt = Instant.now();
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 
     protected NodeComment() {
     }
 
-    public NodeComment(UUID projectId, String nodeId, String authorName, String text) {
+    public NodeComment(UUID projectId, String nodeId, UUID authorId, String authorName, String text) {
         this.projectId = projectId;
         this.nodeId = nodeId;
+        this.authorId = authorId;
         this.authorName = authorName;
         this.text = text;
     }
@@ -49,6 +55,10 @@ public class NodeComment {
 
     public String getNodeId() {
         return nodeId;
+    }
+
+    public UUID getAuthorId() {
+        return authorId;
     }
 
     public String getAuthorName() {

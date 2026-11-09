@@ -8,7 +8,13 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8081/api
 function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
-  return fetch(url, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer))
+  return fetch(url, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer)).then((res) => {
+    if (res.status === 429) {
+      const retryAfter = res.headers.get('Retry-After')
+      throw new Error(`Too many requests — please wait ${retryAfter ? `${retryAfter}s` : 'a moment'} and try again`)
+    }
+    return res
+  })
 }
 
 export interface NodeTickStats {
@@ -86,8 +92,8 @@ export async function runSimulation(input: RunSimulationInput): Promise<Simulati
         injectedFailures: input.injectedFailures ?? [],
       },
     }),
-  }, 60_000).catch(() => {
-    throw new Error('Simulation timed out - try reducing the duration or graph size')
+  }, 60_000).catch((e) => {
+    throw new Error(e?.name === 'AbortError' ? 'Simulation timed out - try reducing the duration or graph size' : `Simulation failed: ${e?.message ?? 'network error'}`)
   })
   if (!res.ok) {
     throw new Error(`Simulation request failed: ${res.status}`)
@@ -123,11 +129,11 @@ export async function evaluateSlo(
   simulationResult: SimulationResult,
   sloRequirement: SloRequirement,
 ): Promise<SloEvaluationResult> {
-  const res = await fetch(`${API_BASE}/simulations/evaluate-slo`, {
+  const res = await fetchWithTimeout(`${API_BASE}/simulations/evaluate-slo`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ simulationResult, sloRequirement }),
-  })
+  }, 15_000)
   if (!res.ok) {
     throw new Error(`SLO evaluation failed: ${res.status}`)
   }
@@ -160,8 +166,8 @@ export interface SrsImportResult {
 export async function importSrs(file: File): Promise<SrsImportResult> {
   const formData = new FormData()
   formData.append('file', file)
-  const res = await fetchWithTimeout(`${API_BASE}/srs/import`, { method: 'POST', body: formData }, 45_000).catch(() => {
-    throw new Error('SRS import timed out - the document may be too long or the AI service is slow right now')
+  const res = await fetchWithTimeout(`${API_BASE}/srs/import`, { method: 'POST', body: formData }, 45_000).catch((e) => {
+    throw new Error(e?.name === 'AbortError' ? 'SRS import timed out - the document may be too long or the AI service is slow right now' : `SRS import failed: ${e?.message ?? 'network error'}`)
   })
   if (!res.ok) {
     const body = await res.json().catch(() => null)
@@ -235,7 +241,7 @@ export interface ScalePricingResponse {
 }
 
 export async function getScaleTiers(): Promise<ScalePricingResponse> {
-  const res = await fetch(`${API_BASE}/pricing/scale-tiers`)
+  const res = await fetchWithTimeout(`${API_BASE}/pricing/scale-tiers`, {}, 15_000)
   if (!res.ok) throw new Error(`Scale tiers fetch failed: ${res.status}`)
   return res.json()
 }
@@ -243,11 +249,11 @@ export async function getScaleTiers(): Promise<ScalePricingResponse> {
 export async function estimateRealCost(
   nodes: { id: string; type: string; config: Record<string, unknown> }[],
 ): Promise<PricingEstimate> {
-  const res = await fetch(`${API_BASE}/pricing/estimate`, {
+  const res = await fetchWithTimeout(`${API_BASE}/pricing/estimate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ graphJson: { nodes } }),
-  })
+  }, 15_000)
   if (!res.ok) throw new Error(`Pricing estimate failed: ${res.status}`)
   return res.json()
 }
@@ -276,8 +282,8 @@ export async function generateArchitecture(description: string): Promise<SrsImpo
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ description }),
-  }, 30_000).catch(() => {
-    throw new Error('Generation timed out - try a simpler description')
+  }, 30_000).catch((e) => {
+    throw new Error(e?.name === 'AbortError' ? 'Generation timed out - try a simpler description' : `Generation failed: ${e?.message ?? 'network error'}`)
   })
   if (!res.ok) {
     const body = await res.json().catch(() => null)
@@ -298,8 +304,8 @@ export async function analyzeGraph(
       graphJson: { nodes, edges },
       lastSimulationSummary: lastSimulationSummary ?? null,
     }),
-  }, 25_000).catch(() => {
-    throw new Error('Analysis timed out - the AI service may be slow right now')
+  }, 25_000).catch((e) => {
+    throw new Error(e?.name === 'AbortError' ? 'Analysis timed out - the AI service may be slow right now' : `Analysis failed: ${e?.message ?? 'network error'}`)
   })
   if (!res.ok) {
     throw new Error(`Analyze request failed: ${res.status}`)
@@ -326,7 +332,7 @@ export interface InterviewGrade {
 }
 
 export async function listInterviewPrompts(): Promise<InterviewPrompt[]> {
-  const res = await fetch(`${API_BASE}/interview/prompts`)
+  const res = await fetchWithTimeout(`${API_BASE}/interview/prompts`, {}, 15_000)
   if (!res.ok) throw new Error(`Failed to load prompts: ${res.status}`)
   return res.json()
 }
@@ -340,8 +346,8 @@ export async function gradeInterview(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ promptId, graphJson: { nodes, edges } }),
-  }, 25_000).catch(() => {
-    throw new Error('Grading timed out - the AI service may be slow right now')
+  }, 25_000).catch((e) => {
+    throw new Error(e?.name === 'AbortError' ? 'Grading timed out - the AI service may be slow right now' : `Grading failed: ${e?.message ?? 'network error'}`)
   })
   if (!res.ok) {
     const body = await res.json().catch(() => null)

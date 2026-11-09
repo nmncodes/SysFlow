@@ -1,6 +1,7 @@
 package dev.sysflow.workspace;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -22,8 +23,9 @@ public class WorkspaceMember {
     @Enumerated(EnumType.STRING)
     private MemberRole role;
 
-    @Column(name = "joined_at", nullable = false)
-    private Instant joinedAt = Instant.now();
+    @CreationTimestamp
+    @Column(name = "joined_at", nullable = false, updatable = false)
+    private Instant joinedAt;
 
     protected WorkspaceMember() {}
 

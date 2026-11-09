@@ -32,11 +32,13 @@ public class Project {
     @Column(name = "graph_json", nullable = false)
     private String graphJson;
 
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt = Instant.now();
+    @Column(name = "created_at", nullable = false, updatable = false)
+    @org.hibernate.annotations.CreationTimestamp
+    private Instant createdAt;
 
     @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt = Instant.now();
+    @org.hibernate.annotations.UpdateTimestamp
+    private Instant updatedAt;
 
     /**
      * Opt-in only - the owner explicitly chooses to list this in the public gallery.

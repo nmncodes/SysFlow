@@ -7,4 +7,5 @@ import java.util.UUID;
 
 public interface ProjectVersionRepository extends JpaRepository<ProjectVersion, UUID> {
     List<ProjectVersion> findByProjectIdOrderByCreatedAtDesc(UUID projectId);
+    void deleteByProjectId(UUID projectId);
 }

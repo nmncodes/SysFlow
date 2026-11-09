@@ -27,6 +27,14 @@ public class SloController {
 
     @PostMapping("/evaluate-slo")
     public SloEvaluationResult evaluateSlo(@RequestBody SloEvaluationRequest request) {
+        if (request.simulationResult() == null || request.sloRequirement() == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "simulationResult and sloRequirement are required");
+        }
+        if (request.simulationResult().ticks() != null && request.simulationResult().ticks().size() > 600) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Simulation result exceeds maximum of 600 ticks");
+        }
         return evaluator.evaluate(request.simulationResult(), request.sloRequirement());
     }
 }

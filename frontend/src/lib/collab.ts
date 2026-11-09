@@ -107,6 +107,11 @@ export function useCollabSession(projectId: string | null, displayName: string |
     const client = new Client({
       brokerURL: wsUrl(),
       connectHeaders: { Authorization: `Bearer ${getToken() ?? ''}` },
+      beforeConnect: () => {
+        const freshToken = getToken()
+        if (!freshToken) { client.deactivate(); return }
+        client.connectHeaders = { Authorization: `Bearer ${freshToken}` }
+      },
       reconnectDelay: 3000,
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,

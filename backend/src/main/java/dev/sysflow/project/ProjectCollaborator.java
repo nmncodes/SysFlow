@@ -1,6 +1,7 @@
 package dev.sysflow.project;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -24,8 +25,9 @@ public class ProjectCollaborator {
     @Column(nullable = false, length = 16)
     private CollaboratorRole role;
 
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt = Instant.now();
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 
     protected ProjectCollaborator() {
     }

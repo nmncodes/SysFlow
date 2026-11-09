@@ -21,7 +21,10 @@ public class TextExtractor {
 
         if (filename.endsWith(".pdf")) {
             try (PDDocument doc = Loader.loadPDF(file.getBytes())) {
-                return new PDFTextStripper().getText(doc);
+                PDFTextStripper stripper = new PDFTextStripper();
+                // ponytail: cap at 50 pages, raise if real docs need more
+                stripper.setEndPage(Math.min(doc.getNumberOfPages(), 50));
+                return stripper.getText(doc);
             }
         }
         if (filename.endsWith(".docx")) {

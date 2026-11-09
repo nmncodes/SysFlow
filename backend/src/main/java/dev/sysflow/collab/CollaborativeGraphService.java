@@ -50,7 +50,7 @@ public class CollaborativeGraphService {
 
         ProjectGraphRevision baseRevisionEntity = revisionRepository.findByProjectIdAndRevision(projectId, baseRevision).orElse(null);
         if (baseRevisionEntity == null) {
-            return new Result(false, state.getRevision(), currentGraph, List.of("graph"));
+            return new Result(false, state.getRevision(), currentGraph, List.of("base-revision-missing:" + baseRevision));
         }
         JsonNode baseGraph = readGraph(baseRevisionEntity.getGraphJson());
 
