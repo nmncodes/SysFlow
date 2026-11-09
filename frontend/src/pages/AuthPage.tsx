@@ -58,7 +58,7 @@ export default function AuthPage() {
                 placeholder="Name"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="rounded-lg border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700 px-3 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 outline-none focus:border-violet-300 dark:focus:border-violet-500 focus:bg-white dark:focus:bg-zinc-600 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-800"
+                className="rounded-lg border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700 px-3 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 outline-none focus:border-[#5fd2e6] dark:focus:border-[#12b8d4] focus:bg-white dark:focus:bg-zinc-600 focus:ring-2 focus:ring-[#b8edf4] dark:focus:ring-[#1f5b66]"
               />
             )}
             <input
@@ -67,7 +67,7 @@ export default function AuthPage() {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="rounded-lg border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700 px-3 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 outline-none focus:border-violet-300 dark:focus:border-violet-500 focus:bg-white dark:focus:bg-zinc-600 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-800"
+              className="rounded-lg border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700 px-3 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 outline-none focus:border-[#5fd2e6] dark:focus:border-[#12b8d4] focus:bg-white dark:focus:bg-zinc-600 focus:ring-2 focus:ring-[#b8edf4] dark:focus:ring-[#1f5b66]"
             />
             <input
               type="password"
@@ -76,7 +76,7 @@ export default function AuthPage() {
               placeholder="Password (min. 8 characters)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="rounded-lg border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700 px-3 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 outline-none focus:border-violet-300 dark:focus:border-violet-500 focus:bg-white dark:focus:bg-zinc-600 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-800"
+              className="rounded-lg border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700 px-3 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 outline-none focus:border-[#5fd2e6] dark:focus:border-[#12b8d4] focus:bg-white dark:focus:bg-zinc-600 focus:ring-2 focus:ring-[#b8edf4] dark:focus:ring-[#1f5b66]"
             />
             {error && <p className="text-xs text-red-500">{error}</p>}
             <button type="submit" disabled={loading} className="btn-dark mt-2 rounded-lg py-2.5 text-sm font-medium disabled:opacity-50">
@@ -88,14 +88,14 @@ export default function AuthPage() {
             {mode === 'login' ? (
               <>
                 No account?{' '}
-                <button onClick={() => setMode('register')} className="font-medium text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300">
+                <button onClick={() => setMode('register')} className="font-medium text-[#12b8d4] dark:text-[#5fd2e6] hover:text-[#079fbb] dark:hover:text-[#b8edf4]">
                   Register
                 </button>
               </>
             ) : (
               <>
                 Already have an account?{' '}
-                <button onClick={() => setMode('login')} className="font-medium text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300">
+                <button onClick={() => setMode('login')} className="font-medium text-[#12b8d4] dark:text-[#5fd2e6] hover:text-[#079fbb] dark:hover:text-[#b8edf4]">
                   Log in
                 </button>
               </>
