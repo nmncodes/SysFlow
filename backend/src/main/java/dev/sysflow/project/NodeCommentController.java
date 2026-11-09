@@ -56,11 +56,15 @@ public class NodeCommentController {
 
     @DeleteMapping("/{commentId}")
     public void delete(@PathVariable UUID projectId, @PathVariable UUID commentId, Authentication auth) {
-        access.requireEdit(projectId, userId(auth));
+        UUID uid = userId(auth);
+        access.requireEdit(projectId, uid);
         NodeComment comment = nodeCommentRepository.findById(commentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
         if (!comment.getProjectId().equals(projectId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found");
+        }
+        if (!comment.getAuthorId().equals(uid)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the author can delete this comment");
         }
         nodeCommentRepository.delete(comment);
     }

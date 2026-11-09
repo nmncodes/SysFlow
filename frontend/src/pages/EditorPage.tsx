@@ -214,16 +214,24 @@ export default function EditorPage() {
   const collab = useCollabSession(projectId, auth.user?.displayName ?? null, !isReadOnly)
   const applyingRemoteGraphRef = useRef(false)
 
-  collab.onRemoteGraph((payload) => {
-    applyingRemoteGraphRef.current = true
-    setNodes(payload.nodes.map((n) => ({
-      id: n.id,
-      type: 'archNode',
-      position: n.position,
-      data: { componentType: n.type, label: n.label, config: n.config, health: 'idle' },
-    })))
-    setEdges(payload.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: 'archEdge' })))
-  })
+  useEffect(() => {
+    collab.onRemoteGraph((payload) => {
+      applyingRemoteGraphRef.current = true
+      setNodes(payload.nodes.map((n) => ({
+        id: n.id,
+        type: 'archNode',
+        position: n.position,
+        data: { componentType: n.type, label: n.label, config: n.config, health: 'idle' },
+      })))
+      setEdges(payload.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: 'archEdge' })))
+    })
+  }, [collab])
+
+  useEffect(() => {
+    const handler = () => setToast('Session expired — please save your work and log in again')
+    window.addEventListener('sysflow:session-expired', handler)
+    return () => window.removeEventListener('sysflow:session-expired', handler)
+  }, [])
 
   useEffect(() => {
     if (!projectId) return
@@ -1043,7 +1051,7 @@ export default function EditorPage() {
                 onChange={(e) => { setProjectName(e.target.value); markDirty() }}
                 onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
                 title="Edit project name"
-                className="w-20 truncate border-0 bg-transparent p-0 text-[11px] text-zinc-500 dark:text-zinc-400 outline-none hover:text-zinc-700 dark:hover:text-zinc-300 focus:text-zinc-800 dark:focus:text-zinc-100 sm:w-28"
+                className="w-24 truncate border-0 bg-transparent p-0 text-[11px] text-zinc-500 dark:text-zinc-400 outline-none hover:text-zinc-700 dark:hover:text-zinc-300 focus:text-zinc-800 dark:focus:text-zinc-100 sm:w-36 lg:w-44"
               />
             </div>
           </div>
@@ -1063,7 +1071,7 @@ export default function EditorPage() {
           )}
         </div>
 
-        <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           <button onClick={history.undo} disabled={!history.canUndo} title="Undo (Ctrl+Z)" className="toolbar-icon shrink-0" aria-label="Undo">↶</button>
           <button onClick={history.redo} disabled={!history.canRedo} title="Redo (Ctrl+Y)" className="toolbar-icon shrink-0" aria-label="Redo">↷</button>
 
@@ -1102,9 +1110,9 @@ export default function EditorPage() {
           {!isReadOnly && <button onClick={copyShareLink} className="toolbar-button hidden whitespace-nowrap md:inline-flex">Share ↗</button>}
 
           {projectId && <button onClick={openHistory} className="toolbar-button hidden whitespace-nowrap md:inline-flex">History</button>}
-          <button onClick={() => setArchitectureCompareOpen(true)} disabled={nodes.length === 0} className="toolbar-button hidden whitespace-nowrap md:inline-flex disabled:opacity-40">Compare</button>
-          <button onClick={() => { setSloPanelOpen(true); setAnalysis(null); setValidation(null) }} disabled={nodes.length === 0} className="toolbar-button hidden whitespace-nowrap md:inline-flex disabled:opacity-40">Evaluate SLOs</button>
-          <button onClick={() => setObservabilityOpen(true)} disabled={nodes.length === 0} className="toolbar-button hidden whitespace-nowrap md:inline-flex disabled:opacity-40">Observe</button>
+          <button onClick={() => setArchitectureCompareOpen(true)} disabled={nodes.length === 0} className="toolbar-button hidden whitespace-nowrap lg:inline-flex disabled:opacity-40">Compare</button>
+          <button onClick={() => { setSloPanelOpen(true); setAnalysis(null); setValidation(null) }} disabled={nodes.length === 0} className="toolbar-button hidden whitespace-nowrap lg:inline-flex disabled:opacity-40">Evaluate SLOs</button>
+          <button onClick={() => setObservabilityOpen(true)} disabled={nodes.length === 0} className="toolbar-button hidden whitespace-nowrap lg:inline-flex disabled:opacity-40">Observe</button>
 
           {!isReadOnly && <input ref={srsFileInputRef} type="file" accept=".pdf,.docx,.txt,.md" className="hidden" onChange={handleSrsFileSelected} />}
           {!isReadOnly && <button onClick={() => srsFileInputRef.current?.click()} disabled={isImportingSrs} className="toolbar-button hidden whitespace-nowrap md:inline-flex disabled:opacity-50">{isImportingSrs ? 'Importing…' : 'Import SRS'}</button>}
@@ -2112,8 +2120,8 @@ export default function EditorPage() {
         )
       })()}
 
-         <footer className={`simulation-footer relative z-40 shrink-0 overflow-visible border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.04)] sm:px-4 ${!(analysis || isReadOnly || collab.conflict) ? 'md:mr-[276px]' : ''}`}>
-        <div className="flex min-w-0 items-center gap-2 overflow-visible">
+         <footer className={`simulation-footer relative z-40 shrink-0 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.04)] sm:px-4 ${!(analysis || isReadOnly || collab.conflict) ? 'md:mr-[276px]' : ''}`}>
+        <div className="flex min-w-0 items-center gap-2 overflow-x-auto">
            <div className="flex items-center gap-2">
             <button onClick={handleRun} disabled={!canRun} className={`run-button ${sim.isBusted ? '!bg-red-600 hover:!bg-red-700' : ''}`} title="Ctrl + Enter"><span>{sim.isPlaying ? '▶' : '▶'}</span> {sim.isBusted ? 'Restart' : sim.isPlaying ? 'Running' : sim.result ? 'Resume' : sim.isRunning ? 'Starting…' : 'Run'}</button>
             {sim.isPlaying && <button onClick={sim.pause} className="simulation-secondary">Pause</button>}

@@ -84,7 +84,7 @@ function PathCard({ path, completed, onSelect, index }: { path: LearningPath; co
             <span className={`rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider ${DIFF_STYLE[path.challenges[0].difficulty]}`}>{path.challenges[0].difficulty}</span>
             <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{total} challenges</span>
           </div>
-          <span className="text-[11px] font-semibold text-violet-600 dark:text-violet-400 opacity-0 transition-opacity group-hover:opacity-100">Start →</span>
+          <span className="text-[11px] font-semibold text-[#079fbb] dark:text-[#5fd2e6] opacity-0 transition-opacity group-hover:opacity-100">Start →</span>
         </div>
       </div>
     </button>
@@ -220,8 +220,8 @@ export default function LearnPage() {
   const totalDone = LEARNING_PATHS.reduce((s, p) => s + p.challenges.filter(c => completed.has(c.id)).length, 0)
 
   return (
-    <div className="min-h-screen bg-[#fafafa] dark:bg-zinc-900">
-      <header className="sticky top-0 z-10 border-b border-zinc-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm">
+    <div className="min-h-screen bg-[#f7fafb] dark:bg-zinc-950">
+      <header className="sticky top-0 z-10 border-b border-zinc-200/60 dark:border-zinc-800 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
           <div className="flex items-center gap-3">
             <Link to="/" className="text-sm font-medium text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200 transition-colors">← Home</Link>
@@ -232,7 +232,7 @@ export default function LearnPage() {
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            <Link to="/app" className="text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100">Editor</Link>
+            <Link to="/app" className="text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-[#12b8d4]">Editor</Link>
           </div>
         </div>
       </header>
@@ -243,11 +243,11 @@ export default function LearnPage() {
         ) : (
           <div className="page-enter">
             <div className="text-center page-enter-delay-1">
-              <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/40 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-violet-600 dark:text-violet-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-violet-500 animate-pulse" />
+              <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-[#b8edf4] dark:border-[#1f5b66] bg-white/85 dark:bg-zinc-900/85 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[#079fbb] dark:text-[#5fd2e6]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#12b8d4] animate-pulse" />
                 Learn by building
               </div>
-              <h1 className="mt-5 text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-4xl">Master System Design</h1>
+              <h1 className="mt-5 text-[32px] font-bold tracking-[-0.03em] text-zinc-900 dark:text-zinc-50 sm:text-[38px]">Master System Design</h1>
               <p className="mx-auto mt-3 max-w-2xl text-[15px] leading-relaxed text-zinc-500 dark:text-zinc-400">
                 Go from blank canvas to production-ready architecture. Each path is a structured set of challenges with real performance targets - build it, simulate it, prove it works.
               </p>
@@ -260,7 +260,7 @@ export default function LearnPage() {
                 { end: totalDone, suffix: `/${totalChallenges}`, label: 'Your progress' },
               ].map(({ end, suffix, label }) => (
                 <div key={label} className="text-center">
-                  <div className="text-2xl font-bold tracking-tight text-violet-600 dark:text-violet-400"><CountUp end={end} suffix={suffix} /></div>
+                  <div className="text-2xl font-bold tracking-tight text-[#12b8d4]"><CountUp end={end} suffix={suffix} /></div>
                   <div className="mt-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">{label}</div>
                 </div>
               ))}

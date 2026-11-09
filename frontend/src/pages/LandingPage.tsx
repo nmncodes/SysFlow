@@ -401,9 +401,9 @@ export default function LandingPage() {
             Interactive system design simulator
           </div>
 
-          <h1 className="hero-in hero-in-delay-1 mx-auto mt-7 max-w-4xl text-[44px] font-semibold leading-[1.02] tracking-[-0.045em] text-[#0f172a] dark:text-zinc-50 sm:text-[64px]">
-            <span className="block text-center">Design your system.</span>
-            <span className="relative block text-center pb-3 text-[#079fbb] dark:text-[#5fd2e6]">
+          <h1 className="hero-in hero-in-delay-1 mx-auto mt-7 max-w-4xl text-center text-[44px] font-semibold leading-[1.02] tracking-[-0.045em] text-[#0f172a] dark:text-zinc-50 sm:text-[64px]">
+            <span className="block">Design your system.</span>
+            <span className="relative block pb-3 text-[#079fbb] dark:text-[#5fd2e6]">
               Find what breaks.
               <span
                 aria-hidden
@@ -672,7 +672,7 @@ export default function LandingPage() {
             {FEATURES.map((f, i) => (
               <div
                 key={f.title}
-                className={`reveal hover-lift ${features.inView ? 'in-view' : ''} rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white/94 dark:bg-zinc-900/94 p-8 shadow-[0_16px_45px_-25px_rgba(15,23,42,0.20)] transition-all duration-300 hover:border-[#8de3ee] dark:hover:border-[#1f5b66] hover:shadow-[0_22px_55px_-22px_rgba(18,184,212,0.34)]`}
+                className={`reveal hover-lift ${features.inView ? 'in-view' : ''} rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white/94 dark:bg-zinc-900/94 px-7 py-5 shadow-[0_16px_45px_-25px_rgba(15,23,42,0.20)] transition-all duration-300 hover:border-[#8de3ee] dark:hover:border-[#1f5b66] hover:shadow-[0_22px_55px_-22px_rgba(18,184,212,0.34)]`}
                 style={{ transitionDelay: features.inView ? `${i * 90}ms` : '0ms' }}
               >
                 <div className="flex items-start justify-between">
@@ -683,11 +683,11 @@ export default function LandingPage() {
                   <span className="h-3 w-3 rounded-full bg-[#c9f5fa] dark:bg-[#1f5b66] shadow-[0_0_0_5px_rgba(201,245,250,0.4)]" />
                 </div>
 
-                <h3 className="mt-8 text-[24px] font-bold text-[#0f172a] dark:text-zinc-50">
+                <h3 className="mt-4 text-[22px] font-bold text-[#0f172a] dark:text-zinc-50">
                   {f.title}
                 </h3>
 
-                <p className="mt-3 text-[19px] leading-7 text-zinc-500 dark:text-zinc-400">
+                <p className="mt-2 text-[16px] leading-6 text-zinc-500 dark:text-zinc-400">
                   {f.desc}
                 </p>
               </div>
@@ -835,7 +835,7 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="relative overflow-hidden px-6 py-24 text-center sm:py-28 bg-[#f7fafb] dark:bg-zinc-950">
+      <section className="relative overflow-hidden px-6 py-24 text-center sm:py-28 bg-gradient-to-b from-[#eaf6f8] to-[#f7fafb] dark:from-zinc-900 dark:to-zinc-950">
         <div
           ref={cta.ref}
           className={`relative z-10 reveal ${cta.inView ? 'in-view' : ''} mx-auto max-w-3xl`}

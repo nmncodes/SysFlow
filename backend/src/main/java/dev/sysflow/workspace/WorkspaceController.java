@@ -29,14 +29,14 @@ public class WorkspaceController {
         return UUID.fromString(auth.getName());
     }
 
-    record CreateRequest(String name) {}
+    record CreateRequest(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max = 100) String name) {}
     record WorkspaceResponse(UUID id, String name, String slug, String plan, String role, int memberCount) {}
     record MemberResponse(UUID userId, String email, String displayName, String role) {}
     record InviteRequest(String email, String role) {}
 
     @PostMapping
     @Transactional
-    public WorkspaceResponse create(@RequestBody CreateRequest req, Authentication auth) {
+    public WorkspaceResponse create(@jakarta.validation.Valid @RequestBody CreateRequest req, Authentication auth) {
         UUID uid = userId(auth);
         String base = req.name.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
         if (base.isEmpty()) base = "workspace";
@@ -57,10 +57,13 @@ public class WorkspaceController {
         Set<UUID> wsIds = memberships.stream().map(WorkspaceMember::getWorkspaceId).collect(Collectors.toSet());
         Map<UUID, Workspace> wsById = workspaceRepo.findAllById(wsIds).stream()
                 .collect(Collectors.toMap(Workspace::getId, w -> w));
+        Map<UUID, Long> countByWs = memberRepo.findByWorkspaceId(wsIds.iterator().next()) != null
+                ? wsIds.stream().collect(Collectors.toMap(id -> id, id -> (long) memberRepo.findByWorkspaceId(id).size()))
+                : Map.of();
         return memberships.stream().map(m -> {
             Workspace ws = wsById.get(m.getWorkspaceId());
             if (ws == null) return null;
-            return new WorkspaceResponse(ws.getId(), ws.getName(), ws.getSlug(), ws.getPlan(), m.getRole().name(), 0);
+            return new WorkspaceResponse(ws.getId(), ws.getName(), ws.getSlug(), ws.getPlan(), m.getRole().name(), countByWs.getOrDefault(m.getWorkspaceId(), 0L).intValue());
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 

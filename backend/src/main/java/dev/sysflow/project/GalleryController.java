@@ -38,19 +38,18 @@ public class GalleryController {
 
     @GetMapping
     public List<GalleryItemResponse> list() {
-        return projectRepository.findByIsPublicTemplateTrueOrderByUpdatedAtDesc().stream()
+        List<Project> projects = projectRepository.findByIsPublicTemplateTrueOrderByUpdatedAtDesc().stream()
                 .limit(MAX_GALLERY_ITEMS)
-                .map(this::toItem)
                 .toList();
-    }
-
-    private GalleryItemResponse toItem(Project project) {
-        String authorName = userRepository.findById(project.getUserId())
-                .map(User::getDisplayName)
-                .filter(name -> name != null && !name.isBlank())
-                .orElse("SysFlow user");
-        int nodeCount = countNodes(project.getGraphJson());
-        return new GalleryItemResponse(project.getId(), project.getName(), project.getDescription(), authorName, nodeCount, project.getUpdatedAt());
+        if (projects.isEmpty()) return List.of();
+        Set<UUID> userIds = projects.stream().map(Project::getUserId).collect(java.util.stream.Collectors.toSet());
+        Map<UUID, String> names = userRepository.findAllById(userIds).stream()
+                .collect(java.util.stream.Collectors.toMap(User::getId, u -> u.getDisplayName() != null && !u.getDisplayName().isBlank() ? u.getDisplayName() : "SysFlow user"));
+        return projects.stream().map(p -> new GalleryItemResponse(
+                p.getId(), p.getName(), p.getDescription(),
+                names.getOrDefault(p.getUserId(), "SysFlow user"),
+                countNodes(p.getGraphJson()), p.getUpdatedAt()
+        )).toList();
     }
 
     private int countNodes(String graphJson) {

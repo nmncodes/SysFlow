@@ -29,16 +29,18 @@ services:
       JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me}
       JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      SERVER_PORT: 8080
     ports:
       - "8080:8080"
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: http://localhost:8080/api
     restart: unless-stopped
     depends_on:
       - backend
-    environment:
-      VITE_API_BASE_URL: http://localhost:8080/api
     ports:
       - "5173:5173"
 

@@ -98,6 +98,10 @@ export function authHeaders(): Record<string, string> {
 export function handleUnauthorized(res: Response): void {
   if (res.status === 401 && getUser()) {
     clearSession()
-    window.location.href = '/login?expired=1'
+    if (window.location.pathname === '/app') {
+      window.dispatchEvent(new CustomEvent('sysflow:session-expired'))
+    } else {
+      window.location.href = '/login?expired=1'
+    }
   }
 }

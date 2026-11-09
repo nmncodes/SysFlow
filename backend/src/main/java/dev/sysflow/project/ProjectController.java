@@ -117,6 +117,7 @@ public class ProjectController {
 
     @PostMapping
     public ProjectResponse create(@Valid @RequestBody ProjectRequest request, Authentication auth) {
+        if (request.name() == null || request.name().isBlank()) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Project name is required");
         Project project = new Project(userId(auth), request.name(), request.description(), writeJson(request.graphJson()));
         projectRepository.save(project);
         return toResponse(project, CollaboratorRole.EDITOR);
